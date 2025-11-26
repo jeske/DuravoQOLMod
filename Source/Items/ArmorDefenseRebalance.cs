@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Terraria;
 using Terraria.ID;
 using Terraria.ModLoader;
@@ -109,6 +110,94 @@ namespace TerrariaSurvivalMod.Items
                     item.defense = 6; // was 4
                     break;
             }
+        }
+
+        /// <summary>
+        /// Add custom tooltip lines describing chestplate and set bonuses.
+        /// Also removes vanilla set bonus tooltip since we replace it with our own system.
+        /// </summary>
+        public override void ModifyTooltips(Item item, List<TooltipLine> tooltips)
+        {
+            // Remove vanilla "Set bonus: X defense" tooltip line
+            tooltips.RemoveAll(line => line.Name == "SetBonus");
+            
+            string chestplateBonusText = GetChestplateBonusText(item.type);
+            bool isOreArmorPiece = IsOreArmorPiece(item.type);
+
+            // Add chestplate-specific bonus first (if applicable)
+            if (chestplateBonusText != null)
+            {
+                tooltips.Add(new TooltipLine(Mod, "ChestplateBonus", chestplateBonusText));
+            }
+
+            // Add set bonus for any armor piece
+            if (isOreArmorPiece)
+            {
+                string setTooltip = "[c/ADFF2F:Set Bonus:] Shiny - nearby ores and gems sparkle";
+                tooltips.Add(new TooltipLine(Mod, "FullSetBonus", setTooltip));
+            }
+        }
+
+        /// <summary>
+        /// Get the tooltip text for chestplate-specific bonus (null if not a chestplate).
+        /// </summary>
+        private static string GetChestplateBonusText(int itemType)
+        {
+            return itemType switch
+            {
+                // Tin/Copper tier - Emergency Shield
+                ItemID.TinChainmail or ItemID.CopperChainmail
+                    => "[c/00BFFF:25% Shield for 5s when hit (60s cooldown)]",
+                
+                // Iron/Lead tier - Crit bonus
+                ItemID.IronChainmail or ItemID.LeadChainmail
+                    => "[c/00BFFF:+10% critical strike chance]",
+                
+                // Silver/Tungsten tier - Speed bonus
+                ItemID.SilverChainmail or ItemID.TungstenChainmail
+                    => "[c/00BFFF:+15% movement speed]",
+                
+                // Gold/Platinum tier - Enhanced Emergency Shield
+                ItemID.GoldChainmail or ItemID.PlatinumChainmail
+                    => "[c/00BFFF:25% Shield for 10s when hit (120s cooldown, purges debuffs)]",
+                
+                _ => null
+            };
+        }
+
+        /// <summary>
+        /// Check if this item is part of an ore armor set.
+        /// </summary>
+        private static bool IsOreArmorPiece(int itemType)
+        {
+            return itemType switch
+            {
+                // Tin set
+                ItemID.TinHelmet or ItemID.TinChainmail or ItemID.TinGreaves => true,
+                
+                // Copper set
+                ItemID.CopperHelmet or ItemID.CopperChainmail or ItemID.CopperGreaves => true,
+                
+                // Iron set
+                ItemID.IronHelmet or ItemID.IronChainmail or ItemID.IronGreaves => true,
+                
+                // Lead set
+                ItemID.LeadHelmet or ItemID.LeadChainmail or ItemID.LeadGreaves => true,
+                
+                // Silver set
+                ItemID.SilverHelmet or ItemID.SilverChainmail or ItemID.SilverGreaves => true,
+                
+                // Tungsten set
+                ItemID.TungstenHelmet or ItemID.TungstenChainmail or ItemID.TungstenGreaves => true,
+                
+                // Gold set
+                ItemID.GoldHelmet or ItemID.GoldChainmail or ItemID.GoldGreaves => true,
+                
+                // Platinum set
+                ItemID.PlatinumHelmet or ItemID.PlatinumChainmail or ItemID.PlatinumGreaves => true,
+                
+                _ => false
+            };
         }
     }
 }
