@@ -45,6 +45,22 @@ namespace TerrariaSurvivalMod.Players
             GoldPlatinum    // Emergency Shield (10s duration, 120s cooldown, purges debuffs)
         }
 
+        // === SPARKLE TRACKING ===
+        /// <summary>Active sparkles being rendered with manual fade control</summary>
+        private static readonly System.Collections.Generic.List<ActiveSparkle> activeSparkles = new System.Collections.Generic.List<ActiveSparkle>();
+        
+        /// <summary>Tracks an active sparkle with spawn time for fade calculation</summary>
+        private struct ActiveSparkle
+        {
+            public Vector2 WorldPosition;
+            public double SpawnTimeSeconds;
+            public Color SparkleColor;
+            public float InitialScale;
+        }
+        
+        /// <summary>Duration in seconds for sparkle fade-out</summary>
+        private const double SparkleFadeDurationSeconds = 1.0;
+
         // === ORE DETECTION CONSTANTS ===
         /// <summary>Range in tiles for mini-spelunker ore glow effect</summary>
         private const int OreDetectionRangeTiles = 4;
@@ -130,16 +146,15 @@ namespace TerrariaSurvivalMod.Players
             // TESTING: Apply directly when AlwaysEnableOreGlow is true, regardless of buff
             if (AlwaysEnableOreGlow || HasShinyBuff)
             {
-                ApplyMiniSpelunkerOreGlow();
+                SpawnNewSparkles();
+                UpdateAndCleanupSparkles();
             }
         }
-
+        
         /// <summary>
-        /// Scans nearby tiles and creates specular "glint" effects on ore tiles.
-        /// Uses physics-based reflection: glint intensity depends on angle from player to sparkle point.
-        /// Sparkle positions and normals are deterministic per-tile (hashed from coordinates).
+        /// Spawn new sparkles for ore tiles (replaces ApplyMiniSpelunkerOreGlow for spawning).
         /// </summary>
-        private void ApplyMiniSpelunkerOreGlow()
+        private void SpawnNewSparkles()
         {
             // Player's "eye" position for calculating incident rays
             Vector2 playerEyePosition = Player.Center + new Vector2(0, -8f);
@@ -164,68 +179,212 @@ namespace TerrariaSurvivalMod.Players
                     
                     if (scannedTile.HasTile && (isSpelunkerTile || isStoneForTesting))
                     {
-                        // Calculate specular glints for this tile
-                        CalculateAndRenderTileGlints(scanTileX, scanTileY, playerEyePosition);
+                        TrySpawnSparkleForTile(scanTileX, scanTileY, playerEyePosition, scannedTile.TileType);
                     }
                 }
             }
         }
-
+        
         /// <summary>
-        /// Calculate and render specular glints for a single ore tile.
-        /// Each tile has 2 sparkle points with deterministic positions and surface normals.
+        /// Update sparkle fade progress and remove expired ones.
         /// </summary>
-        private void CalculateAndRenderTileGlints(int tileX, int tileY, Vector2 playerEyePosition)
+        private static void UpdateAndCleanupSparkles()
         {
-            // Generate deterministic hash from tile coordinates
-            int tileCoordinateHash = HashTileCoordinates(tileX, tileY);
+            double currentTimeSeconds = DateTime.Now.TimeOfDay.TotalSeconds;
             
-            // Process 2 sparkle points per tile
+            for (int i = activeSparkles.Count - 1; i >= 0; i--)
+            {
+                double ageSeconds = currentTimeSeconds - activeSparkles[i].SpawnTimeSeconds;
+                
+                // Handle midnight wraparound
+                if (ageSeconds < 0) ageSeconds += 86400.0;
+                
+                if (ageSeconds > SparkleFadeDurationSeconds)
+                {
+                    activeSparkles.RemoveAt(i);
+                }
+            }
+        }
+        
+        /// <summary>
+        /// Try to spawn a sparkle for a specific tile (time-throttled).
+        /// </summary>
+        private void TrySpawnSparkleForTile(int tileX, int tileY, Vector2 playerEyePosition, int tileType)
+        {
+            int tileCoordinateHash = HashTileCoordinates(tileX, tileY);
+            int dustType = GetDustTypeForTile(tileType);
+            Vector2 primarySurfaceNormal = GetDeterministicPrimarySurfaceNormal(tileCoordinateHash);
+            
             for (int sparkleIndex = 0; sparkleIndex < 2; sparkleIndex++)
             {
-                // Get deterministic sparkle position within tile (fixed for this tile)
                 Vector2 sparkleOffsetWithinTile = GetDeterministicSparkleOffset(tileCoordinateHash, sparkleIndex);
                 Vector2 sparkleWorldPosition = new Vector2(tileX * 16, tileY * 16) + sparkleOffsetWithinTile;
                 
-                // Get deterministic surface normal for this sparkle point
-                Vector2 sparkleSurfaceNormal = GetDeterministicSurfaceNormal(tileCoordinateHash, sparkleIndex);
+                // Time-based spawn throttling: each sparkle spawns every 2 seconds
+                const double SpawnIntervalSeconds = 2.0;
+                double sparkleTimeOffsetSeconds = ((tileCoordinateHash + sparkleIndex * 12345) & 0xFFFF) / 65536.0 * SpawnIntervalSeconds;
+                double currentTimeSeconds = DateTime.Now.TimeOfDay.TotalSeconds;
+                double effectiveTimeForThisSparkle = currentTimeSeconds + sparkleTimeOffsetSeconds;
+                double timeIntoCurrentInterval = effectiveTimeForThisSparkle % SpawnIntervalSeconds;
                 
-                // Calculate incident ray from player eye to sparkle point
+                // Only spawn if we're within a 100ms window at the start of the interval (wider for testing)
+                if (timeIntoCurrentInterval > 0.1)
+                    continue;
+                
+                // Get surface normal for specular calculation
+                Vector2 sparkleSurfaceNormal = sparkleIndex == 0
+                    ? primarySurfaceNormal
+                    : new Vector2(-primarySurfaceNormal.Y, primarySurfaceNormal.X);
+                
+                // Calculate specular intensity
                 Vector2 playerToSparkleDirection = sparkleWorldPosition - playerEyePosition;
                 float distanceToSparkle = playerToSparkleDirection.Length();
+                if (distanceToSparkle < 1f) continue;
                 
-                if (distanceToSparkle < 1f) continue; // Avoid division by zero
-                
-                Vector2 incidentRayDirection = playerToSparkleDirection / distanceToSparkle; // Normalize
-                
-                // Calculate specular reflection intensity using dot product
-                // Glint is brightest when incident ray aligns with surface normal
-                // Using: intensity = max(0, dot(normal, -incidentRay))^exponent
+                Vector2 incidentRayDirection = playerToSparkleDirection / distanceToSparkle;
                 float dotProduct = Vector2.Dot(sparkleSurfaceNormal, -incidentRayDirection);
                 float specularIntensity = Math.Max(0f, dotProduct);
+                specularIntensity = (float)Math.Pow(specularIntensity, 4f) * 0.3f;
                 
-                // Apply specular exponent for tighter, more focused reflections
-                const float SpecularExponent = 4f;
-                specularIntensity = (float)Math.Pow(specularIntensity, SpecularExponent);
-                
-                // Only render glint if intensity exceeds threshold
-                const float GlintThreshold = 0.3f;
-                if (specularIntensity > GlintThreshold)
+                // Only spawn if intensity exceeds threshold (lowered for testing)
+                if (specularIntensity > 0.05f)
                 {
-                    // Scale dust size and alpha based on intensity
-                    float glintScale = 0.3f + (specularIntensity * 0.4f);
-                    int glintAlpha = (int)(255 * (1f - specularIntensity * 0.5f));
+                    Color sparkleColor = GetColorForOre(dustType) * (specularIntensity * 3f + 0.5f);
+                    float sparkleScale = 0.5f + specularIntensity * 0.5f; // Larger base scale
                     
-                    Dust glintDust = Dust.NewDustPerfect(
-                        sparkleWorldPosition,
-                        DustID.GoldFlame,
-                        Vector2.Zero,
-                        Alpha: glintAlpha,
-                        Scale: glintScale
-                    );
-                    glintDust.noGravity = true;
-                    glintDust.noLight = true;
+                    activeSparkles.Add(new ActiveSparkle
+                    {
+                        WorldPosition = sparkleWorldPosition,
+                        SpawnTimeSeconds = currentTimeSeconds,
+                        SparkleColor = sparkleColor,
+                        InitialScale = sparkleScale
+                    });
                 }
+            }
+        }
+        
+        /// <summary>
+        /// Draw all active sparkles using SpriteBatch with manual fade control.
+        /// Called from ModSystem or similar draw hook.
+        /// </summary>
+        public static void DrawSparkles(SpriteBatch spriteBatch)
+        {
+            if (activeSparkles.Count == 0) return;
+            
+            double currentTimeSeconds = DateTime.Now.TimeOfDay.TotalSeconds;
+            
+            // Use vanilla star texture (small white star shape)
+            Texture2D sparkleTexture = TextureAssets.Star[0].Value;
+            Vector2 textureOrigin = new Vector2(sparkleTexture.Width / 2f, sparkleTexture.Height / 2f);
+            
+            foreach (ActiveSparkle sparkle in activeSparkles)
+            {
+                double ageSeconds = currentTimeSeconds - sparkle.SpawnTimeSeconds;
+                if (ageSeconds < 0) ageSeconds += 86400.0; // Midnight wraparound
+                
+                if (ageSeconds > SparkleFadeDurationSeconds) continue;
+                
+                // Calculate fade: 1.0 at spawn, 0.0 at end
+                float fadeProgress = (float)(ageSeconds / SparkleFadeDurationSeconds);
+                float fadeMultiplier = 1f - fadeProgress;
+                
+                // Apply fade to color and scale
+                // Star texture is ~20px, scale 0.3-0.5 gives ~6-10px sparkles
+                Color fadedColor = sparkle.SparkleColor * fadeMultiplier;
+                float currentScale = sparkle.InitialScale * (0.5f + fadeMultiplier * 0.5f) * 0.3f;
+                
+                // Convert world position to screen position
+                Vector2 screenPosition = sparkle.WorldPosition - Main.screenPosition;
+                
+                spriteBatch.Draw(
+                    sparkleTexture,
+                    screenPosition,
+                    null,
+                    fadedColor,
+                    0f,
+                    textureOrigin,
+                    currentScale,
+                    SpriteEffects.None,
+                    0f
+                );
+            }
+        }
+        
+        /// <summary>
+        /// Convert dust type to a Color for manual rendering.
+        /// </summary>
+        private static Color GetColorForOre(int dustType)
+        {
+            switch (dustType)
+            {
+                case 9: return new Color(255, 140, 50);    // Copper - orange
+                case 11: return new Color(200, 200, 200);  // Tin/Gray
+                case 8: return new Color(180, 180, 180);   // Iron - gray
+                case 14: return new Color(120, 140, 200);  // Lead - blue-gray
+                case 63: return new Color(255, 255, 255);  // Silver - white
+                case 15: return new Color(100, 180, 255);  // Cobalt/Sapphire - blue
+                case 6: return new Color(255, 150, 60);    // Fire/Palladium - orange
+                case 72: return new Color(255, 120, 220);  // Orichalcum/Amethyst - pink
+                case 60: return new Color(255, 100, 100);  // Adamantite/Ruby - red
+                case 75: return new Color(100, 255, 100);  // Chlorophyte/Emerald - green
+                case 169: return new Color(255, 220, 80);  // Topaz/Amber - yellow
+                case 27: return new Color(180, 100, 220);  // Meteorite - purple
+                default: return new Color(255, 230, 120);  // Gold - default yellow
+            }
+        }
+
+
+        /// <summary>
+        /// Get appropriate dust type for a tile to match its visual appearance.
+        /// Returns different dust colors for different ores and gems.
+        /// </summary>
+        private static int GetDustTypeForTile(int tileType)
+        {
+            // Ores - match their visual color using safe DustID values
+            switch (tileType)
+            {
+                // Copper/Tin tier - orange/gray tones
+                case TileID.Copper: return 9;  // Copper dust (orange)
+                case TileID.Tin: return 11;    // Tin dust (gray)
+                
+                // Iron/Lead tier - gray/blue-gray tones
+                case TileID.Iron: return 8;    // Iron dust (gray)
+                case TileID.Lead: return 14;   // Lead dust (blue-gray)
+                
+                // Silver/Tungsten tier - white/green tones
+                case TileID.Silver: return 63; // Silver dust (white)
+                case TileID.Tungsten: return 11; // Similar gray
+                
+                // Gold/Platinum tier - yellow/platinum tones
+                case TileID.Gold: return DustID.GoldFlame;
+                case TileID.Platinum: return 63; // Bright white/silver
+                
+                // Hardmode ores - use colored dust
+                case TileID.Cobalt: return 15;  // Blue
+                case TileID.Palladium: return 6; // Orange/fire
+                case TileID.Mythril: return 15; // Light blue
+                case TileID.Orichalcum: return 72; // Pink
+                case TileID.Adamantite: return 60; // Red
+                case TileID.Titanium: return 11; // Gray/silver
+                case TileID.Chlorophyte: return 75; // Green
+                
+                // Gems - use basic colored dust (gem tile IDs in Terraria)
+                case TileID.Sapphire: return 15;  // Blue
+                case TileID.Ruby: return 60;      // Red
+                case TileID.Emerald: return 75;   // Green
+                case TileID.Topaz: return 169;    // Yellow
+                case TileID.Amethyst: return 72;  // Purple
+                case TileID.Diamond: return 63;   // White/silver
+                case TileID.AmberStoneBlock: return 169;  // Amber (orange/yellow)
+                
+                // Hellstone - fire
+                case TileID.Hellstone: return 6;  // Fire dust
+                
+                // Meteorite - dark purple
+                case TileID.Meteorite: return 27; // Purple/shadow
+                
+                // Default - gold sparkle for anything else (stone for testing, etc)
+                default: return DustID.GoldFlame;
             }
         }
 
@@ -252,12 +411,13 @@ namespace TerrariaSurvivalMod.Players
         }
 
         /// <summary>
-        /// Get a deterministic surface normal for a sparkle point.
-        /// Normal is a unit vector pointing in a fixed direction for this sparkle.
+        /// Get a deterministic primary surface normal for sparkle 0.
+        /// The second sparkle will use a perpendicular vector.
+        /// Normal is a unit vector pointing in a fixed direction for this tile.
         /// </summary>
-        private static Vector2 GetDeterministicSurfaceNormal(int tileHash, int sparkleIndex)
+        private static Vector2 GetDeterministicPrimarySurfaceNormal(int tileHash)
         {
-            int seed = tileHash + sparkleIndex * 54321;
+            int seed = tileHash * 54321;
             // Generate angle in radians (0 to 2π)
             float normalAngle = (seed & 0x3FF) / 163f; // ~0 to 6.28
             return new Vector2(
