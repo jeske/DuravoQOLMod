@@ -4,11 +4,11 @@
 
 Players can wall themselves into complete safety at any time. Dig a hole, place 4 blocks, stand inside - you're now invincible. No enemy can reach you, no mechanic punishes this, and you can:
 
-* AFK overnight
-* Wait out events (blood moon, goblin army)
-* Safely log out anywhere
-* Heal to full with zero risk
-* Plan your next move indefinitely
+- AFK overnight
+- Wait out events (blood moon, goblin army)
+- Safely log out anywhere
+- Heal to full with zero risk
+- Plan your next move indefinitely
 
 This breaks all tension. Exploration has no commitment because safety is always 4 blocks away.
 
@@ -32,11 +32,11 @@ Air tiles can either "reach sky" or be "sealed." Sealed areas slowly deplete oxy
 
 ### Why This Works
 
-* **Walling in = clock starts ticking** - you bought time, not safety
-* **Natural caves are pre-computed as sealed** - entering them already starts the clock
-* **Breaking through to surface air resets everything** - one hole to sky = breathable
-* **Doors count as air-permeable** - bases with exits are fine
-* **Creates preparation gameplay** - bring oxygen items for deep expeditions
+- **Walling in = clock starts ticking** - you bought time, not safety
+- **Natural caves are pre-computed as sealed** - entering them already starts the clock
+- **Breaking through to surface air resets everything** - one hole to sky = breathable
+- **Doors count as air-permeable** - bases with exits are fine
+- **Creates preparation gameplay** - bring oxygen items for deep expeditions
 
 ---
 
@@ -53,7 +53,6 @@ Each air tile stores a small value:
 ```
 
 Separate lookup table:
-
 ```csharp
 Dictionary<ushort, bool> cavernHasAir; // true = connected to sky
 ```
@@ -61,7 +60,6 @@ Dictionary<ushort, bool> cavernHasAir; // true = connected to sky
 ### World Generation
 
 **Phase 1: Sky flood fill**
-
 ```csharp
 // Start from all tiles at y=0 (sky level)
 // Flood fill downward through air tiles
@@ -89,7 +87,6 @@ while (openSet.Count > 0) {
 ```
 
 **Phase 2: Identify sealed caverns**
-
 ```csharp
 ushort nextCavernId = 2;
 
@@ -108,16 +105,15 @@ for (int y = 0; y < worldHeight; y++) {
 ### Runtime Updates
 
 **Player breaks a block:**
-
 ```csharp
 void OnBlockDestroyed(int x, int y) {
     // Get air status of all neighbors
     List<byte> neighborStatuses = GetNeighborAirStatuses(x, y);
-  
+    
     if (neighborStatuses.Contains(1)) {
         // Adjacent to sky-connected air - this tile is now breathable
         airStatus[x, y] = 1;
-      
+        
         // Check if we just opened a sealed cavern
         foreach (byte status in neighborStatuses) {
             if (status >= 2 && !cavernHasAir[status]) {
@@ -141,12 +137,11 @@ void OnBlockDestroyed(int x, int y) {
 ```
 
 **Player places a block:**
-
 ```csharp
 void OnBlockPlaced(int x, int y) {
     byte previousStatus = airStatus[x, y];
     airStatus[x, y] = 0; // Now solid
-  
+    
     if (previousStatus == 1) {
         // Might have sealed something off
         // Check each air neighbor - are they still connected to sky?
@@ -174,28 +169,28 @@ public class OxygenSystem : ModPlayer {
     private const float MAX_OXYGEN = 100f;
     private const float DEPLETION_RATE = 0.5f; // per second in sealed area
     private const float RECOVERY_RATE = 5f; // per second in breathable area
-  
+    
     public override void PostUpdate() {
         bool inBreathableAir = IsBreathable(Player.Center);
-      
+        
         if (inBreathableAir) {
             oxygenLevel = Math.Min(MAX_OXYGEN, oxygenLevel + RECOVERY_RATE * deltaTime);
         } else {
             oxygenLevel = Math.Max(0, oxygenLevel - DEPLETION_RATE * deltaTime);
         }
-      
+        
         ApplyOxygenEffects();
     }
-  
+    
     private bool IsBreathable(Vector2 position) {
         Point tile = position.ToTileCoordinates();
         byte status = airStatus[tile.X, tile.Y];
-      
+        
         if (status == 0) return false; // Inside solid block??
         if (status == 1) return true;  // Sky-connected
         return cavernHasAir[status];   // Check cavern status
     }
-  
+    
     private void ApplyOxygenEffects() {
         if (oxygenLevel > 75) {
             // Fine
@@ -222,119 +217,106 @@ public class OxygenSystem : ModPlayer {
 
 ## Edge Cases
 
-| Scenario                    | Behavior                                        |
-| --------------------------- | ----------------------------------------------- |
-| Door in wall                | Doors are air-permeable - room stays breathable |
-| Platform ceiling            | Platforms are air-permeable - not sealed        |
-| 1-tile hole to surface      | Entire connected area becomes breathable        |
-| Player seals themselves in  | Oxygen starts depleting immediately             |
-| Two players, one seals      | Oxygen depletes for both equally                |
-| Breaking into sealed cavern | Was already sealed - you inherit low oxygen     |
-| Hellevator with door at top | Air flows down entire shaft - all breathable    |
-| Tiny sealed pocket          | Gets unique cavern ID, depletes fast            |
+| Scenario | Behavior |
+|----------|----------|
+| Door in wall | Doors are air-permeable - room stays breathable |
+| Platform ceiling | Platforms are air-permeable - not sealed |
+| 1-tile hole to surface | Entire connected area becomes breathable |
+| Player seals themselves in | Oxygen starts depleting immediately |
+| Two players, one seals | Oxygen depletes for both equally |
+| Breaking into sealed cavern | Was already sealed - you inherit low oxygen |
+| Hellevator with door at top | Air flows down entire shaft - all breathable |
+| Tiny sealed pocket | Gets unique cavern ID, depletes fast |
 
 ---
 
 ## Oxygen Items (New Content)
 
 ### Breathing Reed
-
-* Craftable: 10 wood + 5 vines
-* When held: +50% oxygen capacity
-* Flavor: A hollow reed to breathe through
+- Craftable: 10 wood + 5 vines
+- When held: +50% oxygen capacity
+- Flavor: A hollow reed to breathe through
 
 ### Oxygen Bubble
-
-* Craftable: 10 glass + 5 gel + 1 water bottle
-* Single use: Restores 50 oxygen instantly
-* Can be hotkeyed for emergencies
+- Craftable: 10 glass + 5 gel + 1 water bottle
+- Single use: Restores 50 oxygen instantly
+- Can be hotkeyed for emergencies
 
 ### Air Pump
-
-* Craftable: 20 iron + 10 wire + 5 cogs
-* Placeable: Creates "breathable zone" in 10-tile radius
-* Requires no power, but must be connected to surface via tube/shaft
-* Basically a "fake sky connection" for underground bases
+- Craftable: 20 iron + 10 wire + 5 cogs
+- Placeable: Creates "breathable zone" in 10-tile radius
+- Requires no power, but must be connected to surface via tube/shaft
+- Basically a "fake sky connection" for underground bases
 
 ### Rebreather
-
-* Found: Underground chests, rare
-* Accessory: -50% oxygen depletion rate
-* Essential for deep exploration
+- Found: Underground chests, rare
+- Accessory: -50% oxygen depletion rate
+- Essential for deep exploration
 
 ### Diving Helmet (repurposed)
-
-* Currently only works in water
-* Now also works in sealed air: -30% depletion
-* Stacks with rebreather
+- Currently only works in water
+- Now also works in sealed air: -30% depletion
+- Stacks with rebreather
 
 ---
 
 ## Tuning Knobs
 
-| Parameter                  | Suggested Value | Notes                     |
-| -------------------------- | --------------- | ------------------------- |
-| Max oxygen                 | 100             | Simple percentage         |
-| Depletion rate (sealed)    | 0.5/sec         | ~3 minutes to danger      |
-| Recovery rate (breathable) | 5/sec           | 20 seconds to full        |
-| Debuff thresholds          | 75/50/25/0      | Escalating consequences   |
-| Damage at 0                | 5/sec           | Slow death, time to react |
-| Door air permeability      | Yes             | Essential for bases       |
-| Platform permeability      | Yes             | Platforms aren't seals    |
+| Parameter | Suggested Value | Notes |
+|-----------|-----------------|-------|
+| Max oxygen | 100 | Simple percentage |
+| Depletion rate (sealed) | 0.5/sec | ~3 minutes to danger |
+| Recovery rate (breathable) | 5/sec | 20 seconds to full |
+| Debuff thresholds | 75/50/25/0 | Escalating consequences |
+| Damage at 0 | 5/sec | Slow death, time to react |
+| Door air permeability | Yes | Essential for bases |
+| Platform permeability | Yes | Platforms aren't seals |
 
 ---
 
 ## Performance Considerations
 
 ### World Gen
-
-* Flood fill entire world once: O(world size), but only at gen time
-* Cavern ID assignment: same pass, no extra cost
+- Flood fill entire world once: O(world size), but only at gen time
+- Cavern ID assignment: same pass, no extra cost
 
 ### Runtime
-
-* Block break: O(1) neighbor check + possible O(cavern size) promotion
-* Block place: O(1) usually, O(limited flood) for seal detection
-* Player oxygen check: O(1) table lookup
+- Block break: O(1) neighbor check + possible O(cavern size) promotion
+- Block place: O(1) usually, O(limited flood) for seal detection
+- Player oxygen check: O(1) table lookup
 
 ### Memory
-
-* 1 byte per tile for air status: ~7MB for large world
-* Cavern table: negligible (few thousand entries max)
+- 1 byte per tile for air status: ~7MB for large world
+- Cavern table: negligible (few thousand entries max)
 
 ### Worst Case
-
-* Player seals off half the world: massive flood fill
-* Mitigation: cap flood fill budget, spread across frames, or just accept rare lag spike
+- Player seals off half the world: massive flood fill
+- Mitigation: cap flood fill budget, spread across frames, or just accept rare lag spike
 
 ---
 
 ## Alternative Approaches Considered
 
 ### Depth-based oxygen (simpler)
-
-* Below Y depth, oxygen depletes regardless of connectivity
-* Pro: No seal detection needed
-* Con: Doesn't feel logical, arbitrary depth cutoffs
+- Below Y depth, oxygen depletes regardless of connectivity
+- Pro: No seal detection needed
+- Con: Doesn't feel logical, arbitrary depth cutoffs
 
 ### Time-based seal penalty
-
-* Track how long player has been in one spot
-* Debuffs if stationary too long while "threatened"
-* Pro: Simpler, no world analysis
-* Con: Punishes legitimate cautious play, doesn't address the core issue
+- Track how long player has been in one spot
+- Debuffs if stationary too long while "threatened"
+- Pro: Simpler, no world analysis
+- Con: Punishes legitimate cautious play, doesn't address the core issue
 
 ### Enemy burrowing only
-
-* Enemies dig through seal
-* Pro: Already in main mod doc
-* Con: Doesn't address non-combat scenarios (waiting out events)
+- Enemies dig through seal
+- Pro: Already in main mod doc
+- Con: Doesn't address non-combat scenarios (waiting out events)
 
 ### Seal = spawn point
-
-* Enemies spawn inside sealed areas
-* Pro: Direct punishment
-* Con: Feels unfair, magical enemy appearance
+- Enemies spawn inside sealed areas
+- Pro: Direct punishment
+- Con: Feels unfair, magical enemy appearance
 
 ---
 
@@ -342,10 +324,10 @@ public class OxygenSystem : ModPlayer {
 
 This system complements:
 
-* **Aggro Burrowing** : Enemies dig through, oxygen depletes - double pressure
-* **Persistent Position** : Can't logout to escape suffocation
-* **LOS Interactions** : Can't break your seal from inside (already covered)
-* **Smart Hopping** : Enemies reach you even with small walls
+- **Aggro Burrowing**: Enemies dig through, oxygen depletes - double pressure
+- **Persistent Position**: Can't logout to escape suffocation
+- **LOS Interactions**: Can't break your seal from inside (already covered)
+- **Smart Hopping**: Enemies reach you even with small walls
 
 Together these create the experience: **You cannot hide. You can only fight, flee, or prepare.**
 
@@ -367,10 +349,9 @@ Together these create the experience: **You cannot hide. You can only fight, fle
 The oxygen system transforms "wall yourself in" from a perfect defense into a temporary measure. You can still do it - but you're buying time, not safety. The clock is always ticking, and eventually you have to face what's outside.
 
 This creates meaningful decisions:
-
-* Do I seal up and use my oxygen reserve, or fight now?
-* Is this natural cave breathable, or do I need to find/make a sky connection?
-* How deep can I go with my current oxygen gear?
-* Should I invest in an air pump for my underground base?
+- Do I seal up and use my oxygen reserve, or fight now?
+- Is this natural cave breathable, or do I need to find/make a sky connection?
+- How deep can I go with my current oxygen gear?
+- Should I invest in an air pump for my underground base?
 
 The cheese becomes a resource management challenge instead of an exploit.
