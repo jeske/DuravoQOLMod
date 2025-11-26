@@ -589,12 +589,20 @@ This is the anti-hellevator system. Each feature alone is avoidable. Together, t
 ## Smart Hopping (Priority: HIGH)
 
 ### Problem
-Players can build "murder holes" - small pits (2-4 tiles deep) in front of doors with a platform above. Zombies fall into the pit, then their standard big jump overshoots, landing them on the platform where they can't path back down. The player stands safely at door level and kills them through the open door.
-
-This exploits the fixed jump velocity in zombie AI - they always jump the same height regardless of the obstacle.
+Players can exploit zombie AI by building short walls, pits, or "murder holes" that cause zombies to overshoot with their fixed-height jump. The standard zombie jump is always the same arc regardless of obstacle height, so a 2-tile wall causes the same jump as a 4-tile wall - often landing them past the player or onto platforms where they get stuck.
 
 ### Solution
-When a zombie is in a pit and needs to reach a player above, calculate the exact jump trajectory to land on the ledge, not overshoot it.
+When a zombie is blocked by a short wall (1-4 tiles) in the direction of the player, calculate the exact jump trajectory to land ON TOP of that wall, not overshoot it.
+
+### Trigger Condition
+```
+zombie.onGround AND
+zombie.blocked by solid wall toward player AND
+wall height is 1-4 tiles AND
+clear space above wall to land
+```
+
+That's it. No pit detection, no complex state tracking.
 
 ### Physics
 
@@ -602,32 +610,29 @@ Terraria uses approximately:
 - Gravity: `g ≈ 0.3` per tick (pixels/tick²)
 - 1 tile = 16 pixels
 
-For a zombie at pit bottom to land on a ledge H tiles above and D tiles horizontally away:
+For a zombie to land exactly on top of a wall H tiles high:
 
-**Step 1: Minimum vertical velocity to reach height H**
+**Vertical velocity:**
 ```
-vy_min = sqrt(2 * g * H * 16)
-```
-
-**Step 2: Time to reach peak height**
-```
-t_peak = vy / g
+// Minimum to reach height H, plus small margin
+vy = -sqrt(2 * g * H * 16) * 1.15
 ```
 
-**Step 3: Time from peak to landing at height H**
-Since we want to land AT height H (not return to ground):
+**Flight time:**
 ```
-// Time falling from peak back down to ledge height
-// Peak is at vy²/(2g) pixels above start
-// Ledge is at H*16 pixels above start
-// Fall distance = peak_height - ledge_height = vy²/(2g) - H*16
-t_fall = sqrt(2 * (vy²/(2g) - H*16) / g)
+t_peak = -vy / g
+// We want to land AT height H, not return to ground
+peak_height = vy² / (2g)
+fall_distance = peak_height - (H * 16)
+t_fall = sqrt(2 * fall_distance / g)
 t_total = t_peak + t_fall
 ```
 
-**Step 4: Horizontal velocity to cover distance D in flight time**
+**Horizontal velocity:**
 ```
-vx = (D * 16) / t_total
+// Distance to land on top of wall (wall position + half zombie width)
+distance = (tiles_to_wall + 1) * 16
+vx = distance / t_total * direction
 ```
 
 ### Implementation
@@ -635,113 +640,73 @@ vx = (D * 16) / t_total
 ```csharp
 public class SmartHopper : GlobalNPC {
     private const float GRAVITY = 0.3f;
-    private const float PIXELS_PER_TILE = 16f;
-    private const int MAX_PIT_DEPTH = 4;
-    private const int CHECK_INTERVAL = 15; // ticks between checks
-    
-    private int[] checkTimers = new int[Main.maxNPCs];
+    private const float TILE = 16f;
+    private const int MAX_WALL_HEIGHT = 4;
     
     public override bool PreAI(NPC npc) {
-        if (!IsGroundEnemy(npc) || npc.target < 0) return true;
-        
-        // Throttle checks for performance
-        if (++checkTimers[npc.whoAmI] < CHECK_INTERVAL) return true;
-        checkTimers[npc.whoAmI] = 0;
-        
-        // Only act if on ground
-        if (npc.velocity.Y != 0) return true;
+        if (!IsGroundEnemy(npc)) return true;
+        if (npc.velocity.Y != 0) return true; // Must be grounded
+        if (npc.target < 0) return true;
         
         Player target = Main.player[npc.target];
         if (!target.active || target.dead) return true;
         
-        // Is player above us?
-        float heightDiff = npc.position.Y - target.position.Y;
-        if (heightDiff < PIXELS_PER_TILE) return true; // Player not above
+        int dir = (target.Center.X > npc.Center.X) ? 1 : -1;
+        Point pos = npc.Center.ToTileCoordinates();
         
-        // Are we in a pit? (solid walls on both sides above us)
-        Point tilePos = npc.Center.ToTileCoordinates();
-        PitInfo pit = DetectPit(tilePos, npc, target);
+        // Check if blocked by wall in direction of player
+        if (!IsSolid(pos.X + dir, pos.Y)) return true; // Not blocked
         
-        if (pit.inPit && pit.depth >= 1 && pit.depth <= MAX_PIT_DEPTH) {
-            // Calculate and execute smart jump
-            ExecuteSmartJump(npc, pit, target);
-            return false; // Skip normal AI this tick
-        }
-        
-        return true;
-    }
-    
-    private PitInfo DetectPit(Point pos, NPC npc, Player target) {
-        int dirToPlayer = (target.Center.X > npc.Center.X) ? 1 : -1;
-        
-        // Scan upward to find pit depth
-        int depth = 0;
-        for (int y = 0; y <= MAX_PIT_DEPTH; y++) {
-            bool solidLeft = IsSolid(pos.X - 1, pos.Y - y);
-            bool solidRight = IsSolid(pos.X + 1, pos.Y - y);
-            bool solidAbove = IsSolid(pos.X, pos.Y - y - 1);
-            
-            if (solidAbove) {
-                // Ceiling - not a pit we can jump out of
-                return new PitInfo { inPit = false };
-            }
-            
-            // Check if wall on player side extends up
-            bool walledOnPlayerSide = dirToPlayer > 0 ? solidRight : solidLeft;
-            
-            if (!walledOnPlayerSide) {
-                // Found the ledge height
-                depth = y;
+        // Find wall height (how many tiles until clear?)
+        int wallHeight = 0;
+        for (int h = 0; h <= MAX_WALL_HEIGHT; h++) {
+            if (!IsSolid(pos.X + dir, pos.Y - h - 1)) {
+                wallHeight = h + 1;
                 break;
             }
         }
         
-        if (depth == 0) {
-            return new PitInfo { inPit = false };
+        if (wallHeight == 0 || wallHeight > MAX_WALL_HEIGHT) {
+            return true; // Wall too high or no clearance - normal AI
         }
         
-        // Calculate horizontal distance to ledge
-        int ledgeX = pos.X + dirToPlayer;
-        int ledgeY = pos.Y - depth;
+        // Check landing zone is clear (need 3 tiles vertical for zombie)
+        for (int h = 0; h < 3; h++) {
+            if (IsSolid(pos.X + dir, pos.Y - wallHeight - h)) {
+                return true; // Can't fit on top of wall
+            }
+        }
         
-        return new PitInfo {
-            inPit = true,
-            depth = depth,
-            ledgeX = ledgeX,
-            ledgeY = ledgeY,
-            dirToPlayer = dirToPlayer
-        };
-    }
-    
-    private void ExecuteSmartJump(NPC npc, PitInfo pit, Player target) {
-        float heightPixels = pit.depth * PIXELS_PER_TILE;
-        float distPixels = Math.Abs(pit.ledgeX * PIXELS_PER_TILE - npc.Center.X) + 8; // +8 to land ON ledge
+        // Calculate smart jump
+        float heightPixels = wallHeight * TILE;
         
-        // Add 20% margin to clear the ledge reliably
-        float vy = -(float)Math.Sqrt(2 * GRAVITY * heightPixels) * 1.2f;
+        // Vertical: just enough to clear, with 15% margin
+        float vy = -(float)Math.Sqrt(2 * GRAVITY * heightPixels) * 1.15f;
         
-        // Calculate flight time
+        // Time calculation
         float t_peak = -vy / GRAVITY;
         float peakHeight = (vy * vy) / (2 * GRAVITY);
         float fallDist = peakHeight - heightPixels;
-        float t_fall = (float)Math.Sqrt(2 * fallDist / GRAVITY);
+        float t_fall = (float)Math.Sqrt(2 * Math.Max(0, fallDist) / GRAVITY);
         float t_total = t_peak + t_fall;
         
-        // Horizontal velocity to reach ledge
-        float vx = (distPixels / t_total) * pit.dirToPlayer;
+        // Horizontal: land on top of wall
+        float distPixels = TILE * 1.5f; // Land solidly on the wall top
+        float vx = (distPixels / t_total) * dir;
         
-        // Clamp to reasonable values
-        vy = Math.Max(vy, -10f); // Don't jump too high
-        vx = Math.Clamp(vx, -4f, 4f); // Don't move too fast horizontally
+        // Clamp for sanity
+        vy = Math.Clamp(vy, -12f, -2f);
+        vx = Math.Clamp(vx, -5f, 5f);
         
         npc.velocity.Y = vy;
         npc.velocity.X = vx;
+        
+        return true;
     }
     
     private bool IsGroundEnemy(NPC npc) {
-        // Zombies, skeletons, etc. - enemies that walk and jump
-        return npc.aiStyle == 3 || // Fighter AI (zombies, skeletons)
-               npc.aiStyle == 26 || // Unicorn AI
+        return npc.aiStyle == 3 ||  // Fighter AI (zombies, skeletons)
+               npc.aiStyle == 26 || // Unicorn AI  
                npc.aiStyle == 38;   // Tortoise AI
     }
     
@@ -750,50 +715,52 @@ public class SmartHopper : GlobalNPC {
         Tile tile = Main.tile[x, y];
         return tile.HasTile && Main.tileSolid[tile.TileType] && !Main.tileSolidTop[tile.TileType];
     }
-    
-    private struct PitInfo {
-        public bool inPit;
-        public int depth;
-        public int ledgeX;
-        public int ledgeY;
-        public int dirToPlayer;
-    }
 }
 ```
 
-### Edge Cases
+### Examples
 
-| Scenario | Behavior |
-|----------|----------|
-| Pit deeper than 4 tiles | Don't smart-hop (use burrowing instead) |
-| Ceiling above pit | Don't jump (would bonk head) |
-| Player moves during jump | Zombie may miss - that's fine, try again |
-| Multiple zombies in pit | Each calculates independently |
-| Pit too wide to clear | Normal jump behavior (or fall back in and retry) |
-| Platforms at pit bottom | Treated as ground, detect pit walls above |
+**Murder hole (2-tile pit):**
+- Zombie falls in pit
+- Walks toward player, hits 2-tile wall
+- Smart hop: `vy ≈ -5.3` instead of default `vy ≈ -8`
+- Lands on player's level, not on platform above
 
-### Performance Considerations
+**Natural ledge:**
+- Zombie chasing player uphill
+- Hits 1-tile step
+- Small hop lands exactly on step
+- Continues chase smoothly
 
-- Only check every 15 ticks (4x per second), not every frame
-- Only check if zombie is grounded (velocity.Y == 0)
-- Only check if player is above zombie
-- Simple tile scanning, no pathfinding
+**Player barricade (3-tile wall):**
+- Zombie approaches 3-high dirt wall
+- Calculated jump lands on top
+- Player can't hide behind short walls anymore
+
+### What This Changes
+
+| Obstacle | Before | After |
+|----------|--------|-------|
+| 1-tile step | Big jump, overshoot | Tiny hop, lands on step |
+| 2-tile wall | Big jump, often overshoots | Precise hop to top |
+| 3-tile wall | Big jump, sometimes works | Precise hop to top |
+| 4-tile wall | Big jump, usually works | Precise hop to top |
+| 5+ tile wall | Big jump, fails | Normal AI (or burrowing) |
+
+### Performance
+
+- Check only runs when zombie is grounded
+- Simple tile lookups, no pathfinding
+- Adds maybe 4-8 tile checks per grounded zombie per tick
+- Negligible impact
 
 ### Gameplay Impact
 
-- Murder holes no longer work - zombies hop out precisely
-- Pits become traps for PLAYERS, not enemies
-- Natural terrain holes don't break enemy pathing
-- Zombies feel smarter without changing their core behavior
-- Doors still block enemies when closed - this only helps when player is cheesing with OPEN doors
-
-### What This Doesn't Fix
-
-- Doesn't help with flying enemies (they don't need it)
-- Doesn't help with pits deeper than 4 tiles (burrowing handles those)
-- Doesn't prevent all door cheese (closed door + shooting through gaps still needs LOS fix)
-
-This feature specifically counters geometry-based AI exploits where players abuse predictable jump arcs.
+- Murder holes don't work anymore
+- Short walls don't save you
+- Natural terrain doesn't break zombie pathing
+- Zombies feel smarter and more threatening
+- Closed doors still block (this is about OPEN door cheese)
 
 ## Travel Rework (Priority: HIGH)
 

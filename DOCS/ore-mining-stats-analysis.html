@@ -1,0 +1,1440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Terraria Mining Shaft Optimization - Multi-Ore Simulation</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #1a1a2e;
+            color: #eee;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        h1 {
+            color: #00d9ff;
+            margin-bottom: 5px;
+            font-size: 1.4rem;
+        }
+        
+        .subtitle {
+            color: #888;
+            margin-bottom: 15px;
+            font-size: 0.85rem;
+        }
+        
+        .main-layout {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 20px;
+            max-width: 1800px;
+            margin: 0 auto;
+        }
+        
+        .controls {
+            background: #252540;
+            padding: 15px;
+            border-radius: 8px;
+            height: fit-content;
+        }
+        
+        .section-title {
+            color: #00d9ff;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+            padding-bottom: 5px;
+            border-bottom: 1px solid #333;
+        }
+        
+        .control-group {
+            margin-bottom: 12px;
+        }
+        
+        .control-group label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 4px;
+            color: #aaa;
+            font-size: 0.8rem;
+        }
+        
+        .control-group .value {
+            color: #00d9ff;
+            font-weight: bold;
+        }
+        
+        .control-group input[type="range"] {
+            width: 100%;
+            height: 6px;
+            -webkit-appearance: none;
+            background: #1a1a2e;
+            border-radius: 3px;
+            outline: none;
+        }
+        
+        .control-group input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 14px;
+            height: 14px;
+            background: #00d9ff;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+        
+        button {
+            width: 100%;
+            padding: 10px;
+            background: #00d9ff;
+            color: #1a1a2e;
+            border: none;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            font-weight: bold;
+            cursor: pointer;
+            margin-bottom: 8px;
+        }
+        
+        button:hover {
+            background: #00b8d9;
+        }
+        
+        button:disabled {
+            background: #444;
+            color: #888;
+            cursor: not-allowed;
+        }
+        
+        button.secondary {
+            background: #3a3a5a;
+            color: #ccc;
+        }
+        
+        button.secondary:hover {
+            background: #4a4a6a;
+        }
+        
+        .status {
+            font-size: 0.8rem;
+            color: #888;
+            margin-bottom: 10px;
+            min-height: 20px;
+        }
+        
+        .status.running {
+            color: #00d9ff;
+        }
+        
+        .progress {
+            width: 100%;
+            height: 6px;
+            background: #1a1a2e;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-bottom: 15px;
+        }
+        
+        .progress-bar {
+            height: 100%;
+            background: #00d9ff;
+            width: 0%;
+            transition: width 0.05s linear;
+        }
+        
+        .results-panel {
+            background: #252540;
+            padding: 15px;
+            border-radius: 8px;
+        }
+        
+        .canvas-container {
+            background: #0a0a15;
+            border-radius: 4px;
+            padding: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .canvas-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .canvas-header h3 {
+            color: #aaa;
+            font-size: 0.85rem;
+            font-weight: normal;
+        }
+        
+        #worldCanvas {
+            width: 100%;
+            height: 400px;
+            image-rendering: pixelated;
+            cursor: crosshair;
+        }
+        
+        .legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            font-size: 0.75rem;
+            color: #888;
+            margin-top: 10px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 2px;
+        }
+        
+        .ore-config {
+            background: #1a1a2e;
+            border-radius: 4px;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .ore-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+        
+        .ore-color-swatch {
+            width: 16px;
+            height: 16px;
+            border-radius: 3px;
+        }
+        
+        .ore-pct-display {
+            font-size: 0.75rem;
+            color: #666;
+            margin-left: auto;
+        }
+        
+        .pct-total.warning {
+            color: #ff6b6b;
+        }
+        
+        .ore-name {
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+        
+        .ore-sliders {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 8px;
+        }
+        
+        .ore-slider {
+            font-size: 0.75rem;
+        }
+        
+        .ore-slider label {
+            display: block;
+            color: #888;
+            margin-bottom: 2px;
+        }
+        
+        .ore-slider input {
+            width: 100%;
+        }
+        
+        .ore-slider .val {
+            color: #00d9ff;
+            float: right;
+        }
+        
+        .results-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.8rem;
+            margin-bottom: 15px;
+        }
+        
+        .results-table th, .results-table td {
+            padding: 8px;
+            text-align: center;
+            border-bottom: 1px solid #333;
+        }
+        
+        .results-table th {
+            background: #1a1a2e;
+            color: #aaa;
+            font-weight: normal;
+        }
+        
+        .results-table td {
+            color: #eee;
+        }
+        
+        .results-table tr.optimal {
+            background: rgba(0, 255, 136, 0.1);
+        }
+        
+        .results-table .ore-cell {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            justify-content: center;
+        }
+        
+        .zoom-controls {
+            display: flex;
+            gap: 5px;
+            align-items: center;
+        }
+        
+        .zoom-controls button {
+            width: auto;
+            padding: 4px 10px;
+            margin: 0;
+            font-size: 0.8rem;
+        }
+        
+        .zoom-level {
+            color: #00d9ff;
+            font-size: 0.8rem;
+            min-width: 40px;
+            text-align: center;
+        }
+        
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+        
+        .chart-box {
+            background: #1a1a2e;
+            border-radius: 4px;
+            padding: 10px;
+        }
+        
+        .chart-box h4 {
+            color: #aaa;
+            font-size: 0.8rem;
+            font-weight: normal;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .chart-box canvas {
+            width: 100%;
+            height: 180px;
+        }
+    </style>
+</head>
+<body>
+    <h1>⛏️ Mining Shaft Spacing Optimizer - Multi-Ore</h1>
+    <p class="subtitle">Simulate realistic Terraria ore distribution: Copper, Iron, Silver, Gold with independent optimal spacing per ore type</p>
+    
+    <div class="main-layout">
+        <div class="controls">
+            <div class="section-title">Dig Field</div>
+            
+            <div class="control-group">
+                <label>Width <span class="value" id="widthVal">1100</span></label>
+                <input type="range" id="worldWidth" min="500" max="5000" value="1100" step="100">
+            </div>
+            
+            <div class="control-group">
+                <label>Height <span class="value" id="heightVal">800</span></label>
+                <input type="range" id="worldHeight" min="500" max="5000" value="800" step="100">
+            </div>
+            
+            <div class="section-title" style="margin-top: 15px;">Ore Distribution</div>
+            
+            <div class="control-group">
+                <label>Total Clusters <span class="value" id="totalClustersVal">130</span></label>
+                <input type="range" id="totalClusters" min="10" max="500" value="130" step="10">
+            </div>
+            
+            <div class="ore-config" id="oreConfig0">
+                <div class="ore-header">
+                    <div class="ore-color-swatch" style="background: rgb(184, 115, 51);"></div>
+                    <span class="ore-name">Copper</span>
+                    <span class="ore-pct-display" id="ore0actual">(50)</span>
+                </div>
+                <div class="ore-sliders">
+                    <div class="ore-slider">
+                        <label>Pct <span class="val" id="ore0pct">38%</span></label>
+                        <input type="range" id="ore0pctSlider" min="0" max="100" value="38" step="1">
+                    </div>
+                    <div class="ore-slider">
+                        <label>Width <span class="val" id="ore0width">5</span></label>
+                        <input type="range" id="ore0widthSlider" min="2" max="12" value="5" step="1">
+                    </div>
+                    <div class="ore-slider">
+                        <label>Var <span class="val" id="ore0var">2</span></label>
+                        <input type="range" id="ore0varSlider" min="0" max="5" value="2" step="1">
+                    </div>
+                </div>
+            </div>
+            
+            <div class="ore-config" id="oreConfig1">
+                <div class="ore-header">
+                    <div class="ore-color-swatch" style="background: rgb(150, 130, 120);"></div>
+                    <span class="ore-name">Iron</span>
+                    <span class="ore-pct-display" id="ore1actual">(40)</span>
+                </div>
+                <div class="ore-sliders">
+                    <div class="ore-slider">
+                        <label>Pct <span class="val" id="ore1pct">31%</span></label>
+                        <input type="range" id="ore1pctSlider" min="0" max="100" value="31" step="1">
+                    </div>
+                    <div class="ore-slider">
+                        <label>Width <span class="val" id="ore1width">4</span></label>
+                        <input type="range" id="ore1widthSlider" min="2" max="12" value="4" step="1">
+                    </div>
+                    <div class="ore-slider">
+                        <label>Var <span class="val" id="ore1var">2</span></label>
+                        <input type="range" id="ore1varSlider" min="0" max="5" value="2" step="1">
+                    </div>
+                </div>
+            </div>
+            
+            <div class="ore-config" id="oreConfig2">
+                <div class="ore-header">
+                    <div class="ore-color-swatch" style="background: rgb(192, 192, 210);"></div>
+                    <span class="ore-name">Silver</span>
+                    <span class="ore-pct-display" id="ore2actual">(25)</span>
+                </div>
+                <div class="ore-sliders">
+                    <div class="ore-slider">
+                        <label>Pct <span class="val" id="ore2pct">19%</span></label>
+                        <input type="range" id="ore2pctSlider" min="0" max="100" value="19" step="1">
+                    </div>
+                    <div class="ore-slider">
+                        <label>Width <span class="val" id="ore2width">4</span></label>
+                        <input type="range" id="ore2widthSlider" min="2" max="12" value="4" step="1">
+                    </div>
+                    <div class="ore-slider">
+                        <label>Var <span class="val" id="ore2var">1</span></label>
+                        <input type="range" id="ore2varSlider" min="0" max="5" value="1" step="1">
+                    </div>
+                </div>
+            </div>
+            
+            <div class="ore-config" id="oreConfig3">
+                <div class="ore-header">
+                    <div class="ore-color-swatch" style="background: rgb(255, 215, 0);"></div>
+                    <span class="ore-name">Gold</span>
+                    <span class="ore-pct-display" id="ore3actual">(15)</span>
+                </div>
+                <div class="ore-sliders">
+                    <div class="ore-slider">
+                        <label>Pct <span class="val" id="ore3pct">12%</span></label>
+                        <input type="range" id="ore3pctSlider" min="0" max="100" value="12" step="1">
+                    </div>
+                    <div class="ore-slider">
+                        <label>Width <span class="val" id="ore3width">3</span></label>
+                        <input type="range" id="ore3widthSlider" min="2" max="12" value="3" step="1">
+                    </div>
+                    <div class="ore-slider">
+                        <label>Var <span class="val" id="ore3var">1</span></label>
+                        <input type="range" id="ore3varSlider" min="0" max="5" value="1" step="1">
+                    </div>
+                </div>
+            </div>
+            
+            <div class="pct-total" id="pctTotal" style="font-size: 0.75rem; color: #888; text-align: right; margin-bottom: 10px;">
+                Total: 100%
+            </div>
+            
+            <div class="progress"><div class="progress-bar" id="genProgress"></div></div>
+            <button id="generateBtn" onclick="generateWorld()">Generate Dig Field</button>
+            
+            <div class="section-title" style="margin-top: 15px;">Shaft Testing</div>
+            
+            <div class="control-group">
+                <label>Min Spacing <span class="value" id="minVal">4</span></label>
+                <input type="range" id="minSpacing" min="3" max="15" value="4" step="1">
+            </div>
+            
+            <div class="control-group">
+                <label>Max Spacing <span class="value" id="maxVal">30</span></label>
+                <input type="range" id="maxSpacing" min="10" max="50" value="30" step="1">
+            </div>
+            
+            <div class="control-group">
+                <label>Preview Spacing <span class="value" id="previewVal">10</span></label>
+                <input type="range" id="previewSpacing" min="3" max="50" value="10" step="1">
+            </div>
+            
+            <div class="progress"><div class="progress-bar" id="testProgress"></div></div>
+            <button id="testBtn" onclick="runAllTests()" disabled>Test All Spacings</button>
+            <button id="previewBtn" class="secondary" onclick="previewSpacing()" disabled>Preview Current Spacing</button>
+            
+            <div class="status" id="status">Generate a dig field to begin</div>
+            
+            <button id="copyBtn" class="secondary" onclick="copyResultsJSON()" style="margin-top: 10px;">Copy Results as JSON</button>
+        </div>
+        
+        <div class="results-panel">
+            <div class="canvas-container">
+                <div class="canvas-header">
+                    <h3>Dig Field <span id="viewCoords"></span></h3>
+                    <div class="zoom-controls">
+                        <button onclick="zoomIn()">+</button>
+                        <span class="zoom-level" id="zoomLevel">1x</span>
+                        <button onclick="zoomOut()">−</button>
+                        <button onclick="resetView()">Reset</button>
+                    </div>
+                </div>
+                <canvas id="worldCanvas"></canvas>
+                <div class="legend" id="legend"></div>
+            </div>
+            
+            <table class="results-table" id="resultsTable">
+                <thead>
+                    <tr>
+                        <th>Ore Type</th>
+                        <th>Total Tiles</th>
+                        <th>Optimal Spacing</th>
+                        <th>Best Yield/1k</th>
+                        <th>Detection @ Optimal</th>
+                    </tr>
+                </thead>
+                <tbody id="resultsBody">
+                    <tr><td colspan="5" style="color: #666;">Run simulation to see results</td></tr>
+                </tbody>
+            </table>
+            
+            <div class="charts-grid" id="chartsGrid">
+                <!-- Charts will be inserted here -->
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // === ORE TYPE DEFINITIONS ===
+        const oreTypes = [
+            { id: 1, name: 'Copper', color: [184, 115, 51], colorDetected: [220, 160, 100] },
+            { id: 2, name: 'Iron', color: [150, 130, 120], colorDetected: [190, 175, 165] },
+            { id: 3, name: 'Silver', color: [192, 192, 210], colorDetected: [230, 230, 245] },
+            { id: 4, name: 'Gold', color: [255, 215, 0], colorDetected: [255, 240, 100] }
+        ];
+        
+        // === VOXEL GRID ===
+        // 0 = stone
+        // 1-4 = ore types (undetected)
+        // 11-14 = ore types (detected) 
+        // 100 = shaft
+        let voxels = null;
+        let worldW = 0;
+        let worldH = 0;
+        let oreCounts = [0, 0, 0, 0]; // per ore type
+        
+        // === VIEW STATE ===
+        let viewX = 0;
+        let viewY = 0;
+        let zoom = 1;
+        let isDragging = false;
+        let dragStartX = 0;
+        let dragStartY = 0;
+        let dragViewX = 0;
+        let dragViewY = 0;
+        
+        // === RESULTS ===
+        // testResults[oreIndex][spacingIndex] = { spacing, yieldPer1k, detectionRate, ... }
+        let testResults = [[], [], [], []];
+        
+        // === UI BINDING ===
+        const fieldSliders = [
+            { id: 'worldWidth', valId: 'widthVal' },
+            { id: 'worldHeight', valId: 'heightVal' },
+            { id: 'minSpacing', valId: 'minVal' },
+            { id: 'maxSpacing', valId: 'maxVal' },
+            { id: 'previewSpacing', valId: 'previewVal' },
+            { id: 'totalClusters', valId: 'totalClustersVal' }
+        ];
+        
+        fieldSliders.forEach(s => {
+            document.getElementById(s.id).addEventListener('input', (e) => {
+                document.getElementById(s.valId).textContent = e.target.value;
+                if (s.id === 'totalClusters') updatePctDisplay();
+            });
+        });
+        
+        // Ore sliders
+        for (let i = 0; i < 4; i++) {
+            // Percentage slider with auto-rebalancing
+            const pctSlider = document.getElementById(`ore${i}pctSlider`);
+            const pctVal = document.getElementById(`ore${i}pct`);
+            
+            pctSlider.addEventListener('input', () => {
+                rebalancePercentages(i, parseInt(pctSlider.value));
+            });
+            
+            // Width slider
+            const widthSlider = document.getElementById(`ore${i}widthSlider`);
+            const widthVal = document.getElementById(`ore${i}width`);
+            widthSlider.addEventListener('input', () => {
+                widthVal.textContent = widthSlider.value;
+            });
+            
+            // Variance slider
+            const varSlider = document.getElementById(`ore${i}varSlider`);
+            const varVal = document.getElementById(`ore${i}var`);
+            varSlider.addEventListener('input', () => {
+                varVal.textContent = varSlider.value;
+            });
+        }
+        
+        function rebalancePercentages(changedIndex, newValue) {
+            // Get current values
+            const pcts = [];
+            for (let i = 0; i < 4; i++) {
+                pcts.push(parseInt(document.getElementById(`ore${i}pctSlider`).value));
+            }
+            
+            const oldValue = pcts[changedIndex];
+            const delta = newValue - oldValue;
+            
+            if (delta === 0) return;
+            
+            // Calculate sum of OTHER sliders
+            let othersSum = 0;
+            for (let i = 0; i < 4; i++) {
+                if (i !== changedIndex) othersSum += pcts[i];
+            }
+            
+            // Update the changed slider
+            pcts[changedIndex] = newValue;
+            
+            if (othersSum === 0) {
+                // Edge case: all others are 0, can't redistribute
+                // Just cap the changed one at 100
+                pcts[changedIndex] = Math.min(newValue, 100);
+            } else {
+                // Distribute -delta proportionally among others
+                let remaining = -delta;
+                const adjustments = [];
+                
+                for (let i = 0; i < 4; i++) {
+                    if (i !== changedIndex) {
+                        const proportion = pcts[i] / othersSum;
+                        const adjustment = remaining * proportion;
+                        adjustments[i] = adjustment;
+                    } else {
+                        adjustments[i] = 0;
+                    }
+                }
+                
+                // Apply adjustments with rounding
+                let roundingError = 0;
+                for (let i = 0; i < 4; i++) {
+                    if (i !== changedIndex) {
+                        const exactNew = pcts[i] + adjustments[i] + roundingError;
+                        const roundedNew = Math.round(exactNew);
+                        // Clamp to 0-100
+                        pcts[i] = Math.max(0, Math.min(100, roundedNew));
+                        roundingError = exactNew - pcts[i];
+                    }
+                }
+                
+                // Final correction to ensure sum is exactly 100
+                const total = pcts.reduce((a, b) => a + b, 0);
+                if (total !== 100) {
+                    // Find the largest "other" slider to absorb the difference
+                    let maxIdx = -1;
+                    let maxVal = -1;
+                    for (let i = 0; i < 4; i++) {
+                        if (i !== changedIndex && pcts[i] > maxVal) {
+                            maxVal = pcts[i];
+                            maxIdx = i;
+                        }
+                    }
+                    if (maxIdx >= 0) {
+                        pcts[maxIdx] += (100 - total);
+                        pcts[maxIdx] = Math.max(0, Math.min(100, pcts[maxIdx]));
+                    }
+                }
+            }
+            
+            // Update all sliders and displays
+            for (let i = 0; i < 4; i++) {
+                document.getElementById(`ore${i}pctSlider`).value = pcts[i];
+                document.getElementById(`ore${i}pct`).textContent = pcts[i] + '%';
+            }
+            
+            updatePctDisplay();
+        }
+        
+        function updatePctDisplay() {
+            const total = parseInt(document.getElementById('totalClusters').value);
+            let pctSum = 0;
+            
+            for (let i = 0; i < 4; i++) {
+                const pct = parseInt(document.getElementById(`ore${i}pctSlider`).value);
+                pctSum += pct;
+                const actual = Math.round(total * pct / 100);
+                document.getElementById(`ore${i}actual`).textContent = `(${actual})`;
+            }
+            
+            const totalEl = document.getElementById('pctTotal');
+            totalEl.textContent = `Total: ${pctSum}%`;
+            totalEl.className = 'pct-total' + (pctSum !== 100 ? ' warning' : '');
+        }
+        
+        // Initial calculation
+        updatePctDisplay();
+        
+        // === CANVAS SETUP ===
+        const worldCanvas = document.getElementById('worldCanvas');
+        const worldCtx = worldCanvas.getContext('2d');
+        
+        function resizeCanvases() {
+            const dpr = window.devicePixelRatio || 1;
+            worldCanvas.width = worldCanvas.offsetWidth * dpr;
+            worldCanvas.height = worldCanvas.offsetHeight * dpr;
+            worldCtx.scale(dpr, dpr);
+            renderWorld();
+        }
+        
+        window.addEventListener('resize', resizeCanvases);
+        setTimeout(resizeCanvases, 0);
+        
+        // Build legend
+        function buildLegend() {
+            const legend = document.getElementById('legend');
+            legend.innerHTML = `
+                <div class="legend-item"><div class="legend-color" style="background: #4a4a5a;"></div> Stone</div>
+                ${oreTypes.map(o => `
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: rgb(${o.color.join(',')});"></div> 
+                        ${o.name}
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: rgb(${o.colorDetected.join(',')});"></div> 
+                        ${o.name} (detected)
+                    </div>
+                `).join('')}
+                <div class="legend-item"><div class="legend-color" style="background: #1a1a2e;"></div> Shaft</div>
+            `;
+        }
+        buildLegend();
+        
+        // === VOXEL ACCESS ===
+        function getVoxel(x, y) {
+            if (x < 0 || x >= worldW || y < 0 || y >= worldH) return 0;
+            return voxels[y * worldW + x];
+        }
+        
+        function setVoxel(x, y, val) {
+            if (x < 0 || x >= worldW || y < 0 || y >= worldH) return;
+            voxels[y * worldW + x] = val;
+        }
+        
+        function getOreType(voxelVal) {
+            if (voxelVal >= 1 && voxelVal <= 4) return voxelVal;
+            if (voxelVal >= 11 && voxelVal <= 14) return voxelVal - 10;
+            return 0;
+        }
+        
+        function isOreUndetected(voxelVal) {
+            return voxelVal >= 1 && voxelVal <= 4;
+        }
+        
+        function isOreDetected(voxelVal) {
+            return voxelVal >= 11 && voxelVal <= 14;
+        }
+        
+        function markDetected(voxelVal) {
+            if (voxelVal >= 1 && voxelVal <= 4) return voxelVal + 10;
+            return voxelVal;
+        }
+        
+        // === WORLD GENERATION ===
+        async function generateWorld() {
+            const width = parseInt(document.getElementById('worldWidth').value);
+            const height = parseInt(document.getElementById('worldHeight').value);
+            
+            worldW = width;
+            worldH = height;
+            voxels = new Uint8Array(width * height);
+            oreCounts = [0, 0, 0, 0];
+            testResults = [[], [], [], []];
+            
+            setStatus(`Generating ${width}x${height} dig field...`, true);
+            document.getElementById('generateBtn').disabled = true;
+            document.getElementById('testBtn').disabled = true;
+            document.getElementById('previewBtn').disabled = true;
+            
+            const progressBar = document.getElementById('genProgress');
+            
+            // Get ore config using percentages
+            const totalClusters = parseInt(document.getElementById('totalClusters').value);
+            const oreConfigs = [];
+            for (let i = 0; i < 4; i++) {
+                const pct = parseInt(document.getElementById(`ore${i}pctSlider`).value);
+                oreConfigs.push({
+                    id: i + 1,
+                    count: Math.round(totalClusters * pct / 100),
+                    pct: pct,
+                    width: parseInt(document.getElementById(`ore${i}widthSlider`).value),
+                    variance: parseInt(document.getElementById(`ore${i}varSlider`).value)
+                });
+            }
+            
+            const actualTotalClusters = oreConfigs.reduce((s, o) => s + o.count, 0);
+            let clustersGenerated = 0;
+            
+            // Generate each ore type
+            for (const config of oreConfigs) {
+                for (let c = 0; c < config.count; c++) {
+                    // Random cluster center
+                    const cx = Math.floor(Math.random() * width);
+                    const cy = Math.floor(Math.random() * height);
+                    
+                    // Target horizontal width
+                    const targetWidth = Math.max(1, config.width + Math.floor((Math.random() - 0.5) * 2 * config.variance));
+                    
+                    // Grow cluster
+                    const cluster = [{x: cx, y: cy}];
+                    let minX = cx, maxX = cx;
+                    
+                    if (getVoxel(cx, cy) === 0) {
+                        setVoxel(cx, cy, config.id);
+                        oreCounts[config.id - 1]++;
+                    }
+                    
+                    let attempts = 0;
+                    const maxAttempts = targetWidth * 50;
+                    
+                    while ((maxX - minX + 1) < targetWidth && attempts < maxAttempts) {
+                        attempts++;
+                        
+                        const base = cluster[Math.floor(Math.random() * cluster.length)];
+                        const currentWidth = maxX - minX + 1;
+                        const needsWidth = currentWidth < targetWidth;
+                        
+                        let dirs;
+                        if (needsWidth && Math.random() < 0.7) {
+                            dirs = [[1,0], [-1,0]];
+                        } else {
+                            dirs = [[0,1], [0,-1], [1,0], [-1,0]];
+                        }
+                        
+                        const [dx, dy] = dirs[Math.floor(Math.random() * dirs.length)];
+                        const nx = base.x + dx;
+                        const ny = base.y + dy;
+                        
+                        if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
+                            if (getVoxel(nx, ny) === 0) {
+                                setVoxel(nx, ny, config.id);
+                                cluster.push({x: nx, y: ny});
+                                oreCounts[config.id - 1]++;
+                                
+                                minX = Math.min(minX, nx);
+                                maxX = Math.max(maxX, nx);
+                            }
+                        }
+                    }
+                    
+                    clustersGenerated++;
+                    if (clustersGenerated % 20 === 0) {
+                        progressBar.style.width = `${(clustersGenerated / actualTotalClusters) * 100}%`;
+                        await yieldToUI();
+                    }
+                }
+            }
+            
+            progressBar.style.width = '100%';
+            
+            // Reset view
+            viewX = 0;
+            viewY = 0;
+            zoom = 1;
+            updateZoomDisplay();
+            
+            renderWorld();
+            updateResultsTable();
+            clearCharts();
+            
+            const totalOre = oreCounts.reduce((s, c) => s + c, 0);
+            setStatus(`Generated: ${totalOre.toLocaleString()} ore tiles (${oreCounts.map((c, i) => `${oreTypes[i].name}: ${c}`).join(', ')})`);
+            
+            document.getElementById('generateBtn').disabled = false;
+            document.getElementById('testBtn').disabled = false;
+            document.getElementById('previewBtn').disabled = false;
+            
+            setTimeout(() => {
+                document.getElementById('genProgress').style.width = '0%';
+            }, 500);
+        }
+        
+        // === SHAFT TESTING ===
+        function applyShafts(spacing, offset = 0, markDetected = true) {
+            // Reset all ore to undetected, clear shafts
+            for (let i = 0; i < voxels.length; i++) {
+                if (isOreDetected(voxels[i])) voxels[i] -= 10;
+                if (voxels[i] === 100) voxels[i] = 0;
+            }
+            
+            // Track per ore type
+            const detected = [0, 0, 0, 0];
+            let blocksMined = 0;
+            
+            for (let shaftX = offset; shaftX < worldW; shaftX += spacing) {
+                for (let y = 0; y < worldH; y++) {
+                    // Mine shaft (2 wide)
+                    for (let dx = 0; dx < 2; dx++) {
+                        const x = shaftX + dx;
+                        if (x < worldW) {
+                            const current = getVoxel(x, y);
+                            const oreType = getOreType(current);
+                            if (oreType > 0) {
+                                detected[oreType - 1]++;
+                                if (markDetected) setVoxel(x, y, current + 10);
+                            } else {
+                                if (markDetected) setVoxel(x, y, 100);
+                            }
+                            blocksMined++;
+                        }
+                    }
+                    
+                    // Check walls
+                    const leftX = shaftX - 1;
+                    if (leftX >= 0) {
+                        const current = getVoxel(leftX, y);
+                        if (isOreUndetected(current)) {
+                            const oreType = getOreType(current);
+                            detected[oreType - 1]++;
+                            if (markDetected) setVoxel(leftX, y, current + 10);
+                        }
+                    }
+                    
+                    const rightX = shaftX + 2;
+                    if (rightX < worldW) {
+                        const current = getVoxel(rightX, y);
+                        if (isOreUndetected(current)) {
+                            const oreType = getOreType(current);
+                            detected[oreType - 1]++;
+                            if (markDetected) setVoxel(rightX, y, current + 10);
+                        }
+                    }
+                }
+            }
+            
+            // Build per-ore results
+            const results = oreTypes.map((ore, i) => ({
+                oreType: ore.name,
+                oreIndex: i,
+                spacing,
+                offset,
+                detected: detected[i],
+                total: oreCounts[i],
+                mined: blocksMined,
+                detectionRate: oreCounts[i] > 0 ? detected[i] / oreCounts[i] : 0,
+                yieldPer1k: blocksMined > 0 ? (detected[i] / blocksMined) * 1000 : 0
+            }));
+            
+            return results;
+        }
+        
+        async function runAllTests() {
+            if (!voxels) return;
+            
+            const minSpacing = parseInt(document.getElementById('minSpacing').value);
+            const maxSpacing = parseInt(document.getElementById('maxSpacing').value);
+            
+            document.getElementById('generateBtn').disabled = true;
+            document.getElementById('testBtn').disabled = true;
+            document.getElementById('previewBtn').disabled = true;
+            
+            const progressBar = document.getElementById('testProgress');
+            testResults = [[], [], [], []];
+            
+            // Calculate total iterations
+            let totalIterations = 0;
+            for (let s = minSpacing; s <= maxSpacing; s++) {
+                totalIterations += s;
+            }
+            let currentIteration = 0;
+            
+            for (let spacing = minSpacing; spacing <= maxSpacing; spacing++) {
+                setStatus(`Testing spacing ${spacing} (all ${spacing} offsets)...`, true);
+                
+                // Collect results for all offsets
+                const offsetResults = []; // [offset][oreIndex]
+                
+                for (let offset = 0; offset < spacing; offset++) {
+                    // Reset ore state
+                    for (let i = 0; i < voxels.length; i++) {
+                        if (isOreDetected(voxels[i])) voxels[i] -= 10;
+                        if (voxels[i] === 100) voxels[i] = 0;
+                    }
+                    
+                    const results = applyShafts(spacing, offset, false);
+                    offsetResults.push(results);
+                    
+                    currentIteration++;
+                    progressBar.style.width = `${(currentIteration / totalIterations) * 100}%`;
+                    
+                    if (offset % 5 === 0) {
+                        await yieldToUI();
+                    }
+                }
+                
+                // Average across offsets for each ore type
+                for (let oreIdx = 0; oreIdx < 4; oreIdx++) {
+                    const oreResults = offsetResults.map(r => r[oreIdx]);
+                    
+                    const avgDetected = oreResults.reduce((s, r) => s + r.detected, 0) / oreResults.length;
+                    const avgDetectionRate = oreResults.reduce((s, r) => s + r.detectionRate, 0) / oreResults.length;
+                    const avgYieldPer1k = oreResults.reduce((s, r) => s + r.yieldPer1k, 0) / oreResults.length;
+                    const minYield = Math.min(...oreResults.map(r => r.yieldPer1k));
+                    const maxYield = Math.max(...oreResults.map(r => r.yieldPer1k));
+                    
+                    testResults[oreIdx].push({
+                        spacing,
+                        detected: avgDetected,
+                        total: oreCounts[oreIdx],
+                        detectionRate: avgDetectionRate,
+                        yieldPer1k: avgYieldPer1k,
+                        yieldMin: minYield,
+                        yieldMax: maxYield,
+                        offsetsTested: spacing
+                    });
+                }
+                
+                await yieldToUI();
+            }
+            
+            // Find optimal for each ore type and update display
+            updateResultsTable();
+            renderCharts();
+            
+            // Apply first ore's optimal spacing for visualization
+            const optimalSpacing = testResults[0].reduce((best, r) => 
+                r.yieldPer1k > best.yieldPer1k ? r : best, testResults[0][0]).spacing;
+            
+            document.getElementById('previewSpacing').value = optimalSpacing;
+            document.getElementById('previewVal').textContent = optimalSpacing;
+            applyShafts(optimalSpacing, 0, true);
+            
+            renderWorld();
+            
+            setStatus(`Complete. See per-ore optimal spacings in table below.`);
+            
+            document.getElementById('generateBtn').disabled = false;
+            document.getElementById('testBtn').disabled = false;
+            document.getElementById('previewBtn').disabled = false;
+            
+            setTimeout(() => {
+                progressBar.style.width = '0%';
+            }, 500);
+        }
+        
+        function previewSpacing() {
+            if (!voxels) return;
+            
+            const spacing = parseInt(document.getElementById('previewSpacing').value);
+            applyShafts(spacing, 0, true);
+            
+            renderWorld();
+            setStatus(`Previewing spacing ${spacing}`);
+        }
+        
+        function updateResultsTable() {
+            const tbody = document.getElementById('resultsBody');
+            
+            if (testResults[0].length === 0) {
+                tbody.innerHTML = `
+                    ${oreTypes.map((ore, i) => `
+                        <tr>
+                            <td>
+                                <div class="ore-cell">
+                                    <div class="legend-color" style="background: rgb(${ore.color.join(',')});"></div>
+                                    ${ore.name}
+                                </div>
+                            </td>
+                            <td>${oreCounts[i].toLocaleString()}</td>
+                            <td>-</td>
+                            <td>-</td>
+                            <td>-</td>
+                        </tr>
+                    `).join('')}
+                `;
+                return;
+            }
+            
+            tbody.innerHTML = oreTypes.map((ore, i) => {
+                const results = testResults[i];
+                const optimal = results.reduce((best, r) => r.yieldPer1k > best.yieldPer1k ? r : best, results[0]);
+                
+                return `
+                    <tr class="optimal">
+                        <td>
+                            <div class="ore-cell">
+                                <div class="legend-color" style="background: rgb(${ore.color.join(',')});"></div>
+                                ${ore.name}
+                            </div>
+                        </td>
+                        <td>${oreCounts[i].toLocaleString()}</td>
+                        <td><strong>${optimal.spacing}</strong></td>
+                        <td>${optimal.yieldPer1k.toFixed(3)}</td>
+                        <td>${(optimal.detectionRate * 100).toFixed(1)}%</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+        
+        function clearCharts() {
+            const grid = document.getElementById('chartsGrid');
+            grid.innerHTML = oreTypes.map((ore, i) => `
+                <div class="chart-box">
+                    <h4>
+                        <div class="legend-color" style="background: rgb(${ore.color.join(',')});"></div>
+                        ${ore.name}
+                    </h4>
+                    <canvas id="chart${i}"></canvas>
+                </div>
+            `).join('');
+        }
+        clearCharts();
+        
+        function renderCharts() {
+            oreTypes.forEach((ore, oreIdx) => {
+                const canvas = document.getElementById(`chart${oreIdx}`);
+                const ctx = canvas.getContext('2d');
+                
+                const dpr = window.devicePixelRatio || 1;
+                canvas.width = canvas.offsetWidth * dpr;
+                canvas.height = canvas.offsetHeight * dpr;
+                ctx.scale(dpr, dpr);
+                
+                const w = canvas.offsetWidth;
+                const h = canvas.offsetHeight;
+                const results = testResults[oreIdx];
+                
+                ctx.fillStyle = '#1a1a2e';
+                ctx.fillRect(0, 0, w, h);
+                
+                if (results.length === 0) return;
+                
+                const padding = {top: 20, right: 40, bottom: 30, left: 45};
+                const chartW = w - padding.left - padding.right;
+                const chartH = h - padding.top - padding.bottom;
+                
+                const maxYieldValue = Math.max(...results.map(r => r.yieldMax || r.yieldPer1k));
+                const maxYield = maxYieldValue * 1.15;
+                
+                // Grid
+                ctx.strokeStyle = '#333';
+                ctx.lineWidth = 1;
+                for (let i = 0; i <= 4; i++) {
+                    const y = padding.top + (i / 4) * chartH;
+                    ctx.beginPath();
+                    ctx.moveTo(padding.left, y);
+                    ctx.lineTo(w - padding.right, y);
+                    ctx.stroke();
+                }
+                
+                // Variance band
+                if (results[0].yieldMin !== undefined) {
+                    ctx.fillStyle = `rgba(${ore.color.join(',')}, 0.2)`;
+                    ctx.beginPath();
+                    results.forEach((r, i) => {
+                        const x = padding.left + (i / (results.length - 1)) * chartW;
+                        const y = padding.top + (1 - r.yieldMax / maxYield) * chartH;
+                        if (i === 0) ctx.moveTo(x, y);
+                        else ctx.lineTo(x, y);
+                    });
+                    for (let i = results.length - 1; i >= 0; i--) {
+                        const r = results[i];
+                        const x = padding.left + (i / (results.length - 1)) * chartW;
+                        const y = padding.top + (1 - r.yieldMin / maxYield) * chartH;
+                        ctx.lineTo(x, y);
+                    }
+                    ctx.closePath();
+                    ctx.fill();
+                }
+                
+                // Yield line
+                ctx.strokeStyle = `rgb(${ore.color.join(',')})`;
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                results.forEach((r, i) => {
+                    const x = padding.left + (i / (results.length - 1)) * chartW;
+                    const y = padding.top + (1 - r.yieldPer1k / maxYield) * chartH;
+                    if (i === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                });
+                ctx.stroke();
+                
+                // Optimal marker
+                const optimal = results.reduce((best, r) => r.yieldPer1k > best.yieldPer1k ? r : best, results[0]);
+                const optIdx = results.findIndex(r => r.spacing === optimal.spacing);
+                const optX = padding.left + (optIdx / (results.length - 1)) * chartW;
+                const optY = padding.top + (1 - optimal.yieldPer1k / maxYield) * chartH;
+                
+                ctx.fillStyle = '#00ff88';
+                ctx.beginPath();
+                ctx.arc(optX, optY, 5, 0, Math.PI * 2);
+                ctx.fill();
+                
+                ctx.fillStyle = '#fff';
+                ctx.font = 'bold 10px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText(`${optimal.spacing}`, optX, optY - 8);
+                
+                // X labels
+                ctx.fillStyle = '#666';
+                ctx.font = '9px sans-serif';
+                const step = Math.ceil(results.length / 6);
+                results.forEach((r, i) => {
+                    if (i % step === 0 || i === results.length - 1) {
+                        const x = padding.left + (i / (results.length - 1)) * chartW;
+                        ctx.fillText(r.spacing.toString(), x, h - padding.bottom + 12);
+                    }
+                });
+                
+                // Y labels
+                ctx.textAlign = 'right';
+                for (let i = 0; i <= 4; i++) {
+                    const y = padding.top + (i / 4) * chartH;
+                    const val = ((1 - i / 4) * maxYield).toFixed(2);
+                    ctx.fillText(val, padding.left - 5, y + 3);
+                }
+            });
+        }
+        
+        // === RENDERING ===
+        function renderWorld() {
+            if (!voxels) {
+                const w = worldCanvas.offsetWidth;
+                const h = worldCanvas.offsetHeight;
+                worldCtx.fillStyle = '#0a0a15';
+                worldCtx.fillRect(0, 0, w, h);
+                worldCtx.fillStyle = '#333';
+                worldCtx.font = '14px sans-serif';
+                worldCtx.textAlign = 'center';
+                worldCtx.fillText('Generate a dig field to begin', w/2, h/2);
+                return;
+            }
+            
+            const canvasW = worldCanvas.offsetWidth;
+            const canvasH = worldCanvas.offsetHeight;
+            
+            const tilesVisibleX = Math.ceil(canvasW / zoom);
+            const tilesVisibleY = Math.ceil(canvasH / zoom);
+            
+            viewX = Math.max(0, Math.min(worldW - tilesVisibleX, viewX));
+            viewY = Math.max(0, Math.min(worldH - tilesVisibleY, viewY));
+            
+            const imageData = worldCtx.createImageData(canvasW, canvasH);
+            const data = imageData.data;
+            
+            // Color lookup
+            const colorMap = {
+                0: [74, 74, 90], // stone
+                100: [26, 26, 46] // shaft
+            };
+            oreTypes.forEach((ore, i) => {
+                colorMap[i + 1] = ore.color;
+                colorMap[i + 11] = ore.colorDetected;
+            });
+            
+            for (let py = 0; py < canvasH; py++) {
+                for (let px = 0; px < canvasW; px++) {
+                    const wx = Math.floor(viewX + px / zoom);
+                    const wy = Math.floor(viewY + py / zoom);
+                    
+                    let rgb;
+                    if (wx >= 0 && wx < worldW && wy >= 0 && wy < worldH) {
+                        const voxel = getVoxel(wx, wy);
+                        rgb = colorMap[voxel] || colorMap[0];
+                    } else {
+                        rgb = [10, 10, 21];
+                    }
+                    
+                    const idx = (py * canvasW + px) * 4;
+                    data[idx] = rgb[0];
+                    data[idx + 1] = rgb[1];
+                    data[idx + 2] = rgb[2];
+                    data[idx + 3] = 255;
+                }
+            }
+            
+            worldCtx.putImageData(imageData, 0, 0);
+            
+            document.getElementById('viewCoords').textContent = 
+                `(${Math.floor(viewX)}, ${Math.floor(viewY)}) - (${Math.floor(viewX + tilesVisibleX)}, ${Math.floor(viewY + tilesVisibleY)})`;
+        }
+        
+        // === ZOOM/PAN ===
+        function zoomIn() {
+            const centerX = viewX + (worldCanvas.offsetWidth / zoom) / 2;
+            const centerY = viewY + (worldCanvas.offsetHeight / zoom) / 2;
+            zoom = Math.min(32, zoom * 2);
+            viewX = centerX - (worldCanvas.offsetWidth / zoom) / 2;
+            viewY = centerY - (worldCanvas.offsetHeight / zoom) / 2;
+            updateZoomDisplay();
+            renderWorld();
+        }
+        
+        function zoomOut() {
+            const centerX = viewX + (worldCanvas.offsetWidth / zoom) / 2;
+            const centerY = viewY + (worldCanvas.offsetHeight / zoom) / 2;
+            zoom = Math.max(0.1, zoom / 2);
+            viewX = centerX - (worldCanvas.offsetWidth / zoom) / 2;
+            viewY = centerY - (worldCanvas.offsetHeight / zoom) / 2;
+            updateZoomDisplay();
+            renderWorld();
+        }
+        
+        function resetView() {
+            viewX = 0;
+            viewY = 0;
+            zoom = 1;
+            updateZoomDisplay();
+            renderWorld();
+        }
+        
+        function updateZoomDisplay() {
+            document.getElementById('zoomLevel').textContent = 
+                zoom >= 1 ? `${zoom}x` : `1/${Math.round(1/zoom)}x`;
+        }
+        
+        worldCanvas.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            dragStartX = e.clientX;
+            dragStartY = e.clientY;
+            dragViewX = viewX;
+            dragViewY = viewY;
+            worldCanvas.style.cursor = 'grabbing';
+        });
+        
+        window.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            const dx = (e.clientX - dragStartX) / zoom;
+            const dy = (e.clientY - dragStartY) / zoom;
+            viewX = dragViewX - dx;
+            viewY = dragViewY - dy;
+            renderWorld();
+        });
+        
+        window.addEventListener('mouseup', () => {
+            isDragging = false;
+            worldCanvas.style.cursor = 'crosshair';
+        });
+        
+        worldCanvas.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            const rect = worldCanvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+            const worldMouseX = viewX + mouseX / zoom;
+            const worldMouseY = viewY + mouseY / zoom;
+            
+            if (e.deltaY < 0) {
+                zoom = Math.min(32, zoom * 1.25);
+            } else {
+                zoom = Math.max(0.1, zoom / 1.25);
+            }
+            
+            viewX = worldMouseX - mouseX / zoom;
+            viewY = worldMouseY - mouseY / zoom;
+            updateZoomDisplay();
+            renderWorld();
+        });
+        
+        // === JSON EXPORT ===
+        function copyResultsJSON() {
+            const totalClusters = parseInt(document.getElementById('totalClusters').value);
+            const oreConfigs = [];
+            for (let i = 0; i < 4; i++) {
+                const pct = parseInt(document.getElementById(`ore${i}pctSlider`).value);
+                oreConfigs.push({
+                    name: oreTypes[i].name,
+                    pct: pct,
+                    clusters: Math.round(totalClusters * pct / 100),
+                    widthAvg: parseInt(document.getElementById(`ore${i}widthSlider`).value),
+                    widthVariance: parseInt(document.getElementById(`ore${i}varSlider`).value),
+                    totalTiles: oreCounts[i]
+                });
+            }
+            
+            const settings = {
+                digFieldWidth: parseInt(document.getElementById('worldWidth').value),
+                digFieldHeight: parseInt(document.getElementById('worldHeight').value),
+                totalClusters: totalClusters,
+                minSpacingTested: parseInt(document.getElementById('minSpacing').value),
+                maxSpacingTested: parseInt(document.getElementById('maxSpacing').value),
+                oreTypes: oreConfigs
+            };
+            
+            const perOreResults = oreTypes.map((ore, i) => {
+                const results = testResults[i];
+                if (results.length === 0) return { oreName: ore.name, optimal: null, allResults: [] };
+                
+                const optimal = results.reduce((best, r) => r.yieldPer1k > best.yieldPer1k ? r : best, results[0]);
+                
+                return {
+                    oreName: ore.name,
+                    totalTiles: oreCounts[i],
+                    optimal: {
+                        spacing: optimal.spacing,
+                        yieldPer1k: parseFloat(optimal.yieldPer1k.toFixed(4)),
+                        detectionRate: parseFloat(optimal.detectionRate.toFixed(4))
+                    },
+                    allResults: results.map(r => ({
+                        spacing: r.spacing,
+                        yieldPer1k: parseFloat(r.yieldPer1k.toFixed(4)),
+                        detectionRate: parseFloat(r.detectionRate.toFixed(4)),
+                        yieldMin: parseFloat(r.yieldMin.toFixed(4)),
+                        yieldMax: parseFloat(r.yieldMax.toFixed(4))
+                    }))
+                };
+            });
+            
+            const data = { settings, perOreResults };
+            const json = JSON.stringify(data, null, 2);
+            
+            navigator.clipboard.writeText(json).then(() => {
+                setStatus('Results copied to clipboard as JSON');
+            }).catch(err => {
+                console.error('Clipboard write failed:', err);
+                prompt('Copy this JSON:', json);
+            });
+        }
+        
+        // === UTILITIES ===
+        function yieldToUI() {
+            return new Promise(resolve => setTimeout(resolve, 0));
+        }
+        
+        function setStatus(msg, running = false) {
+            const el = document.getElementById('status');
+            el.textContent = msg;
+            el.className = 'status' + (running ? ' running' : '');
+        }
+        
+        renderWorld();
+    </script>
+</body>
+</html>
