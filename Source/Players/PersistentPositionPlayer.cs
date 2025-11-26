@@ -13,6 +13,29 @@ namespace TerrariaSurvivalMod
     /// </summary>
     public class PersistentPositionPlayer : ModPlayer
     {
+        // ╔════════════════════════════════════════════════════════════════════╗
+        // ║                        TUNABLE CONSTANTS                           ║
+        // ╚════════════════════════════════════════════════════════════════════╝
+        
+        /// <summary>DEBUG: Enable detailed damage source logging during immunity</summary>
+        private const bool DebugLogDamageSources = true;
+        
+        /// <summary>DEBUG: Block Environmental/Unknown damage during immunity (suffocation, etc)</summary>
+        private const bool BlockEnvironmentalDamageDuringImmunity = true;
+        
+        /// <summary>DEBUG: Block NPC damage during immunity</summary>
+        private const bool BlockNPCDamageDuringImmunity = true;
+        
+        /// <summary>DEBUG: Block Projectile damage during immunity</summary>
+        private const bool BlockProjectileDamageDuringImmunity = true;
+        
+        /// <summary>DEBUG: Block Player (PvP) damage during immunity</summary>
+        private const bool BlockPlayerDamageDuringImmunity = true;
+        
+        // ╔════════════════════════════════════════════════════════════════════╗
+        // ║                          INSTANCE STATE                            ║
+        // ╚════════════════════════════════════════════════════════════════════╝
+        
         // Position saved when player exits the world
         private Vector2 savedExitPosition;
         
@@ -79,7 +102,10 @@ namespace TerrariaSurvivalMod
             // Validate the position before restoring
             if (IsPositionSafeForPlayer(savedExitPosition))
             {
-                Player.position = savedExitPosition;
+                // Nudge player UP by 1/5 tile (3.2 pixels) to prevent spawning inside ground
+                // 1 tile = 16 pixels, so 16/5 = 3.2 pixels upward
+                const float PositionNudgeUpPixels = 16f / 5f;
+                Player.position = savedExitPosition - new Vector2(0, PositionNudgeUpPixels);
                 
                 // Reset velocity to prevent continued falling/movement
                 Player.velocity = Vector2.Zero;
@@ -159,74 +185,142 @@ namespace TerrariaSurvivalMod
         }
         
         /// <summary>
-        /// Block ALL damage during absolute immunity period.
-        /// This works for ALL damage sources: enemies, suffocation, lava, debuffs, etc.
+        /// Damage source categories for selective blocking during immunity.
+        /// </summary>
+        private enum DamageSourceCategory
+        {
+            Environmental,  // Suffocation, drowning, lava tile contact, etc.
+            NPC,            // Enemy contact or attacks
+            Projectile,     // Hostile projectiles
+            Player          // PvP damage
+        }
+        
+        /// <summary>
+        /// Block damage during immunity period with per-category control.
+        /// This allows experimenting with which damage types need full immunity.
         /// </summary>
         public override void ModifyHurt(ref Player.HurtModifiers modifiers)
         {
-            // DEBUG: Log ALL incoming damage with source info
-            string damageSourceInfo = GetDamageSourceDebugInfo(modifiers);
-            int incomingDamage = (int)modifiers.FinalDamage.Base;
-            Main.NewText($"[TSM-DMG] {incomingDamage} dmg from: {damageSourceInfo}", 255, 100, 100);
+            // Categorize the damage source
+            DamageSourceCategory damageCategory = CategorizeDamageSource(modifiers);
             
+            // Get actual incoming damage values (SourceDamage and FinalDamage are StatModifiers with Base property)
+            int sourceDamageBase = (int)modifiers.SourceDamage.Base;
+            int finalDamageBase = (int)modifiers.FinalDamage.Base;
+            
+            // Debug logging (conditional on flag)
+            if (DebugLogDamageSources)
+            {
+                string categoryName = damageCategory.ToString();
+                string sourceDetails = GetDamageSourceDetails(modifiers, damageCategory);
+                Main.NewText($"[TSM-DMG] {categoryName}: src={sourceDamageBase} final={finalDamageBase} | {sourceDetails}", 255, 200, 100);
+            }
+            
+            // Check if we should block this damage category during immunity
             if (absoluteImmunityTicksRemaining > 0)
             {
-                // Block ALL damage by setting final damage to 0
-                modifiers.FinalDamage *= 0f;
+                bool shouldBlock = ShouldBlockDamageCategory(damageCategory);
                 
-                // Visual feedback that damage was blocked
-                Main.NewText($"[TSM] BLOCKED! ({absoluteImmunityTicksRemaining / 60}s left)", 100, 255, 100);
-                CombatText.NewText(Player.Hitbox, Color.Cyan, "Protected!");
+                if (shouldBlock)
+                {
+                    // Block this damage
+                    modifiers.FinalDamage *= 0f;
+                    
+                    if (DebugLogDamageSources)
+                    {
+                        Main.NewText($"[TSM] BLOCKED {damageCategory}! ({absoluteImmunityTicksRemaining / 60}s left)", 100, 255, 100);
+                    }
+                    CombatText.NewText(Player.Hitbox, Color.Cyan, "Protected!");
+                }
+                else
+                {
+                    if (DebugLogDamageSources)
+                    {
+                        Main.NewText($"[TSM] ALLOWED {damageCategory} through immunity", 255, 100, 100);
+                    }
+                }
             }
         }
         
         /// <summary>
-        /// Extract debug info about the damage source from HurtModifiers.
+        /// Determine the category of damage source.
         /// </summary>
-        private static string GetDamageSourceDebugInfo(Player.HurtModifiers modifiers)
+        private static DamageSourceCategory CategorizeDamageSource(Player.HurtModifiers modifiers)
         {
-            System.Text.StringBuilder damageInfo = new System.Text.StringBuilder();
-            
-            // Check damage reason flags
             if (modifiers.DamageSource.SourceNPCIndex >= 0 && modifiers.DamageSource.SourceNPCIndex < Main.maxNPCs)
             {
-                NPC sourceNPC = Main.npc[modifiers.DamageSource.SourceNPCIndex];
-                if (sourceNPC.active)
-                {
-                    damageInfo.Append($"NPC:{sourceNPC.FullName} (ID:{sourceNPC.type})");
-                }
-                else
-                {
-                    damageInfo.Append($"NPC:Inactive#{modifiers.DamageSource.SourceNPCIndex}");
-                }
+                return DamageSourceCategory.NPC;
             }
             else if (modifiers.DamageSource.SourceProjectileLocalIndex >= 0)
             {
-                int projIndex = modifiers.DamageSource.SourceProjectileLocalIndex;
-                if (projIndex < Main.maxProjectiles && Main.projectile[projIndex].active)
-                {
-                    Projectile sourceProj = Main.projectile[projIndex];
-                    damageInfo.Append($"Projectile:{sourceProj.Name} (Type:{sourceProj.type})");
-                }
-                else
-                {
-                    damageInfo.Append($"Projectile:Unknown#{projIndex}");
-                }
+                return DamageSourceCategory.Projectile;
             }
             else if (modifiers.DamageSource.SourcePlayerIndex >= 0)
             {
-                damageInfo.Append($"Player:{modifiers.DamageSource.SourcePlayerIndex}");
+                return DamageSourceCategory.Player;
             }
             else
             {
-                // No specific source - likely environmental
-                damageInfo.Append("Environmental/Unknown");
+                return DamageSourceCategory.Environmental;
             }
-            
-            // Add any additional context from the modifiers
-            damageInfo.Append($" | Knockback:{modifiers.Knockback.Base:F1}");
-            
-            return damageInfo.ToString();
+        }
+        
+        /// <summary>
+        /// Check if we should block this damage category based on current flags.
+        /// </summary>
+        private static bool ShouldBlockDamageCategory(DamageSourceCategory category)
+        {
+            switch (category)
+            {
+                case DamageSourceCategory.Environmental:
+                    return BlockEnvironmentalDamageDuringImmunity;
+                case DamageSourceCategory.NPC:
+                    return BlockNPCDamageDuringImmunity;
+                case DamageSourceCategory.Projectile:
+                    return BlockProjectileDamageDuringImmunity;
+                case DamageSourceCategory.Player:
+                    return BlockPlayerDamageDuringImmunity;
+                default:
+                    return true; // Block unknown by default
+            }
+        }
+        
+        /// <summary>
+        /// Get detailed info about the damage source for logging.
+        /// </summary>
+        private static string GetDamageSourceDetails(Player.HurtModifiers modifiers, DamageSourceCategory category)
+        {
+            switch (category)
+            {
+                case DamageSourceCategory.NPC:
+                    int npcIndex = modifiers.DamageSource.SourceNPCIndex;
+                    if (npcIndex >= 0 && npcIndex < Main.maxNPCs)
+                    {
+                        NPC sourceNPC = Main.npc[npcIndex];
+                        if (sourceNPC.active)
+                            return $"{sourceNPC.FullName} (Type:{sourceNPC.type})";
+                        return $"Inactive NPC #{npcIndex}";
+                    }
+                    return "Invalid NPC index";
+                    
+                case DamageSourceCategory.Projectile:
+                    int projIndex = modifiers.DamageSource.SourceProjectileLocalIndex;
+                    if (projIndex >= 0 && projIndex < Main.maxProjectiles && Main.projectile[projIndex].active)
+                    {
+                        Projectile sourceProj = Main.projectile[projIndex];
+                        return $"{sourceProj.Name} (Type:{sourceProj.type})";
+                    }
+                    return $"Unknown projectile #{projIndex}";
+                    
+                case DamageSourceCategory.Player:
+                    return $"Player #{modifiers.DamageSource.SourcePlayerIndex}";
+                    
+                case DamageSourceCategory.Environmental:
+                    return $"Knockback:{modifiers.Knockback.Base:F1}";
+                    
+                default:
+                    return "Unknown";
+            }
         }
 
         /// <summary>
