@@ -15,11 +15,14 @@ namespace TerrariaSurvivalMod.TetheredMinions
         // ║                        TUNABLE CONSTANTS                           ║
         // ╚════════════════════════════════════════════════════════════════════╝
 
-        /// <summary>Maximum search radius in tiles (bounded by minion tether distance)</summary>
-        private const int MaxSearchRadiusTiles = 35;
+        /// <summary>Default maximum search radius in tiles (bounded by minion tether distance)</summary>
+        public const int DefaultMaxSearchRadiusTiles = 35;
 
         /// <summary>Maximum nodes to explore before giving up (prevents runaway on complex maps)</summary>
         private const int MaxNodesExplored = 1500;
+
+        /// <summary>Pixels per tile for clearance calculations</summary>
+        private const float PixelsPerTile = 16f;
 
         // 4-directional movement offsets (no diagonals - corners can't be cut)
         private static readonly Point[] CardinalOffsets = {
@@ -28,6 +31,12 @@ namespace TerrariaSurvivalMod.TetheredMinions
             new Point(-1, 0),   // Left
             new Point(1, 0)     // Right
         };
+
+        // Thread-local storage for current pathfinding clearance (avoids parameter threading everywhere)
+        [ThreadStatic]
+        private static int _currentClearanceWidthTiles;
+        [ThreadStatic]
+        private static int _currentClearanceHeightTiles;
 
         // ╔════════════════════════════════════════════════════════════════════╗
         // ║                          A* NODE                                   ║
@@ -50,50 +59,117 @@ namespace TerrariaSurvivalMod.TetheredMinions
         // ╚════════════════════════════════════════════════════════════════════╝
 
         /// <summary>
+        /// Calculate the clearance in tiles needed for a given size in pixels.
+        /// Rounds up to ensure the entity can always fit.
+        /// </summary>
+        public static int CalculateTileClearance(float sizePixels)
+        {
+            return (int)MathF.Ceiling(sizePixels / PixelsPerTile);
+        }
+
+        /// <summary>
         /// Check if a walking/flying path exists between two world positions.
         /// Does NOT return the actual path, just whether one exists.
+        /// Uses default 2x2 tile clearance.
+        /// </summary>
+        public static bool PathExists(Vector2 fromWorldPosition, Vector2 toWorldPosition)
+        {
+            return PathExists(fromWorldPosition, toWorldPosition, 2, 2);
+        }
+
+        /// <summary>
+        /// Check if a walking/flying path exists for an entity with specific hitbox size.
         /// </summary>
         /// <param name="fromWorldPosition">Start position in world coordinates (pixels)</param>
         /// <param name="toWorldPosition">Goal position in world coordinates (pixels)</param>
+        /// <param name="entityWidthPixels">Entity hitbox width in pixels</param>
+        /// <param name="entityHeightPixels">Entity hitbox height in pixels</param>
         /// <returns>True if a path exists, false if blocked or unreachable</returns>
-        public static bool PathExists(Vector2 fromWorldPosition, Vector2 toWorldPosition)
+        public static bool PathExists(Vector2 fromWorldPosition, Vector2 toWorldPosition, float entityWidthPixels, float entityHeightPixels)
         {
-            // Convert world coords to tile coords
             Point startTile = fromWorldPosition.ToTileCoordinates();
             Point goalTile = toWorldPosition.ToTileCoordinates();
 
-            return PathExistsBetweenTiles(startTile, goalTile);
+            int clearanceWidth = CalculateTileClearance(entityWidthPixels);
+            int clearanceHeight = CalculateTileClearance(entityHeightPixels);
+
+            return FindPathBetweenTiles(startTile, goalTile, clearanceWidth, clearanceHeight) != null;
         }
 
         /// <summary>
         /// Find the actual A* path between two world positions.
-        /// Returns list of tile positions from start to goal, or null if no path exists.
+        /// Returns list of world pixel positions (centered for clearance) from start to goal, or null if no path exists.
+        /// Uses default 2x2 tile clearance.
+        /// </summary>
+        public static List<Vector2>? FindPath(Vector2 fromWorldPosition, Vector2 toWorldPosition)
+        {
+            return FindPath(fromWorldPosition, toWorldPosition, 32f, 32f);  // Default 2x2 tile = 32x32 pixels
+        }
+
+        /// <summary>
+        /// Find the actual A* path for an entity with specific hitbox size.
+        /// Returns waypoints in WORLD PIXEL coordinates, centered for the entity's clearance.
         /// </summary>
         /// <param name="fromWorldPosition">Start position in world coordinates (pixels)</param>
         /// <param name="toWorldPosition">Goal position in world coordinates (pixels)</param>
-        /// <returns>List of tile Points from start to goal, or null if no path</returns>
-        public static List<Point>? FindPath(Vector2 fromWorldPosition, Vector2 toWorldPosition)
+        /// <param name="entityWidthPixels">Entity hitbox width in pixels</param>
+        /// <param name="entityHeightPixels">Entity hitbox height in pixels</param>
+        /// <param name="maxPathLengthTiles">Optional maximum search radius in tiles (default: 35)</param>
+        /// <returns>List of Vector2 world positions from start to goal, or null if no path</returns>
+        public static List<Vector2>? FindPath(Vector2 fromWorldPosition, Vector2 toWorldPosition, float entityWidthPixels, float entityHeightPixels, int maxPathLengthTiles = DefaultMaxSearchRadiusTiles)
         {
             Point startTile = fromWorldPosition.ToTileCoordinates();
             Point goalTile = toWorldPosition.ToTileCoordinates();
 
-            return FindPathBetweenTiles(startTile, goalTile);
+            int clearanceWidth = CalculateTileClearance(entityWidthPixels);
+            int clearanceHeight = CalculateTileClearance(entityHeightPixels);
+
+            List<Point>? tilePath = FindPathBetweenTiles(startTile, goalTile, clearanceWidth, clearanceHeight, maxPathLengthTiles);
+            
+            if (tilePath == null) {
+                return null;
+            }
+
+            // Convert tile path to world coordinates, centering on the clearance area
+            var worldPath = new List<Vector2>(tilePath.Count);
+            float halfClearanceX = (clearanceWidth * PixelsPerTile) / 2f;
+            float halfClearanceY = (clearanceHeight * PixelsPerTile) / 2f;
+
+            foreach (Point tilePos in tilePath) {
+                // Target the CENTER of the clearance area, not the tile corner
+                Vector2 worldPos = new Vector2(
+                    tilePos.X * PixelsPerTile + halfClearanceX,
+                    tilePos.Y * PixelsPerTile + halfClearanceY
+                );
+                worldPath.Add(worldPos);
+            }
+
+            return worldPath;
         }
 
         /// <summary>
         /// Check if a path exists between two tile positions.
         /// </summary>
-        public static bool PathExistsBetweenTiles(Point startTile, Point goalTile)
+        public static bool PathExistsBetweenTiles(Point startTile, Point goalTile, int clearanceWidthTiles = 2, int clearanceHeightTiles = 2)
         {
-            return FindPathBetweenTiles(startTile, goalTile) != null;
+            return FindPathBetweenTiles(startTile, goalTile, clearanceWidthTiles, clearanceHeightTiles) != null;
         }
 
         /// <summary>
         /// Find path between two tile positions using A*.
         /// </summary>
+        /// <param name="startTile">Starting tile position</param>
+        /// <param name="goalTile">Goal tile position</param>
+        /// <param name="clearanceWidthTiles">Required clearance width in tiles</param>
+        /// <param name="clearanceHeightTiles">Required clearance height in tiles</param>
+        /// <param name="maxSearchRadiusTiles">Maximum search radius in tiles</param>
         /// <returns>List of tile Points from start to goal (inclusive), or null if no path</returns>
-        public static List<Point>? FindPathBetweenTiles(Point startTile, Point goalTile)
+        public static List<Point>? FindPathBetweenTiles(Point startTile, Point goalTile, int clearanceWidthTiles = 2, int clearanceHeightTiles = 2, int maxSearchRadiusTiles = DefaultMaxSearchRadiusTiles)
         {
+            // Store clearance in thread-local variables for use by IsTilePassable
+            _currentClearanceWidthTiles = Math.Max(1, clearanceWidthTiles);
+            _currentClearanceHeightTiles = Math.Max(1, clearanceHeightTiles);
+
             // Quick check: if start or goal is blocked, no path
             if (!IsTilePassable(startTile.X, startTile.Y) || !IsTilePassable(goalTile.X, goalTile.Y)) {
                 return null;
@@ -106,7 +182,7 @@ namespace TerrariaSurvivalMod.TetheredMinions
 
             // Quick check: if distance > max radius, definitely no path within bounds
             float tileDistance = Vector2.Distance(startTile.ToVector2(), goalTile.ToVector2());
-            if (tileDistance > MaxSearchRadiusTiles) {
+            if (tileDistance > maxSearchRadiusTiles) {
                 return null;
             }
 
@@ -169,8 +245,8 @@ namespace TerrariaSurvivalMod.TetheredMinions
                     }
 
                     // Skip if too far from goal (bounding box optimization)
-                    if (Math.Abs(neighborTile.X - goalTile.X) > MaxSearchRadiusTiles ||
-                        Math.Abs(neighborTile.Y - goalTile.Y) > MaxSearchRadiusTiles) {
+                    if (Math.Abs(neighborTile.X - goalTile.X) > maxSearchRadiusTiles ||
+                        Math.Abs(neighborTile.Y - goalTile.Y) > maxSearchRadiusTiles) {
                         continue;
                     }
 
@@ -228,9 +304,27 @@ namespace TerrariaSurvivalMod.TetheredMinions
         // ╚════════════════════════════════════════════════════════════════════╝
 
         /// <summary>
-        /// Check if a tile is passable (can be walked/flown through).
+        /// Check if a tile has clearance for minion movement (NxM tile area).
+        /// This accounts for minion hitboxes being larger than 1 tile.
+        /// Uses the current thread-local clearance values.
         /// </summary>
         private static bool IsTilePassable(int tileX, int tileY)
+        {
+            // Check an area of clearanceWidth x clearanceHeight tiles
+            for (int xOffset = 0; xOffset < _currentClearanceWidthTiles; xOffset++) {
+                for (int yOffset = 0; yOffset < _currentClearanceHeightTiles; yOffset++) {
+                    if (!IsSingleTilePassable(tileX + xOffset, tileY + yOffset)) {
+                        return false;
+                    }
+                }
+            }
+            return true;
+        }
+
+        /// <summary>
+        /// Check if a single tile is passable (can be walked/flown through).
+        /// </summary>
+        private static bool IsSingleTilePassable(int tileX, int tileY)
         {
             // Bounds check
             if (tileX < 0 || tileX >= Main.maxTilesX || tileY < 0 || tileY >= Main.maxTilesY) {

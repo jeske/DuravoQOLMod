@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Microsoft.Xna.Framework;
 using Terraria;
 using Terraria.ID;
@@ -7,13 +8,13 @@ using Terraria.ModLoader;
 namespace TerrariaSurvivalMod.TetheredMinions
 {
     /// <summary>
-    /// GlobalProjectile that enforces minion tethering to player.
-    /// When a minion loses line-of-sight to its owner for too long,
-    /// or loses a viable travel path, it triggers the minion's return behavior.
-    ///
-    /// Approach priority:
-    /// 1. Trigger native fly/phase behavior (disable collision, give velocity toward owner)
-    /// 2. Fallback: teleport if stuck for too long
+    /// GlobalProjectile that handles minion anti-cheese and QoL pathing.
+    /// 
+    /// Two main features:
+    /// 1. CHEESE PREVENTION: When player places a block, if minion is nearby with no LOS
+    ///    and no valid A* path, immediately phase the minion back to player.
+    /// 2. QOL PATHING: When minion's velocity is pointing toward player but blocked,
+    ///    compute A* path and follow it (or phase if no path exists).
     /// </summary>
     public class TetheredMinionProjectile : GlobalProjectile
     {
@@ -22,22 +23,25 @@ namespace TerrariaSurvivalMod.TetheredMinions
         // ╚════════════════════════════════════════════════════════════════════╝
 
         /// <summary>DEBUG: Set to true for verbose tether logging</summary>
-        private const bool DebugTethering = true;
+        private const bool DebugTethering = false;
 
-        /// <summary>How long LOS can be blocked before minion phases to player (seconds)</summary>
-        private const double LOSBlockedTimeoutSeconds = 5.0;
+        /// <summary>Enable QoL "stuck detection" pathing (disabled for now - velocity detection doesn't work for bouncing minions)</summary>
+        private const bool EnableQoLFollowPathing = false;
 
-        /// <summary>How long "phasing" state lasts before we force teleport (seconds)</summary>
-        private const double PhasingTimeoutSeconds = 3.0;
+        /// <summary>Max distance in tiles for cheese check / QoL pathing to apply</summary>
+        private const float MaxDistanceForCheckTiles = 35f;
 
-        /// <summary>How often to check tether conditions (ticks, 30 = 0.5 sec)</summary>
-        private const int TetherCheckIntervalTicks = 30;
+        /// <summary>Max A* path length in tiles (prevents expensive long searches)</summary>
+        private const int MaxAStarPathLengthTiles = 35;
+
+        /// <summary>Cooldown in ticks before rechecking A* after cheese prevention triggers</summary>
+        private const int CheeseCheckCooldownTicks = 120; // 2 seconds
+
+        /// <summary>Cooldown in ticks before rechecking QoL pathing</summary>
+        private const int QoLPathingCheckCooldownTicks = 30; // 0.5 seconds
 
         /// <summary>Maximum speed at which minion flies toward player when phasing</summary>
         private const float PhasingMaxFlySpeed = 15f;
-
-        /// <summary>Minimum speed when close to player to avoid drifting</summary>
-        private const float PhasingMinFlySpeed = 2f;
 
         /// <summary>Distance at which minion starts slowing down (pixels)</summary>
         private const float PhasingSlowdownDistance = 150f;
@@ -45,11 +49,56 @@ namespace TerrariaSurvivalMod.TetheredMinions
         /// <summary>Distance at which minion is considered "arrived" (pixels)</summary>
         private const float PhasingArrivalDistance = 40f;
 
-        /// <summary>Random offset range when teleporting back to player (pixels)</summary>
-        private const float TeleportOffsetRange = 40f;
+        /// <summary>Distance at which minion is considered to have reached a path waypoint (pixels)</summary>
+        private const float WaypointArrivalDistance = 24f;
 
-        /// <summary>Vertical offset when teleporting (pixels, negative = above player)</summary>
-        private const float TeleportVerticalOffset = -20f;
+        /// <summary>Speed when following A* path (pixels per tick)</summary>
+        private const float PathFollowSpeed = 8f;
+
+        /// <summary>Minimum velocity magnitude to consider minion "moving"</summary>
+        private const float MinVelocityMagnitude = 1f;
+
+        /// <summary>
+        /// Distance threshold (pixels) for stuck detection.
+        /// If |currentPos - avgPos| < this value while sampling, minion is "stuck".
+        /// </summary>
+        private const float StuckDistanceThresholdPixels = 16f;
+
+        /// <summary>
+        /// Progress threshold (pixels) along dominant axis.
+        /// If minion gets this much closer to player on the dominant axis, reset stuck detection.
+        /// </summary>
+        private const float ProgressThresholdPixels = 8f;
+
+        /// <summary>
+        /// Minimum samples before we consider the minion potentially stuck.
+        /// Prevents false positives on short oscillations.
+        /// </summary>
+        private const int MinSamplesForStuckDetection = 30; // ~0.5 seconds
+
+        /// <summary>
+        /// Minimum consecutive frames where stuck condition is true before triggering action.
+        /// Prevents triggering on momentary oscillations that happen to match the threshold.
+        /// </summary>
+        private const int MinFramesToConsiderStuck = 10;
+
+        /// <summary>How long "phasing" state lasts before we force teleport (seconds)</summary>
+        private const double PhasingTimeoutSeconds = 3.0;
+
+        // ╔════════════════════════════════════════════════════════════════════╗
+        // ║                          STATIC STATE                              ║
+        // ╚════════════════════════════════════════════════════════════════════╝
+
+        /// <summary>
+        /// The game tick on which cheese check should execute.
+        /// Set to currentTick + 1 when block is placed, checked in PreAI.
+        /// </summary>
+        public static int DoCheeseCheckOnTick { get; set; } = int.MaxValue;
+
+        /// <summary>
+        /// The player who placed the block (for ownership check).
+        /// </summary>
+        public static int BlockPlacerPlayerIndex { get; set; } = -1;
 
         // ╔════════════════════════════════════════════════════════════════════╗
         // ║                          INSTANCE STATE                            ║
@@ -58,8 +107,38 @@ namespace TerrariaSurvivalMod.TetheredMinions
         // Per-projectile instance required for tracking state
         public override bool InstancePerEntity => true;
 
-        /// <summary>Epoch time when LOS was last confirmed clear</summary>
-        private double lastClearLOSTimeEpoch;
+        /// <summary>Game tick when cheese check was last performed</summary>
+        private int lastCheeseCheckTick;
+
+        /// <summary>
+        /// Running average of minion position during "velocity toward player" frames.
+        /// Used for stuck detection.
+        /// </summary>
+        private Vector2 avgPositionDuringSampling;
+
+        /// <summary>
+        /// Number of consecutive ticks where velocity was toward player.
+        /// Used for stuck detection averaging.
+        /// </summary>
+        private int numTicksVelocityTowardsPlayer;
+
+        /// <summary>
+        /// Number of consecutive frames the stuck condition (distance < threshold) has been true.
+        /// Must reach MinFramesToConsiderStuck before triggering action.
+        /// </summary>
+        private int consecutiveFramesBelowStuckThreshold;
+
+        /// <summary>
+        /// True if horizontal is the dominant direction to player when sampling started.
+        /// Used for single-axis progress tracking.
+        /// </summary>
+        private bool dominantAxisIsHorizontal;
+
+        /// <summary>
+        /// The distance to player on the dominant axis when sampling started.
+        /// Progress = getting closer than this value.
+        /// </summary>
+        private float startingDistanceOnDominantAxis;
 
         /// <summary>Whether minion is currently in "phasing" state (flying through walls to owner)</summary>
         private bool isPhasingToOwner;
@@ -70,11 +149,14 @@ namespace TerrariaSurvivalMod.TetheredMinions
         /// <summary>Original tileCollide value before phasing</summary>
         private bool originalTileCollide;
 
-        /// <summary>Counter for periodic checks</summary>
-        private int tetherCheckTimer;
+        /// <summary>Whether minion is currently following A* path waypoints</summary>
+        private bool isFollowingPath;
 
-        /// <summary>Flag to track if we're initialized</summary>
-        private bool isInitialized;
+        /// <summary>The A* path waypoints from minion to owner (world pixel coords)</summary>
+        private List<Vector2>? currentPathWaypoints;
+
+        /// <summary>Current waypoint index we're heading toward</summary>
+        private int currentWaypointIndex;
 
         /// <summary>Get current time as epoch seconds</summary>
         private static double GetEpochTimeSeconds()
@@ -86,50 +168,15 @@ namespace TerrariaSurvivalMod.TetheredMinions
         // ║                          MAIN LOGIC                                ║
         // ╚════════════════════════════════════════════════════════════════════╝
 
-        public override bool PreAI(Projectile projectile)
-        {
-            // Only process minions
-            if (!projectile.minion)
-                return true;
-
-            // Initialize on first tick
-            if (!isInitialized) {
-                lastClearLOSTimeEpoch = GetEpochTimeSeconds();
-                isInitialized = true;
-            }
-
-            // Get owner
-            if (projectile.owner < 0 || projectile.owner >= Main.maxPlayers)
-                return true;
-
-            Player ownerPlayer = Main.player[projectile.owner];
-            if (!ownerPlayer.active || ownerPlayer.dead)
-                return true;
-
-            // If phasing, disable tile collision before AI runs
-            if (isPhasingToOwner) {
-                projectile.tileCollide = false;
-            }
-
-            // Periodic check when not phasing
-            if (tetherCheckTimer++ < TetherCheckIntervalTicks)
-                return true;
-            tetherCheckTimer = 0;
-
-            // Check tether conditions
-            CheckTetherConditions(projectile, ownerPlayer);
-
-            return true;
-        }
-
         /// <summary>
         /// PostAI runs AFTER the projectile's normal AI.
-        /// This is where we override velocity during phasing so the minion flies toward player.
+        /// Velocity here is the AI's INTENDED velocity (before collision modifies it).
+        /// This is where we check for stuck detection and apply phasing/path-following.
         /// </summary>
         public override void PostAI(Projectile projectile)
         {
-            // Only process minions that are phasing
-            if (!projectile.minion || !isPhasingToOwner)
+            // Only process minions
+            if (!projectile.minion)
                 return;
 
             // Get owner
@@ -140,13 +187,300 @@ namespace TerrariaSurvivalMod.TetheredMinions
             if (!ownerPlayer.active || ownerPlayer.dead)
                 return;
 
-            // Apply phasing movement - override velocity AFTER normal AI ran
-            ApplyPhasingMovement(projectile, ownerPlayer);
+            // Get distance to owner in tiles
+            float distanceToOwnerPixels = Vector2.Distance(projectile.Center, ownerPlayer.Center);
+            float distanceToOwnerTiles = distanceToOwnerPixels / 16f;
+
+            // Only process if minion is within our check range
+            if (distanceToOwnerTiles > MaxDistanceForCheckTiles)
+                return;
+
+            int currentTick = (int)Main.GameUpdateCount;
+
+            // ═══════════════════════════════════════════════════════════
+            // CHEESE PREVENTION: Check on block placement (delayed by 1 tick)
+            // PlaceInWorld fires BEFORE the tile exists, so we wait until DoCheeseCheckOnTick
+            // New block placement ALWAYS triggers check (no cooldown - player action is deliberate)
+            // ═══════════════════════════════════════════════════════════
+            if (currentTick >= DoCheeseCheckOnTick && BlockPlacerPlayerIndex == projectile.owner) {
+                // Reset immediately so we don't re-check every frame
+                DoCheeseCheckOnTick = int.MaxValue;
+
+                if (DebugTethering) {
+                    int clearanceW = TilePathfinder.CalculateTileClearance(projectile.width);
+                    int clearanceH = TilePathfinder.CalculateTileClearance(projectile.height);
+                    Main.NewText($"[TETHER] Block placed, checking {projectile.Name} (hitbox {projectile.width}x{projectile.height}px → {clearanceW}x{clearanceH} tiles)", Color.Yellow);
+                }
+                CheckCheesePrevention(projectile, ownerPlayer);
+            }
+
+            // ═══════════════════════════════════════════════════════════
+            // QOL PATHING: Stuck detection using position averaging
+            // In PostAI, velocity is the AI's INTENDED velocity (pre-collision).
+            // This lets us detect when minion wants to move toward player but can't.
+            // DISABLED: Velocity detection doesn't work for bouncing minions (e.g., Baby Slime)
+            // ═══════════════════════════════════════════════════════════
+            if (EnableQoLFollowPathing && !isPhasingToOwner && !isFollowingPath) {
+                CheckStuckDetection(projectile, ownerPlayer);
+            }
+
+            // ═══════════════════════════════════════════════════════════
+            // APPLY MOVEMENT: Override velocity for phasing/path-following
+            // ═══════════════════════════════════════════════════════════
+            if (isFollowingPath) {
+                ApplyPathFollowingMovement(projectile, ownerPlayer);
+            }
+            else if (isPhasingToOwner) {
+                ApplyPhasingMovement(projectile, ownerPlayer);
+            }
+        }
+
+        // ╔════════════════════════════════════════════════════════════════════╗
+        // ║                      CHEESE PREVENTION                             ║
+        // ╚════════════════════════════════════════════════════════════════════╝
+
+        /// <summary>
+        /// Cheese prevention check: Player placed a block, minion is nearby.
+        /// If no LOS and no A* path, immediately phase minion to player.
+        /// </summary>
+        private void CheckCheesePrevention(Projectile minion, Player ownerPlayer)
+        {
+            // Check LOS first
+            bool hasLOS = HasLineOfSight(minion.Center, ownerPlayer.Center);
+            if (hasLOS) {
+                // LOS is clear, no cheese prevention needed
+                return;
+            }
+
+            // No LOS - try A* path (max 18 tiles)
+            List<Vector2>? pathToOwner = TilePathfinder.FindPath(
+                minion.Center,
+                ownerPlayer.Center,
+                minion.width,
+                minion.height,
+                MaxAStarPathLengthTiles
+            );
+
+            if (pathToOwner != null && pathToOwner.Count > 0) {
+                // Valid path exists - no cheese, minion can get back naturally
+                if (DebugTethering) {
+                    DebugPrintPathSteps(pathToOwner, $"Cheese check: {minion.Name}");
+                }
+                return;
+            }
+
+            // NO LOS and NO PATH = CHEESE DETECTED! Phase the minion back.
+            if (DebugTethering) {
+                Main.NewText($"[TETHER] CHEESE DETECTED! {minion.Name} has no path - phasing to player", Color.Red);
+            }
+            StartPhasingState(minion, "cheese prevention - no path after block placed");
+        }
+
+        // ╔════════════════════════════════════════════════════════════════════╗
+        // ║                     STUCK DETECTION (QOL PATHING)                  ║
+        // ╚════════════════════════════════════════════════════════════════════╝
+
+        /// <summary>
+        /// Stuck detection: When minion velocity has a positive component toward player,
+        /// accumulate position samples. If the minion's current position is very close
+        /// to the running average, it's "stuck" (bouncing against an obstacle).
+        /// </summary>
+        private void CheckStuckDetection(Projectile minion, Player ownerPlayer)
+        {
+            Vector2 minionVelocity = minion.velocity;
+            float velocityMagnitude = minionVelocity.Length();
+
+            // Must have some velocity
+            if (velocityMagnitude < MinVelocityMagnitude) {
+                // No velocity - reset sampling
+                ResetStuckSampling();
+                return;
+            }
+
+            // Get direction to player
+            Vector2 vectorToPlayer = ownerPlayer.Center - minion.Center;
+            if (vectorToPlayer.Length() < 1f) {
+                // Already at player - reset sampling
+                ResetStuckSampling();
+                return;
+            }
+
+            // Check if velocity has positive component toward player (dot > 0)
+            // Note: vectorToPlayer is NOT normalized yet for the dominant axis calculation
+            float dotVelocityToPlayer = Vector2.Dot(minionVelocity, vectorToPlayer / vectorToPlayer.Length());
+
+            if (dotVelocityToPlayer <= 0f) {
+                // Velocity NOT toward player - reset sampling
+                ResetStuckSampling();
+                return;
+            }
+
+            Vector2 currentMinionPosition = minion.Center;
+            Vector2 rawVectorToPlayer = ownerPlayer.Center - currentMinionPosition;
+
+            // If this is the first sample, determine the dominant axis and record starting distance
+            if (numTicksVelocityTowardsPlayer == 0) {
+                dominantAxisIsHorizontal = Math.Abs(rawVectorToPlayer.X) >= Math.Abs(rawVectorToPlayer.Y);
+                startingDistanceOnDominantAxis = dominantAxisIsHorizontal
+                    ? Math.Abs(rawVectorToPlayer.X)
+                    : Math.Abs(rawVectorToPlayer.Y);
+            }
+
+            // Check if minion made progress on the DOMINANT axis (got closer to player)
+            float currentDistanceOnDominantAxis = dominantAxisIsHorizontal
+                ? Math.Abs(rawVectorToPlayer.X)
+                : Math.Abs(rawVectorToPlayer.Y);
+
+            if (currentDistanceOnDominantAxis < startingDistanceOnDominantAxis - ProgressThresholdPixels) {
+                // Made progress! Reset and start fresh with new baseline
+                if (numTicksVelocityTowardsPlayer % 300 == 20) {
+                    Main.NewText($"[STUCK-DBG] {minion.Name} PROGRESS on {(dominantAxisIsHorizontal ? "X" : "Y")}: {startingDistanceOnDominantAxis:F0} -> {currentDistanceOnDominantAxis:F0}", Color.Lime);
+                }
+                ResetStuckSampling();
+                return;
+            }
+
+            // Velocity IS toward player but no progress on dominant axis - update running average
+            avgPositionDuringSampling = ((avgPositionDuringSampling * numTicksVelocityTowardsPlayer) + currentMinionPosition) / (numTicksVelocityTowardsPlayer + 1);
+            numTicksVelocityTowardsPlayer++;
+
+            // Debug: Log every 300 ticks (at tick 20, 320, 620, etc.)
+            if (numTicksVelocityTowardsPlayer % 300 == 20) {
+                float distFromAvg = Vector2.Distance(currentMinionPosition, avgPositionDuringSampling);
+                string axisName = dominantAxisIsHorizontal ? "X" : "Y";
+                Main.NewText($"[STUCK-DBG] {minion.Name} tick={numTicksVelocityTowardsPlayer}, axis={axisName}, startDist={startingDistanceOnDominantAxis:F0}, currDist={currentDistanceOnDominantAxis:F0}, distFromAvg={distFromAvg:F1}px", Color.Cyan);
+            }
+
+            // Need minimum samples before checking for stuck
+            if (numTicksVelocityTowardsPlayer < MinSamplesForStuckDetection)
+                return;
+
+            // Check if minion is stuck: |currentPos - avgPos| < threshold
+            float distanceFromAverage = Vector2.Distance(currentMinionPosition, avgPositionDuringSampling);
+
+            if (distanceFromAverage >= StuckDistanceThresholdPixels) {
+                // Minion IS making progress - reset consecutive frames counter
+                consecutiveFramesBelowStuckThreshold = 0;
+                return;
+            }
+
+            // Distance is below threshold - increment consecutive frames counter
+            consecutiveFramesBelowStuckThreshold++;
+
+            // Must be stuck for MinFramesToConsiderStuck consecutive frames
+            if (consecutiveFramesBelowStuckThreshold < MinFramesToConsiderStuck)
+                return;
+
+            // STUCK DETECTED! Minion velocity toward player but position not changing for sustained period.
+            if (DebugTethering) {
+                Main.NewText($"[TETHER] STUCK: {minion.Name} velocity toward player but avg distance={distanceFromAverage:F1}px over {numTicksVelocityTowardsPlayer} ticks", Color.Yellow);
+            }
+
+            // Reset sampling before triggering action
+            ResetStuckSampling();
+
+            // Try A* pathing
+            List<Vector2>? pathToOwner = TilePathfinder.FindPath(
+                minion.Center,
+                ownerPlayer.Center,
+                minion.width,
+                minion.height,
+                MaxAStarPathLengthTiles
+            );
+
+            if (pathToOwner != null && pathToOwner.Count > 0) {
+                // Found a path - follow it!
+                int pathLengthTiles = pathToOwner.Count - 1;
+                StartPathFollowingState(minion, pathToOwner, $"stuck detection - {pathLengthTiles} tile path found");
+            }
+            else {
+                // No path - phase toward player
+                if (DebugTethering) {
+                    Main.NewText($"[TETHER] STUCK: {minion.Name} no A* path, phasing toward player", Color.Orange);
+                }
+                StartPhasingState(minion, "stuck detection - no path available");
+            }
+        }
+
+        /// <summary>
+        /// Reset stuck detection sampling state.
+        /// </summary>
+        private void ResetStuckSampling()
+        {
+            avgPositionDuringSampling = Vector2.Zero;
+            numTicksVelocityTowardsPlayer = 0;
+            consecutiveFramesBelowStuckThreshold = 0;
+            dominantAxisIsHorizontal = false;
+            startingDistanceOnDominantAxis = 0f;
+        }
+
+        // ╔════════════════════════════════════════════════════════════════════╗
+        // ║                      PATH FOLLOWING                                ║
+        // ╚════════════════════════════════════════════════════════════════════╝
+
+        /// <summary>
+        /// Apply path-following movement - walk/fly through A* waypoints.
+        /// </summary>
+        private void ApplyPathFollowingMovement(Projectile minion, Player ownerPlayer)
+        {
+            // Check if we've reached the owner (back in LOS and close enough)
+            bool hasLOSNow = HasLineOfSight(minion.Center, ownerPlayer.Center);
+            float distanceToOwner = Vector2.Distance(minion.Center, ownerPlayer.Center);
+
+            if (hasLOSNow && distanceToOwner < PhasingArrivalDistance) {
+                // Arrived - end path following
+                EndPathFollowingState(minion);
+
+                if (DebugTethering) {
+                    Main.NewText($"[TETHER] {minion.Name} reached owner via A* path", Color.Green);
+                }
+                return;
+            }
+
+            // Check if we have valid waypoints
+            if (currentPathWaypoints == null || currentWaypointIndex >= currentPathWaypoints.Count) {
+                // Path exhausted but not at owner - switch to phasing
+                if (DebugTethering) {
+                    Main.NewText($"[TETHER] {minion.Name} A* path exhausted, switching to phase", Color.Yellow);
+                }
+                EndPathFollowingState(minion);
+                StartPhasingState(minion, "path exhausted");
+                return;
+            }
+
+            // Get current waypoint target
+            Vector2 waypointWorldPosition = currentPathWaypoints[currentWaypointIndex];
+
+            // Check if we've reached this waypoint
+            float distanceToWaypoint = Vector2.Distance(minion.Center, waypointWorldPosition);
+            if (distanceToWaypoint < WaypointArrivalDistance) {
+                // Move to next waypoint
+                currentWaypointIndex++;
+                return;
+            }
+
+            // Move toward current waypoint
+            Vector2 directionToWaypoint = waypointWorldPosition - minion.Center;
+            if (directionToWaypoint.Length() > 0) {
+                directionToWaypoint.Normalize();
+                minion.velocity = directionToWaypoint * PathFollowSpeed;
+            }
+
+            // Spawn subtle trail while path-following
+            if (Main.rand.NextBool(8)) {
+                Dust pathDust = Dust.NewDustPerfect(
+                    minion.Center,
+                    DustID.GreenTorch,
+                    -minion.velocity * 0.1f,
+                    Alpha: 180,
+                    Scale: 0.4f
+                );
+                pathDust.noGravity = true;
+            }
         }
 
         /// <summary>
         /// Apply phasing movement - fly through walls toward owner.
-        /// Called from PostAI so it happens AFTER normal AI (prevents AI from overriding our velocity).
         /// </summary>
         private void ApplyPhasingMovement(Projectile minion, Player ownerPlayer)
         {
@@ -185,16 +519,11 @@ namespace TerrariaSurvivalMod.TetheredMinions
                 directionToOwner.Normalize();
 
                 // Scale velocity based on distance - slow down as we approach
-                float speedFactor;
-                if (distanceToOwner >= PhasingSlowdownDistance) {
-                    speedFactor = 1f; // Full speed when far
-                }
-                else {
-                    // Linear interpolation from min to max speed based on distance
-                    speedFactor = distanceToOwner / PhasingSlowdownDistance;
-                }
+                float speedFactor = distanceToOwner >= PhasingSlowdownDistance
+                    ? 1f
+                    : distanceToOwner / PhasingSlowdownDistance;
 
-                float currentSpeed = MathHelper.Lerp(PhasingMinFlySpeed, PhasingMaxFlySpeed, speedFactor);
+                float currentSpeed = MathHelper.Lerp(2f, PhasingMaxFlySpeed, speedFactor);
                 minion.velocity = directionToOwner * currentSpeed;
             }
 
@@ -211,13 +540,40 @@ namespace TerrariaSurvivalMod.TetheredMinions
             }
         }
 
-        /// <summary>
-        /// Start phasing state - minion will fly through walls to owner.
-        /// </summary>
+        // ╔════════════════════════════════════════════════════════════════════╗
+        // ║                      STATE MANAGEMENT                              ║
+        // ╚════════════════════════════════════════════════════════════════════╝
+
+        private void StartPathFollowingState(Projectile minion, List<Vector2> pathWaypoints, string reason)
+        {
+            if (isFollowingPath || isPhasingToOwner)
+                return; // Already in a recall state
+
+            isFollowingPath = true;
+            currentPathWaypoints = pathWaypoints;
+            currentWaypointIndex = 0;
+
+            if (DebugTethering) {
+                Main.NewText($"[TETHER] {minion.Name} starting A* path ({pathWaypoints.Count} waypoints): {reason}", Color.Lime);
+            }
+        }
+
+        private void EndPathFollowingState(Projectile minion)
+        {
+            isFollowingPath = false;
+            currentPathWaypoints = null;
+            currentWaypointIndex = 0;
+        }
+
         private void StartPhasingState(Projectile minion, string reason)
         {
             if (isPhasingToOwner)
                 return; // Already phasing
+
+            // End path-following if active
+            if (isFollowingPath) {
+                EndPathFollowingState(minion);
+            }
 
             isPhasingToOwner = true;
             phasingStartedEpoch = GetEpochTimeSeconds();
@@ -228,60 +584,17 @@ namespace TerrariaSurvivalMod.TetheredMinions
             SpawnPhaseEffect(minion.Center, fadeOut: true);
 
             if (DebugTethering) {
-                Main.NewText($"[TETHER] {minion.Name} starting phase to owner: {reason}", Color.Orange);
+                Main.NewText($"[TETHER] {minion.Name} starting PHASE to owner: {reason}", Color.Orange);
             }
         }
 
-        /// <summary>
-        /// End phasing state - restore normal minion behavior.
-        /// </summary>
         private void EndPhasingState(Projectile minion)
         {
             isPhasingToOwner = false;
             minion.tileCollide = originalTileCollide;
-            lastClearLOSTimeEpoch = GetEpochTimeSeconds();
 
             // Spawn phase-in effect
             SpawnPhaseEffect(minion.Center, fadeOut: false);
-        }
-
-        /// <summary>
-        /// Check if minion should phase back to player.
-        /// Two triggers:
-        /// (a) No A* path exists from minion to player = IMMEDIATE phasing
-        /// (b) LOS blocked for 5 seconds = phasing
-        /// </summary>
-        private void CheckTetherConditions(Projectile minion, Player ownerPlayer)
-        {
-            double currentTimeEpoch = GetEpochTimeSeconds();
-            Vector2 minionPosition = minion.Center;
-            Vector2 playerPosition = ownerPlayer.Center;
-
-            // Check if A* path exists to owner
-            bool pathExistsToOwner = TilePathfinder.PathExists(minionPosition, playerPosition);
-
-            if (!pathExistsToOwner) {
-                // No path = IMMEDIATE phasing
-                StartPhasingState(minion, "no path to player (A*)");
-                return;
-            }
-
-            // Path exists - check LOS for the 5-second timeout rule
-            bool hasLOSToOwner = HasLineOfSight(minionPosition, playerPosition);
-
-            if (hasLOSToOwner) {
-                // LOS clear - reset timer
-                lastClearLOSTimeEpoch = currentTimeEpoch;
-                return;
-            }
-
-            // LOS blocked but path exists - check timeout
-            double losBlockedDuration = currentTimeEpoch - lastClearLOSTimeEpoch;
-
-            if (losBlockedDuration >= LOSBlockedTimeoutSeconds) {
-                // Start phasing behavior after timeout
-                StartPhasingState(minion, $"LOS blocked for {losBlockedDuration:F1}s");
-            }
         }
 
         /// <summary>
@@ -290,8 +603,8 @@ namespace TerrariaSurvivalMod.TetheredMinions
         private void TeleportMinionToPlayer(Projectile minion, Player targetPlayer, string reason)
         {
             // Calculate new position near player
-            float randomOffsetX = Main.rand.NextFloat(-TeleportOffsetRange, TeleportOffsetRange);
-            Vector2 newPosition = targetPlayer.Center + new Vector2(randomOffsetX, TeleportVerticalOffset);
+            float randomOffsetX = Main.rand.NextFloat(-40f, 40f);
+            Vector2 newPosition = targetPlayer.Center + new Vector2(randomOffsetX, -20f);
 
             // Spawn dust effect at old position
             SpawnPhaseEffect(minion.Center, fadeOut: true);
@@ -302,9 +615,6 @@ namespace TerrariaSurvivalMod.TetheredMinions
 
             // Spawn dust effect at new position
             SpawnPhaseEffect(newPosition, fadeOut: false);
-
-            // Reset LOS timer
-            lastClearLOSTimeEpoch = GetEpochTimeSeconds();
 
             if (DebugTethering) {
                 Main.NewText($"[TETHER] Teleported {minion.Name}: {reason}", Color.Cyan);
@@ -339,6 +649,56 @@ namespace TerrariaSurvivalMod.TetheredMinions
         }
 
         // ╔════════════════════════════════════════════════════════════════════╗
+        // ║                      PATH DEBUG                                    ║
+        // ╚════════════════════════════════════════════════════════════════════╝
+
+        /// <summary>
+        /// Debug helper: Print each step of the path as tile deltas.
+        /// This shows the ACTUAL movements, not just waypoint count.
+        /// </summary>
+        private static void DebugPrintPathSteps(List<Vector2> pathWaypoints, string context)
+        {
+            if (pathWaypoints.Count == 0) {
+                Main.NewText($"[TETHER] {context}: EMPTY PATH!", Color.Red);
+                return;
+            }
+
+            // Convert world pixel waypoints to tile positions
+            var tilePositions = new List<Point>();
+            foreach (Vector2 worldPos in pathWaypoints) {
+                tilePositions.Add(worldPos.ToTileCoordinates());
+            }
+
+            // Build string of relative moves
+            var moves = new System.Text.StringBuilder();
+            int totalManhattanDistance = 0;
+
+            for (int i = 1; i < tilePositions.Count; i++) {
+                Point prev = tilePositions[i - 1];
+                Point curr = tilePositions[i];
+                int dx = curr.X - prev.X;
+                int dy = curr.Y - prev.Y;
+                totalManhattanDistance += Math.Abs(dx) + Math.Abs(dy);
+                moves.Append($"({dx:+0;-0;0},{dy:+0;-0;0})");
+            }
+
+            int waypointCount = pathWaypoints.Count;
+            int stepCount = waypointCount - 1;
+
+            Main.NewText($"[TETHER] {context}: {waypointCount} waypoints, {stepCount} steps, manhattan={totalManhattanDistance}", Color.Gray);
+            if (moves.Length > 0) {
+                // Print moves in chunks to avoid chat overflow
+                string moveStr = moves.ToString();
+                if (moveStr.Length > 100) {
+                    Main.NewText($"  Moves: {moveStr[..100]}...", Color.DarkGray);
+                }
+                else {
+                    Main.NewText($"  Moves: {moveStr}", Color.DarkGray);
+                }
+            }
+        }
+
+        // ╔════════════════════════════════════════════════════════════════════╗
         // ║                      LINE OF SIGHT CHECKS                          ║
         // ╚════════════════════════════════════════════════════════════════════╝
 
@@ -349,6 +709,30 @@ namespace TerrariaSurvivalMod.TetheredMinions
         private static bool HasLineOfSight(Vector2 fromPosition, Vector2 toPosition)
         {
             return Collision.CanHitLine(fromPosition, 1, 1, toPosition, 1, 1);
+        }
+    }
+
+    /// <summary>
+    /// GlobalTile that detects when players place blocks.
+    /// Sets the tick when placed for TetheredMinionProjectile to check on the NEXT frame.
+    /// </summary>
+    public class TetheredMinionTileDetector : GlobalTile
+    {
+        public override void PlaceInWorld(int i, int j, int type, Item item)
+        {
+            // Find which player placed this tile (check who has itemTime > 0 and is placing)
+            for (int playerIndex = 0; playerIndex < Main.maxPlayers; playerIndex++) {
+                Player player = Main.player[playerIndex];
+                if (player.active && !player.dead && player.itemTime > 0) {
+                    // Check if player's held item could place this tile
+                    if (player.HeldItem.createTile == type) {
+                        // Schedule cheese check for next frame (tile doesn't exist yet in PlaceInWorld)
+                        TetheredMinionProjectile.DoCheeseCheckOnTick = (int)Main.GameUpdateCount + 1;
+                        TetheredMinionProjectile.BlockPlacerPlayerIndex = playerIndex;
+                        return;
+                    }
+                }
+            }
         }
     }
 }

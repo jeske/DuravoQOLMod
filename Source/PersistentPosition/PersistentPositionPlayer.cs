@@ -360,7 +360,7 @@ namespace TerrariaSurvivalMod.PersistentPosition
         /// Find the best spawn position, trying bump offsets if inside solid tiles.
         /// Returns the original position if clear, or a bumped position if found, or original anyway if no bump works.
         /// </summary>
-        private static Vector2 FindBestSpawnPosition(Vector2 originalPosition)
+        private Vector2 FindBestSpawnPosition(Vector2 originalPosition)
         {
             // If original position is clear, use it
             if (!IsPositionInSolidTiles(originalPosition)) {
@@ -386,6 +386,11 @@ namespace TerrariaSurvivalMod.PersistentPosition
 
                     // Check if bumped position is clear
                     if (!IsPositionInSolidTiles(bumpedPosition)) {
+                        // Debug log the bump vector
+                        if (DebugMessagesEnabled) {
+                            Vector2 bumpVector = bumpedPosition - originalPosition;
+                            Main.NewText($"[TSM DEBUG] Position bumped by ({bumpVector.X:F1}, {bumpVector.Y:F1})px = ({xBumpTiles:F1}, {yBumpTiles:F1}) tiles", 255, 200, 100);
+                        }
                         return bumpedPosition; // Found a clear spot
                     }
                 }
