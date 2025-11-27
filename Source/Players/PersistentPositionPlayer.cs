@@ -17,6 +17,9 @@ namespace TerrariaSurvivalMod
         // ║                        TUNABLE CONSTANTS                           ║
         // ╚════════════════════════════════════════════════════════════════════╝
         
+        /// <summary>Duration of spawn immunity in seconds (DEBUG: 8s for testing, set to 3 for release)</summary>
+        private const double SpawnImmunityDurationSeconds = 3.0;
+        
         /// <summary>DEBUG: Enable detailed damage source logging during immunity</summary>
         private const bool DebugLogDamageSources = true;
         
@@ -42,12 +45,24 @@ namespace TerrariaSurvivalMod
         // Whether we have a valid position to restore
         private bool hasValidSavedPosition;
         
-        // Tracks remaining ticks of absolute damage immunity after world enter
-        // Uses ModifyHurt to block ALL damage sources (not just collision)
-        private int absoluteImmunityTicksRemaining;
+        // Epoch time (seconds since 1970) when immunity expires (0 = not immune)
+        private double immunityExpiresAtEpochSeconds;
         
-        // Tracks remaining ticks for spawn light effect
-        private int spawnLightTicksRemaining;
+        /// <summary>Get current time as epoch seconds (wall clock time, never wraps)</summary>
+        private static double GetEpochTimeSeconds()
+        {
+            return DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() / 1000.0;
+        }
+        
+        /// <summary>Check if immunity is currently active</summary>
+        private bool IsImmunityActive => GetEpochTimeSeconds() < immunityExpiresAtEpochSeconds;
+        
+        /// <summary>Get remaining immunity time in seconds (0 if expired)</summary>
+        private double GetImmunityRemainingSeconds()
+        {
+            double remaining = immunityExpiresAtEpochSeconds - GetEpochTimeSeconds();
+            return remaining > 0 ? remaining : 0;
+        }
 
         /// <summary>
         /// Save player position when exiting the world.
@@ -88,64 +103,52 @@ namespace TerrariaSurvivalMod
         /// </summary>
         public override void OnEnterWorld()
         {
-            // Always show spawn light effect for 4 seconds (240 ticks)
-            spawnLightTicksRemaining = 240;
-            
-            if (!hasValidSavedPosition)
-            {
-                // No saved position, but still grant immunity for 3 seconds on any world enter
-                absoluteImmunityTicksRemaining = 180;
-                Main.NewText($"[TSM] World entered. Immune for 3s.", 100, 200, 255);
-                return;
-            }
-
-            // Validate the position before restoring
-            if (IsPositionSafeForPlayer(savedExitPosition))
+            // Try to restore player to saved position if available and safe
+            if (hasValidSavedPosition && IsPositionSafeForPlayer(savedExitPosition))
             {
                 // Nudge player UP by 1/5 tile (3.2 pixels) to prevent spawning inside ground
-                // 1 tile = 16 pixels, so 16/5 = 3.2 pixels upward
                 const float PositionNudgeUpPixels = 16f / 5f;
                 Player.position = savedExitPosition - new Vector2(0, PositionNudgeUpPixels);
-                
-                // Reset velocity to prevent continued falling/movement
                 Player.velocity = Vector2.Zero;
-                
-                // Start ABSOLUTE immunity (blocks ALL damage via ModifyHurt)
-                // 8 seconds = 480 ticks (for testing, reduce to ~180 for release)
-                absoluteImmunityTicksRemaining = 480;
-                
-                // Log successful restore for debugging
-                Main.NewText($"[TSM] Position restored. ABSOLUTE immune for 8s.", 100, 255, 100);
+                Main.NewText($"[TSM] Position restored. Immune for {SpawnImmunityDurationSeconds}s.", 100, 255, 100);
+            }
+            else if (hasValidSavedPosition)
+            {
+                Main.NewText($"[TSM] Saved position was unsafe, using spawn point. Immune for {SpawnImmunityDurationSeconds}s.", 255, 200, 100);
             }
             else
             {
-                // Position was unsafe - log it and let normal spawn handle it
-                absoluteImmunityTicksRemaining = 180; // Still grant 3s immunity
-                Main.NewText($"[TSM] Saved position was unsafe, using spawn point. Immune for 3s.", 255, 200, 100);
+                Main.NewText($"[TSM] World entered. Immune for {SpawnImmunityDurationSeconds}s.", 100, 200, 255);
             }
 
-            // Clear the flag so we don't restore again
+            // Clear saved position flag
             hasValidSavedPosition = false;
+            
+            // Grant spawn immunity (ONE place)
+            immunityExpiresAtEpochSeconds = GetEpochTimeSeconds() + SpawnImmunityDurationSeconds;
         }
         
+        // Track last logged second to avoid spam
+        private int lastLoggedSecond = -1;
+        
         /// <summary>
-        /// Called every frame - handle spawn light effect and immunity timer.
+        /// Called every frame - handle spawn light effect during immunity.
         /// </summary>
         public override void PreUpdate()
         {
-            // Handle spawn light effect (4 seconds of glowing light around player)
-            if (spawnLightTicksRemaining > 0)
+            // Handle immunity visual effects (light + particles)
+            if (IsImmunityActive)
             {
-                spawnLightTicksRemaining--;
+                double remainingSeconds = GetImmunityRemainingSeconds();
                 
-                // Calculate fade based on remaining time (brighter at start, fades out)
-                float lightIntensity = (float)spawnLightTicksRemaining / 240f;
+                // Calculate fade based on remaining time vs total duration (brighter at start, fades out)
+                float lightIntensity = (float)(remainingSeconds / SpawnImmunityDurationSeconds);
                 
                 // Add bright protective light around player (cyan/white glow)
                 Lighting.AddLight(Player.Center, 0.8f * lightIntensity, 1.0f * lightIntensity, 1.2f * lightIntensity);
                 
-                // Spawn occasional sparkle particles
-                if (Main.rand.NextBool(3) && spawnLightTicksRemaining > 60)
+                // Spawn occasional sparkle particles (stop when nearly expired)
+                if (Main.rand.NextBool(3) && remainingSeconds > 1.0)
                 {
                     float angle = Main.rand.NextFloat() * MathHelper.TwoPi;
                     float radius = Main.rand.NextFloat(10f, 30f);
@@ -164,23 +167,20 @@ namespace TerrariaSurvivalMod
                     spawnDust.noGravity = true;
                     spawnDust.fadeIn = 0.5f;
                 }
-            }
-            
-            // Handle absolute immunity timer
-            if (absoluteImmunityTicksRemaining > 0)
-            {
-                absoluteImmunityTicksRemaining--;
-                
-                // Also set vanilla immunity for visual feedback (optional blinking)
-                Player.immune = true;
-                Player.immuneTime = Math.Max(Player.immuneTime, 2); // Minimal, just for visual
                 
                 // Log approximately every 2 seconds so we can see it's working
-                if (absoluteImmunityTicksRemaining % 120 == 0 && absoluteImmunityTicksRemaining > 0)
+                int currentSecond = (int)remainingSeconds;
+                if (currentSecond != lastLoggedSecond && currentSecond % 2 == 0 && currentSecond > 0)
                 {
-                    int secondsRemaining = absoluteImmunityTicksRemaining / 60;
-                    Main.NewText($"[TSM] ABSOLUTE Immunity: {secondsRemaining}s remaining", 100, 255, 100);
+                    lastLoggedSecond = currentSecond;
+                    Main.NewText($"[TSM] ABSOLUTE Immunity: {currentSecond}s remaining", 100, 255, 100);
                 }
+            }
+            else if (lastLoggedSecond != -1)
+            {
+                // Immunity just ended - log it once
+                Main.NewText($"[TSM] Immunity ENDED - you can now take damage!", 255, 100, 100);
+                lastLoggedSecond = -1;
             }
         }
         
@@ -201,43 +201,40 @@ namespace TerrariaSurvivalMod
         /// </summary>
         public override void ModifyHurt(ref Player.HurtModifiers modifiers)
         {
+            // Only process during immunity period
+            if (!IsImmunityActive)
+                return;
+            
             // Categorize the damage source
             DamageSourceCategory damageCategory = CategorizeDamageSource(modifiers);
             
-            // Get actual incoming damage values (SourceDamage and FinalDamage are StatModifiers with Base property)
+            // Get actual incoming damage values BEFORE any modification
             int sourceDamageBase = (int)modifiers.SourceDamage.Base;
             int finalDamageBase = (int)modifiers.FinalDamage.Base;
             
-            // Debug logging (conditional on flag)
-            if (DebugLogDamageSources)
-            {
-                string categoryName = damageCategory.ToString();
-                string sourceDetails = GetDamageSourceDetails(modifiers, damageCategory);
-                Main.NewText($"[TSM-DMG] {categoryName}: src={sourceDamageBase} final={finalDamageBase} | {sourceDetails}", 255, 200, 100);
-            }
+            // Check if we should block this damage category
+            bool shouldBlock = ShouldBlockDamageCategory(damageCategory);
             
-            // Check if we should block this damage category during immunity
-            if (absoluteImmunityTicksRemaining > 0)
+            if (shouldBlock)
             {
-                bool shouldBlock = ShouldBlockDamageCategory(damageCategory);
-                
-                if (shouldBlock)
+                // Debug log BEFORE blocking (so we see original values)
+                if (DebugLogDamageSources)
                 {
-                    // Block this damage
-                    modifiers.FinalDamage *= 0f;
-                    
-                    if (DebugLogDamageSources)
-                    {
-                        Main.NewText($"[TSM] BLOCKED {damageCategory}! ({absoluteImmunityTicksRemaining / 60}s left)", 100, 255, 100);
-                    }
-                    CombatText.NewText(Player.Hitbox, Color.Cyan, "Protected!");
+                    string sourceDetails = GetDamageSourceDetails(modifiers, damageCategory);
+                    int secondsRemaining = (int)GetImmunityRemainingSeconds();
+                    Main.NewText($"[TSM] BLOCKING {damageCategory}: src={sourceDamageBase} final={finalDamageBase} | {sourceDetails} ({secondsRemaining}s left)", 100, 255, 100);
                 }
-                else
+                
+                // Block this damage
+                modifiers.FinalDamage *= 0f;
+                CombatText.NewText(Player.Hitbox, Color.Cyan, "Protected!");
+            }
+            else
+            {
+                if (DebugLogDamageSources)
                 {
-                    if (DebugLogDamageSources)
-                    {
-                        Main.NewText($"[TSM] ALLOWED {damageCategory} through immunity", 255, 100, 100);
-                    }
+                    string sourceDetails = GetDamageSourceDetails(modifiers, damageCategory);
+                    Main.NewText($"[TSM] ALLOWING {damageCategory}: src={sourceDamageBase} final={finalDamageBase} | {sourceDetails}", 255, 100, 100);
                 }
             }
         }

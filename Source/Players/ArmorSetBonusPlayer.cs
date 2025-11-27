@@ -53,6 +53,13 @@ namespace TerrariaSurvivalMod.Players
         /// <summary>DEBUG FLAG: Set to true to show persistent dim red sparkles at ALL sparkle point locations</summary>
         /// <remarks>This helps differentiate between "sparkle exists but not visible" vs "no sparkle at all"</remarks>
         private const bool DebugShowSparkleLocations = false;
+        
+        // --- Shield Cooldown Tuning ---
+        /// <summary>Cooldown in seconds for Copper/Tin tier shield (normal: 60)</summary>
+        private const int CopperTinArmorShieldCooldownDurationSeconds = 10; // DEBUG: Set to 60 for release
+        
+        /// <summary>Cooldown in seconds for Gold/Platinum tier shield (normal: 120)</summary>
+        private const int GoldPlatinumArmorShieldCooldownDurationSeconds = 10; // DEBUG: Set to 120 for release
 
         // ╔════════════════════════════════════════════════════════════════════╗
         // ║                          INSTANCE STATE                            ║
@@ -591,18 +598,19 @@ namespace TerrariaSurvivalMod.Players
             {
                 case ChestplateTier.TinCopper:
                     ActivateEmergencyShield(
-                        hpPercent: 0.25f,      // 25% of max HP
+                        shieldHP: 30,          // Flat 30 HP shield
                         durationSeconds: 5,
-                        cooldownSeconds: 60,
+                        cooldownSeconds: CopperTinArmorShieldCooldownDurationSeconds,
                         purgeDebuffs: false
                     );
                     break;
 
                 case ChestplateTier.GoldPlatinum:
+                    int goldPlatinumShieldHP = (int)(Player.statLifeMax2 * 0.15f); // 15% of max HP
                     ActivateEmergencyShield(
-                        hpPercent: 0.25f,      // 25% of max HP
+                        shieldHP: goldPlatinumShieldHP,
                         durationSeconds: 10,
-                        cooldownSeconds: 120,
+                        cooldownSeconds: GoldPlatinumArmorShieldCooldownDurationSeconds,
                         purgeDebuffs: true
                     );
                     break;
@@ -646,7 +654,7 @@ namespace TerrariaSurvivalMod.Players
             if (Main.rand.NextBool(3)) // ~20 particles per second
             {
                 float angle = Main.rand.NextFloat() * MathHelper.TwoPi;
-                float dustRadius = 15f; // Match the visual shield circle radius
+                float dustRadius = 10f; // Match the visual shield circle radius
                 Vector2 dustPosition = Player.Center + new Vector2(
                     (float)Math.Cos(angle) * dustRadius,
                     (float)Math.Sin(angle) * dustRadius
@@ -664,111 +672,20 @@ namespace TerrariaSurvivalMod.Players
         }
 
         /// <summary>
-        /// Draw the shield circle and HP indicator (called after player is drawn).
-        /// </summary>
-        public static void DrawShieldVisuals(PlayerDrawSet drawInfo)
-        {
-            Player player = drawInfo.drawPlayer;
-            ArmorSetBonusPlayer modPlayer = player.GetModPlayer<ArmorSetBonusPlayer>();
-
-            if (!modPlayer.HasActiveShield)
-                return;
-
-            // Calculate shield fill ratio for visual
-            float shieldRatio = (float)modPlayer.emergencyShieldHP / modPlayer.emergencyShieldMaxHP;
-
-            // Draw shield circle (simple alpha circle for prototype)
-            DrawShieldCircle(drawInfo, player, shieldRatio);
-
-            // Draw shield HP text near player
-            DrawShieldHPIndicator(drawInfo, player, modPlayer.emergencyShieldHP);
-        }
-
-        /// <summary>
-        /// Draw a semi-transparent circle around the player.
-        /// </summary>
-        private static void DrawShieldCircle(PlayerDrawSet drawInfo, Player player, float fillRatio)
-        {
-            SpriteBatch spriteBatch = Main.spriteBatch;
-
-            // Use vanilla white pixel texture for simple circle (prototype)
-            Texture2D pixelTexture = TextureAssets.MagicPixel.Value;
-
-            // Apply zoom to screen position for proper scaling
-            Vector2 playerScreenPos = (player.Center - Main.screenPosition) * Main.GameViewMatrix.Zoom;
-            float circleRadius = 20f; // Half size from original 40f
-            int segments = 32;
-
-            // Color based on shield tier (cyan for regular, gold for gold/platinum)
-            Color circleColor = Color.Cyan * 0.3f * fillRatio;
-
-            // Draw circle outline using line segments
-            for (int i = 0; i < segments; i++)
-            {
-                float angle1 = (float)i / segments * MathHelper.TwoPi;
-                float angle2 = (float)(i + 1) / segments * MathHelper.TwoPi;
-
-                Vector2 point1 = playerScreenPos + new Vector2(
-                    (float)Math.Cos(angle1) * circleRadius,
-                    (float)Math.Sin(angle1) * circleRadius
-                );
-                Vector2 point2 = playerScreenPos + new Vector2(
-                    (float)Math.Cos(angle2) * circleRadius,
-                    (float)Math.Sin(angle2) * circleRadius
-                );
-
-                // Draw line segment
-                Vector2 direction = point2 - point1;
-                float length = direction.Length();
-                float rotation = (float)Math.Atan2(direction.Y, direction.X);
-
-                spriteBatch.Draw(
-                    pixelTexture,
-                    point1,
-                    null,
-                    circleColor,
-                    rotation,
-                    Vector2.Zero,
-                    new Vector2(length, 2f), // 2 pixel thick line
-                    SpriteEffects.None,
-                    0f
-                );
-            }
-        }
-
-        /// <summary>
-        /// Draw shield HP text indicator near the player.
-        /// </summary>
-        private static void DrawShieldHPIndicator(PlayerDrawSet drawInfo, Player player, int shieldHP)
-        {
-            // Apply zoom to screen position for proper scaling
-            Vector2 playerScreenPos = (player.Center - Main.screenPosition) * Main.GameViewMatrix.Zoom;
-            Vector2 indicatorPos = playerScreenPos + new Vector2(25f, -25f); // Top-right of player (adjusted for smaller circle)
-
-            // Draw shield HP as text
-            string shieldText = $"🛡{shieldHP}";
-            
-            Utils.DrawBorderString(
-                Main.spriteBatch,
-                shieldText,
-                indicatorPos,
-                Color.Cyan,
-                scale: 0.8f
-            );
-        }
-
-        /// <summary>
         /// Activate the emergency shield with specified parameters.
         /// </summary>
-        private void ActivateEmergencyShield(float hpPercent, int durationSeconds, int cooldownSeconds, bool purgeDebuffs)
+        private void ActivateEmergencyShield(int shieldHP, int durationSeconds, int cooldownSeconds, bool purgeDebuffs)
         {
-            // Calculate shield HP
-            emergencyShieldMaxHP = (int)(Player.statLifeMax2 * hpPercent);
+            // Set shield HP (caller calculates flat or percentage-based value)
+            emergencyShieldMaxHP = shieldHP;
             emergencyShieldHP = emergencyShieldMaxHP;
 
             // Set duration and cooldown (in ticks, 60 = 1 second)
             emergencyShieldDurationTicks = durationSeconds * 60;
             emergencyShieldCooldownTicks = cooldownSeconds * 60;
+
+            // Apply Fragile debuff to show cooldown status
+            Player.AddBuff(ModContent.BuffType<Buffs.FragileBuff>(), cooldownSeconds * 60);
 
             // Purge debuffs if gold/platinum tier
             if (purgeDebuffs)

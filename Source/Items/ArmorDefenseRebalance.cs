@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Terraria;
 using Terraria.ID;
+using Terraria.Localization;
 using Terraria.ModLoader;
 
 namespace TerrariaSurvivalMod.Items
@@ -19,95 +20,95 @@ namespace TerrariaSurvivalMod.Items
     {
         public override void SetDefaults(Item item)
         {
-            // Tin Armor: 6 vanilla -> 10 proposed
+            // Goal: Redistribute set bonus defense into pieces, keeping same total
             switch (item.type)
             {
-                // === TIN ARMOR ===
-                case ItemID.TinHelmet:
-                    item.defense = 3; // was 2
-                    break;
-                case ItemID.TinChainmail:
-                    item.defense = 4; // was 2
-                    break;
-                case ItemID.TinGreaves:
-                    item.defense = 3; // was 2
-                    break;
-
-                // === COPPER ARMOR ===
+                // === COPPER ARMOR === (vanilla 1+2+1+2set = 6, proposed 1+3+2 = 6)
                 case ItemID.CopperHelmet:
-                    item.defense = 3; // was 1
+                    item.defense = 1; // unchanged
                     break;
                 case ItemID.CopperChainmail:
-                    item.defense = 4; // was 2
+                    item.defense = 3; // was 2, +1 from set bonus
                     break;
                 case ItemID.CopperGreaves:
-                    item.defense = 3; // was 1
+                    item.defense = 2; // was 1, +1 from set bonus
                     break;
 
-                // === IRON ARMOR ===
+                // === TIN ARMOR === (vanilla 2+2+2+1set = 7, proposed 2+3+2 = 7)
+                case ItemID.TinHelmet:
+                    item.defense = 2; // unchanged
+                    break;
+                case ItemID.TinChainmail:
+                    item.defense = 3; // was 2, +1 from set bonus
+                    break;
+                case ItemID.TinGreaves:
+                    item.defense = 2; // unchanged
+                    break;
+
+                // === IRON ARMOR === (vanilla 2+3+2+2set = 9, proposed 2+4+3 = 9)
                 case ItemID.IronHelmet:
-                    item.defense = 4; // was 3
+                    item.defense = 2; // unchanged
                     break;
                 case ItemID.IronChainmail:
-                    item.defense = 6; // was 4
+                    item.defense = 4; // was 3, +1 from set bonus
                     break;
                 case ItemID.IronGreaves:
-                    item.defense = 4; // was 2
+                    item.defense = 3; // was 2, +1 from set bonus
                     break;
 
-                // === LEAD ARMOR ===
+                // === LEAD ARMOR === (vanilla 3+3+3+1set = 10, proposed 3+4+3 = 10)
                 case ItemID.LeadHelmet:
-                    item.defense = 4; // was 3
+                    item.defense = 3; // unchanged
                     break;
                 case ItemID.LeadChainmail:
-                    item.defense = 6; // was 4
+                    item.defense = 4; // was 3, +1 from set bonus
                     break;
                 case ItemID.LeadGreaves:
-                    item.defense = 4; // was 2
+                    item.defense = 3; // unchanged
                     break;
 
-                // === SILVER ARMOR ===
+                // === SILVER ARMOR === (vanilla 3+4+3+2set = 12, proposed 3+5+4 = 12)
                 case ItemID.SilverHelmet:
-                    item.defense = 5; // was 4
+                    item.defense = 3; // unchanged
                     break;
                 case ItemID.SilverChainmail:
-                    item.defense = 7; // was 5
+                    item.defense = 5; // was 4, +1 from set bonus
                     break;
                 case ItemID.SilverGreaves:
-                    item.defense = 5; // was 3
+                    item.defense = 4; // was 3, +1 from set bonus
                     break;
 
-                // === TUNGSTEN ARMOR ===
+                // === TUNGSTEN ARMOR === (vanilla 4+4+3+2set = 13, proposed 4+5+4 = 13)
                 case ItemID.TungstenHelmet:
-                    item.defense = 5; // was 4
+                    item.defense = 4; // unchanged
                     break;
                 case ItemID.TungstenChainmail:
-                    item.defense = 7; // was 5
+                    item.defense = 5; // was 4, +1 from set bonus
                     break;
                 case ItemID.TungstenGreaves:
-                    item.defense = 5; // was 3
+                    item.defense = 4; // was 3, +1 from set bonus
                     break;
 
-                // === GOLD ARMOR ===
+                // === GOLD ARMOR === (vanilla 4+5+4+3set = 16, proposed 4+6+6 = 16)
                 case ItemID.GoldHelmet:
-                    item.defense = 6; // was 5
+                    item.defense = 4; // unchanged
                     break;
                 case ItemID.GoldChainmail:
-                    item.defense = 8; // was 6
+                    item.defense = 6; // was 5, +1 from set bonus
                     break;
                 case ItemID.GoldGreaves:
-                    item.defense = 6; // was 4
+                    item.defense = 6; // was 4, +2 from set bonus
                     break;
 
-                // === PLATINUM ARMOR ===
+                // === PLATINUM ARMOR === (vanilla 5+5+4+4set = 18, proposed 5+7+6 = 18)
                 case ItemID.PlatinumHelmet:
-                    item.defense = 6; // was 5
+                    item.defense = 5; // unchanged
                     break;
                 case ItemID.PlatinumChainmail:
-                    item.defense = 8; // was 6
+                    item.defense = 7; // was 5, +2 from set bonus
                     break;
                 case ItemID.PlatinumGreaves:
-                    item.defense = 6; // was 4
+                    item.defense = 6; // was 4, +2 from set bonus
                     break;
             }
         }
@@ -121,45 +122,42 @@ namespace TerrariaSurvivalMod.Items
             // Remove vanilla "Set bonus: X defense" tooltip line
             tooltips.RemoveAll(line => line.Name == "SetBonus");
             
-            string chestplateBonusText = GetChestplateBonusText(item.type);
+            string chestplateBonusKey = GetChestplateBonusKey(item.type);
             bool isOreArmorPiece = IsOreArmorPiece(item.type);
 
             // Add chestplate-specific bonus first (if applicable)
-            if (chestplateBonusText != null)
+            if (chestplateBonusKey != null)
             {
-                tooltips.Add(new TooltipLine(Mod, "ChestplateBonus", chestplateBonusText));
+                string chestplateText = Language.GetTextValue($"Mods.TerrariaSurvivalMod.ArmorBonus.{chestplateBonusKey}");
+                tooltips.Add(new TooltipLine(Mod, "ChestplateBonus", chestplateText));
             }
 
             // Add set bonus for any armor piece
             if (isOreArmorPiece)
             {
-                string setTooltip = "[c/ADFF2F:Set Bonus:] Shiny - nearby ores and gems sparkle";
+                string setTooltip = Language.GetTextValue("Mods.TerrariaSurvivalMod.ArmorBonus.SetBonusShiny");
                 tooltips.Add(new TooltipLine(Mod, "FullSetBonus", setTooltip));
             }
         }
 
         /// <summary>
-        /// Get the tooltip text for chestplate-specific bonus (null if not a chestplate).
+        /// Get the localization key for chestplate-specific bonus (null if not a chestplate).
         /// </summary>
-        private static string GetChestplateBonusText(int itemType)
+        private static string GetChestplateBonusKey(int itemType)
         {
             return itemType switch
             {
                 // Tin/Copper tier - Emergency Shield
-                ItemID.TinChainmail or ItemID.CopperChainmail
-                    => "[c/00BFFF:25% Shield for 5s when hit (60s cooldown)]",
+                ItemID.TinChainmail or ItemID.CopperChainmail => "ShieldTinCopper",
                 
                 // Iron/Lead tier - Crit bonus
-                ItemID.IronChainmail or ItemID.LeadChainmail
-                    => "[c/00BFFF:+10% critical strike chance]",
+                ItemID.IronChainmail or ItemID.LeadChainmail => "CritIronLead",
                 
                 // Silver/Tungsten tier - Speed bonus
-                ItemID.SilverChainmail or ItemID.TungstenChainmail
-                    => "[c/00BFFF:+15% movement speed]",
+                ItemID.SilverChainmail or ItemID.TungstenChainmail => "SpeedSilverTungsten",
                 
                 // Gold/Platinum tier - Enhanced Emergency Shield
-                ItemID.GoldChainmail or ItemID.PlatinumChainmail
-                    => "[c/00BFFF:25% Shield for 10s when hit (120s cooldown, purges debuffs)]",
+                ItemID.GoldChainmail or ItemID.PlatinumChainmail => "ShieldGoldPlatinum",
                 
                 _ => null
             };

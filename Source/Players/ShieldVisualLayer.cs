@@ -52,7 +52,7 @@ namespace TerrariaSurvivalMod.Players
             Texture2D pixelTexture = TextureAssets.MagicPixel.Value;
 
             Vector2 playerScreenPos = player.Center - Main.screenPosition;
-            float circleRadius = 40f;
+            float circleRadius = 27f;
             int segments = 32;
 
             // Color based on shield tier
@@ -79,6 +79,9 @@ namespace TerrariaSurvivalMod.Players
                 float length = direction.Length();
                 float rotation = (float)Math.Atan2(direction.Y, direction.X);
 
+                // Line thickness proportional to shield remaining (1-4 pixels)
+                float lineThickness = 1f + 3f * fillRatio;
+                
                 // Create draw data for the line segment
                 DrawData lineSegment = new DrawData(
                     pixelTexture,
@@ -87,7 +90,7 @@ namespace TerrariaSurvivalMod.Players
                     circleColor,
                     rotation,
                     Vector2.Zero,
-                    new Vector2(length, 3f), // 3 pixel thick line
+                    new Vector2(length, lineThickness),
                     SpriteEffects.None,
                     0
                 );
@@ -96,13 +99,13 @@ namespace TerrariaSurvivalMod.Players
             }
 
             // Also draw a filled semi-transparent circle for more visibility
-            DrawFilledCircle(drawInfo, playerScreenPos, circleRadius, baseColor * 0.1f * fillRatio);
+            DrawFilledCircle(drawInfo, playerScreenPos, circleRadius, baseColor * 0.1f * fillRatio, fillRatio);
         }
 
         /// <summary>
-        /// Draw a filled circle using multiple quads.
+        /// Draw a filled circle using multiple quads. Width scales with shield ratio.
         /// </summary>
-        private void DrawFilledCircle(PlayerDrawSet drawInfo, Vector2 center, float radius, Color color)
+        private void DrawFilledCircle(PlayerDrawSet drawInfo, Vector2 center, float radius, Color color, float fillRatio)
         {
             Texture2D pixelTexture = TextureAssets.MagicPixel.Value;
             int segments = 16;
@@ -128,6 +131,9 @@ namespace TerrariaSurvivalMod.Players
                 float length = direction.Length();
                 float rotation = (float)Math.Atan2(direction.Y, direction.X);
 
+                // Triangle width scales with shield remaining
+                float triangleWidth = radius * 0.4f * fillRatio;
+
                 DrawData segment = new DrawData(
                     pixelTexture,
                     center,
@@ -135,7 +141,7 @@ namespace TerrariaSurvivalMod.Players
                     color,
                     rotation,
                     Vector2.Zero,
-                    new Vector2(length, radius * 0.4f), // Wide line to fill
+                    new Vector2(length, triangleWidth),
                     SpriteEffects.None,
                     0
                 );
