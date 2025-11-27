@@ -1,7 +1,9 @@
-Terraria Survival Overhaul enhances the survival RPG experience, by 
-increasing the need for bases, making biome specific bases serve a 
-functional purpose, encouraging combat, enhancing gear progression, and
-making combat less avoidable - by removing some NPC tricking exploits.
+Duravo Mod enhances the survival RPG experience by increasing the need
+for bases, making biome-specific bases serve a functional purpose,
+encouraging combat, enhancing gear progression, and making combat less
+avoidable - by removing some NPC tricking exploits.
+
+Website: http://duravomod.org
 
 Our Conceptual Goals:
 - Deepen engagement with Terraria's rich world

@@ -1,4 +1,5 @@
 displayName = Duravo Progression and QOL
 author = KuroParkCity
 version = 0.1.0
-buildIgnore = _DOCS/*, _TASKS/*, .vscode/*, Archive/*, AssetSource/*, *.md, .env*, .git*, .editorconfig
+homepage = http://duravomod.org
+buildIgnore = _DOCS/*, _TASKS/*, .vscode/*, Archive/*, AssetSource/*, docs/*, *.md, .env*, .git*, .editorconfig

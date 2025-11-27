@@ -2,6 +2,9 @@
 
 Enhances the survival RPG experience by increasing the need for bases, making biome-specific bases serve a functional purpose, encouraging combat, enhancing gear progression, and making combat less avoidable.
 
+[url=http://duravomod.org]🌐 Visit our Website[/url]
+[url=TO_BE_FILLED_IN] Join our Forum Thread[/url]
+
 [h2]🎯 Our Goals[/h2]
 [list]
 [*] Deepen engagement with Terraria's rich world
@@ -48,3 +51,4 @@ Best speedrun times should increase from 50 minutes to 5+ hours, because you can
 
 [h3]Feedback & Development[/h3]
 This mod is in active development. Feedback welcome!
+
