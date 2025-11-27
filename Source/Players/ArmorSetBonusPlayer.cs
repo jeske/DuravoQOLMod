@@ -51,7 +51,7 @@ namespace TerrariaSurvivalMod.Players
         private const bool DebugHighlightStone = false;
 
         /// <summary>DEBUG FLAG: Set to true to also highlight Lead ore (bypasses tileSpelunker check)</summary>
-        private const bool DebugHighlightLeadOre = true;
+        private const bool DebugHighlightLeadOre = false;
 
         /// <summary>DEBUG FLAG: Set to true to show persistent dim red sparkles at ALL sparkle point locations</summary>
         private const bool DebugShowSparkleLocations = false;

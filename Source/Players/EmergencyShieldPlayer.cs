@@ -2,6 +2,7 @@ using Microsoft.Xna.Framework;
 using Terraria;
 using Terraria.DataStructures;
 using Terraria.ID;
+using Terraria.Localization;
 using Terraria.ModLoader;
 using System;
 
@@ -19,13 +20,13 @@ namespace TerrariaSurvivalMod.Players
         // ╚════════════════════════════════════════════════════════════════════╝
 
         /// <summary>DEBUG: Set to true for verbose shield activation logging</summary>
-        private const bool DebugShieldActivation = true;
+        private const bool DebugShieldActivation = false;
 
-        /// <summary>Cooldown in seconds for Copper/Tin tier shield (normal: 60)</summary>
-        private const int CopperTinShieldCooldownSeconds = 10; // DEBUG: Set to 60 for release
+        /// <summary>Cooldown in seconds for Copper/Tin tier shield</summary>
+        private const int CopperTinShieldCooldownSeconds = 60;
 
-        /// <summary>Cooldown in seconds for Gold/Platinum tier shield (normal: 120)</summary>
-        private const int GoldPlatinumShieldCooldownSeconds = 10; // DEBUG: Set to 120 for release
+        /// <summary>Cooldown in seconds for Gold/Platinum tier shield</summary>
+        private const int GoldPlatinumShieldCooldownSeconds = 120;
 
         /// <summary>Shield HP for Copper/Tin tier (flat amount)</summary>
         private const int CopperTinShieldHP = 30;
@@ -265,8 +266,9 @@ namespace TerrariaSurvivalMod.Players
                     Main.NewText($"[SHIELD] Partial absorption, remaining damage: {modifiers.SourceDamage.Base}", Color.Yellow);
             }
 
-            // Show combat text
-            CombatText.NewText(Player.Hitbox, Color.Cyan, $"Blocked {absorbedDamage} ({remainingPercent}%)");
+            // Show combat text - use localized string
+            string blockedText = Language.GetTextValue("Mods.TerrariaSurvivalMod.CombatText.ShieldBlocked", absorbedDamage);
+            CombatText.NewText(Player.Hitbox, Color.Cyan, blockedText);
 
             // Check if shield broke
             if (shieldCurrentHP <= 0) {

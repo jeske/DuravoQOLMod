@@ -24,6 +24,10 @@ Mods: {
 			}
 		}
 
+		CombatText: {
+			ShieldBlocked: "{0} (blocked)"
+		}
+
 		ArmorBonus: {
 			# Chestplate-only bonuses
 			ShieldTinCopper: "[c/00BFFF:+30 HP Shield for 5s when hit (60s cooldown)]"

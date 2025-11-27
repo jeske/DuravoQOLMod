@@ -12,7 +12,7 @@ namespace TerrariaSurvivalMod.NPCs
     public class ShieldDamageInterceptor : GlobalNPC
     {
         /// <summary>DEBUG: Set to true for verbose shield activation logging</summary>
-        private const bool DebugShieldActivation = true;
+        private const bool DebugShieldActivation = false;
 
         /// <summary>
         /// Called when an NPC is about to hit a player. This is where we intercept and reduce damage.

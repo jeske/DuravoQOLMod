@@ -1,22 +1,24 @@
 Terraria Survival Overhaul enhances the survival RPG experience, by 
 increasing the need for bases, making biome specific bases serve a 
 functional purpose, encouraging combat, enhancing gear progression, and
-making gameplay more authentic (by removing exploits).
+making combat less avoidable - by removing some NPC tricking exploits.
 
-Our Goals:
-- Make every expedition an adventure with real commitment
-- Reward preparation, planning, and skillful play
-- Create satisfying tension between risk and reward
+Our Conceptual Goals:
 - Deepen engagement with Terraria's rich world
+- Make more biomes "start viable"
+- Create satisfying tension between risk and reward
+- Increase engagement with the armor progression
+- Increase the investment to reach zoom-zoom level gameplay
 - Give purpose to biome-specific base crafting items
-- Make any biome "start viable"
 
 Current Features:
-- Persistent Player Position: Your character stays where you left them
+
+- *Persistent Player Position* Your character stays where you left them. The only fast travel is pylons.
+- Armor rebalance: New non-combat set-bonus to make breaking sets viable. New chestpiece bonuses, including a visual shield, to make armor more fun and help new players learn combat.
 
 Coming Soon:
-- Digging-based difficulty scaling
-- Enhanced enemy behaviors
+- Digging-based spawn scaling
+- Enhanced enemy behaviors (variable jump size, digging)
 - Strategic travel systems
 
 Stretch Goal:
