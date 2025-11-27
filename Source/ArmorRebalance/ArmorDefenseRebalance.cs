@@ -5,7 +5,7 @@ using Terraria.ID;
 using Terraria.Localization;
 using Terraria.ModLoader;
 
-namespace CrucibleMod.ArmorRebalance
+namespace DuravoMod.ArmorRebalance
 {
     /// <summary>
     /// Rebalances vanilla armor defense values.
@@ -127,13 +127,13 @@ namespace CrucibleMod.ArmorRebalance
 
             // Add chestplate-specific bonus first (if applicable)
             if (chestplateBonusKey != null) {
-                string chestplateText = Language.GetTextValue($"Mods.TerrariaSurvivalMod.ArmorRebalance.Tooltips.{chestplateBonusKey}");
+                string chestplateText = Language.GetTextValue($"Mods.DuravoMod.ArmorRebalance.Tooltips.{chestplateBonusKey}");
                 tooltips.Add(new TooltipLine(Mod, "ChestplateBonus", chestplateText));
             }
 
             // Add set bonus for any armor piece
             if (isOreArmorPiece) {
-                string setTooltip = Language.GetTextValue("Mods.TerrariaSurvivalMod.ArmorRebalance.Tooltips.SetBonusShiny");
+                string setTooltip = Language.GetTextValue("Mods.DuravoMod.ArmorRebalance.Tooltips.SetBonusShiny");
                 tooltips.Add(new TooltipLine(Mod, "FullSetBonus", setTooltip));
             }
         }

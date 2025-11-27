@@ -1,4 +1,4 @@
-# Terraria Survival Overhaul
+# Duravo Mod - Survival, Progression, and QOL Overhaul
 
 by David W. Jeske
 

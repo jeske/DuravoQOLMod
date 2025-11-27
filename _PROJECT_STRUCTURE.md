@@ -1,4 +1,4 @@
-# Terraria Survival Overhaul Mod - Project Structure
+# Duravo Mod - Project Structure
 
 ## Project Purpose
 
@@ -11,6 +11,7 @@ A tModLoader mod that surgically removes exploits that trivialize Terraria's exp
 ## Development Philosophy: INCREMENTAL ONLY
 
 This means:
+
 - No creating empty folders "for later"
 - No creating stub files that aren't being actively coded
 - Each file is created ONLY when implementing that feature
@@ -21,7 +22,7 @@ This means:
 ## Project Structure
 
 ```
-TerrariaSurvivalMod/
+DuravoMod/
 ├── _PROJECT_STRUCTURE.md        # This file - project overview
 ├── _TASKS/                      # Current work items
 │   └── _TOP_LEVEL_TODO.md
@@ -34,8 +35,8 @@ TerrariaSurvivalMod/
 │   └── FUN/                             # Experiments, simulators
 │
 ├── Source/                      # All mod source code (feature-organized)
-│   ├── TerrariaSurvivalMod.cs           # Main mod class
-│   ├── TerrariaSurvivalModConfig.cs     # Mod configuration
+│   ├── DuravoMod.cs                     # Main mod class
+│   ├── DuravoModConfig.cs               # Mod configuration
 │   ├── ArmorRebalance/                  # Early armor overhaul feature
 │   ├── EnemySmartHopping/               # Zombie jump calculation feature
 │   ├── PersistentPosition/              # Logout position saving feature
@@ -56,7 +57,7 @@ TerrariaSurvivalMod/
 ├── build.txt                    # tModLoader mod metadata
 ├── description.txt              # Mod description for browser
 ├── icon.png                     # Mod icon
-└── TerrariaSurvivalMod.sln      # Visual Studio solution
+└── DuravoMod.sln                # Visual Studio solution
 ```
 
 ---
@@ -75,6 +76,7 @@ Source/
 ```
 
 **Why feature-based:**
+
 - All code for a feature lives together
 - Adding/removing features is clean
 - Easy to understand what a feature does

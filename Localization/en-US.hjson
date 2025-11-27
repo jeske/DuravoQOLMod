@@ -1,11 +1,11 @@
 Mods: {
-	TerrariaSurvivalMod: {
+	DuravoMod: {
 		// ═══════════════════════════════════════════════════════════════════
 		// GLOBAL MOD CONFIGURATION
 		// ═══════════════════════════════════════════════════════════════════
 		Configs: {
-			TerrariaSurvivalModConfig: {
-				DisplayName: Terraria Survival Mod Config
+			DuravoModConfig: {
+				DisplayName: Kuro's Duravo Mod Config
 				Headers.MinionBehavior: Minion Behavior
 
 				MinionSmartPathfinding: {
@@ -86,12 +86,12 @@ Mods: {
 		Buffs: {
 			FragileBuff: {
 				DisplayName: Fragile Buff
-				Description: Mods.TerrariaSurvivalMod.Buffs.FragileBuff.Description
+				Description: Mods.DuravoMod.Buffs.FragileBuff.Description
 			}
 
 			ShinyBuff: {
 				DisplayName: Shiny Buff
-				Description: Mods.TerrariaSurvivalMod.Buffs.ShinyBuff.Description
+				Description: Mods.DuravoMod.Buffs.ShinyBuff.Description
 			}
 		}
 	}

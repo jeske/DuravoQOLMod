@@ -8,7 +8,7 @@ using Terraria.ID;
 using Terraria.ModLoader;
 using System;
 
-namespace CrucibleMod.ArmorRebalance
+namespace DuravoMod.ArmorRebalance
 {
     /// <summary>
     /// Handles armor set bonuses for crit chance, movement speed, and the Shiny sparkle effect.

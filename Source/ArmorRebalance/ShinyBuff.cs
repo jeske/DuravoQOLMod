@@ -3,7 +3,7 @@ using Terraria;
 using Terraria.ID;
 using Terraria.ModLoader;
 
-namespace CrucibleMod.ArmorRebalance
+namespace DuravoMod.ArmorRebalance
 {
     /// <summary>
     /// Buff that grants nearby ore highlighting while wearing full ore armor set.

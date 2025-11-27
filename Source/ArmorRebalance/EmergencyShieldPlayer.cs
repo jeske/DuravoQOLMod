@@ -7,7 +7,7 @@ using Terraria.Localization;
 using Terraria.ModLoader;
 using System;
 
-namespace CrucibleMod.ArmorRebalance
+namespace DuravoMod.ArmorRebalance
 {
     /// <summary>
     /// Handles the Emergency Shield mechanic for Copper/Tin and Gold/Platinum armor.
@@ -21,7 +21,7 @@ namespace CrucibleMod.ArmorRebalance
         // ╚════════════════════════════════════════════════════════════════════╝
 
         /// <summary>DEBUG: Reads from mod config - enables verbose shield activation logging</summary>
-        private static bool DebugShieldActivation => ModContent.GetInstance<CrucibleModConfig>()?.Debug?.DebugArmorShields ?? false;
+        private static bool DebugShieldActivation => ModContent.GetInstance<DuravoModConfig>()?.Debug?.DebugArmorShields ?? false;
 
         /// <summary>Cooldown in seconds for Copper/Tin tier shield</summary>
         private const int CopperTinShieldCooldownSeconds = 60;
@@ -268,7 +268,7 @@ namespace CrucibleMod.ArmorRebalance
             }
 
             // Show combat text - use localized string
-            string blockedText = Language.GetTextValue("Mods.TerrariaSurvivalMod.ArmorRebalance.CombatText.ShieldBlocked", absorbedDamage);
+            string blockedText = Language.GetTextValue("Mods.DuravoMod.ArmorRebalance.CombatText.ShieldBlocked", absorbedDamage);
             CombatText.NewText(Player.Hitbox, Color.Cyan, blockedText);
 
             // Check if shield broke

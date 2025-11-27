@@ -4,7 +4,7 @@ using Microsoft.Xna.Framework;
 using Terraria;
 using Terraria.ModLoader;
 
-namespace CrucibleMod.EnemySmartHopping
+namespace DuravoMod.EnemySmartHopping
 {
     /// <summary>
     /// GlobalNPC that makes ground enemies calculate precise jump trajectories
