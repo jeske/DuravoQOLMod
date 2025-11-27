@@ -3,9 +3,9 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Terraria;
 using Terraria.ModLoader;
-using TerrariaSurvivalMod.ArmorRebalance;
+using CrucibleMod.ArmorRebalance;
 
-namespace TerrariaSurvivalMod.ArmorRebalance
+namespace CrucibleMod.ArmorRebalance
 {
     /// <summary>
     /// Handles rendering of ore sparkles after tiles are drawn.

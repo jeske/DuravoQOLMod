@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using Microsoft.Xna.Framework;
 using Terraria;
 
-namespace TerrariaSurvivalMod.TetheredMinions
+namespace CrucibleMod.TetheredMinions
 {
     /// <summary>
     /// Represents the current behavioral state of a minion.
@@ -46,9 +46,9 @@ namespace TerrariaSurvivalMod.TetheredMinions
         public bool TargetIsWhipTagged;     // Player-designated target
         public int MinionPosIndex;          // For ground minions (formation slot)
         public float AttackCooldown;        // ai[1] for most ranged minions
-        
+
         public bool TargetDataValid => HasTarget && TargetNPCIndex >= 0;
-        
+
         /// <summary>
         /// True if minion is trying to reach player but NOT phasing.
         /// This is the primary pathfinding assist case.
@@ -70,18 +70,17 @@ namespace TerrariaSurvivalMod.TetheredMinions
             755,                  // Sanguine Bat
             946,                  // Terraprisma
         };
-        
+
         // Ground-based aiStyles (Pygmy=26, Pirate=67)
         private static readonly HashSet<int> GroundAiStyles = new() { 26, 67 };
-        
+
         /// <summary>
         /// Extracts comprehensive state info from a minion projectile.
         /// Returns struct with State=Unknown if not a recognized minion.
         /// </summary>
         public static MinionStateInfo GetMinionState(Projectile proj)
         {
-            var info = new MinionStateInfo
-            {
+            var info = new MinionStateInfo {
                 State = MinionState.Unknown,
                 Locomotion = MinionLocomotion.Unknown,
                 AlwaysPhases = false,
@@ -100,52 +99,52 @@ namespace TerrariaSurvivalMod.TetheredMinions
             // Determine locomotion type
             info.Locomotion = GetLocomotion(proj);
             info.AlwaysPhases = AlwaysPhasingTypes.Contains(proj.type);
-            
+
             // Extract state based on aiStyle
             switch (proj.aiStyle) {
                 case 26: // Pygmy, Spider (ground-based)
                     ExtractAiStyle26(proj, ref info);
                     break;
-                    
+
                 case 54: // Raven
                     ExtractAiStyle54(proj, ref info);
                     break;
-                    
+
                 case 62: // Hornet, Imp, Sharknado, UFO, Stardust Cell
                     ExtractAiStyle62(proj, ref info);
                     break;
-                    
+
                 case 66: // Twins, Deadly Sphere
                     ExtractAiStyle66(proj, ref info);
                     break;
-                    
+
                 case 67: // Pirate minions
                     ExtractAiStyle67(proj, ref info);
                     break;
-                    
+
                 case 121: // Stardust Dragon
                     ExtractAiStyle121(proj, ref info);
                     break;
-                    
+
                 case 156: // Sanguine Bat, Terraprisma
                     ExtractAiStyle156(proj, ref info);
                     break;
-                    
+
                 default:
                     // Unknown aiStyle - try generic extraction
                     ExtractGeneric(proj, ref info);
                     break;
             }
-            
+
             // Check for whip-tagged target (universal)
             CheckWhipTarget(proj, ref info);
-            
+
             // Determine if currently phasing
-            info.CurrentlyPhasing = info.AlwaysPhases || 
+            info.CurrentlyPhasing = info.AlwaysPhases ||
                                     info.State == MinionState.Returning ||
                                     info.State == MinionState.Dashing ||
                                     !proj.tileCollide;
-            
+
             return info;
         }
 
@@ -154,11 +153,11 @@ namespace TerrariaSurvivalMod.TetheredMinions
             // Worm-style (Stardust Dragon)
             if (proj.type >= 625 && proj.type <= 628)
                 return MinionLocomotion.Worm;
-            
+
             // Ground-based aiStyles
             if (GroundAiStyles.Contains(proj.aiStyle))
                 return MinionLocomotion.Ground;
-            
+
             return MinionLocomotion.Flying;
         }
 
@@ -172,7 +171,7 @@ namespace TerrariaSurvivalMod.TetheredMinions
         {
             info.MinionPosIndex = proj.minionPos;
             info.AttackCooldown = proj.ai[1];
-            
+
             int targetIdx = (int)proj.ai[0];
             if (targetIdx > 0 && targetIdx < Main.maxNPCs) {
                 NPC target = Main.npc[targetIdx];
@@ -184,11 +183,11 @@ namespace TerrariaSurvivalMod.TetheredMinions
                     return;
                 }
             }
-            
+
             // No target - determine if idle, following, or returning (phasing)
             Player owner = Main.player[proj.owner];
             float distanceToOwner = Vector2.Distance(proj.Center, owner.Center);
-            
+
             // Check if currently phasing (tileCollide forced off by exceeding leash)
             if (!proj.tileCollide) {
                 info.State = MinionState.Returning; // Phasing back
@@ -216,7 +215,7 @@ namespace TerrariaSurvivalMod.TetheredMinions
             else {
                 Player owner = Main.player[proj.owner];
                 float distanceToOwner = Vector2.Distance(proj.Center, owner.Center);
-                
+
                 if (!proj.tileCollide)
                     info.State = MinionState.Returning; // Phasing
                 else if (distanceToOwner > 100f)
@@ -235,22 +234,22 @@ namespace TerrariaSurvivalMod.TetheredMinions
         private static void ExtractAiStyle62(Projectile proj, ref MinionStateInfo info)
         {
             info.AttackCooldown = proj.ai[1];
-            
+
             // ai[0] == 1 is the PHASING return state
             if ((int)proj.ai[0] == 1) {
                 info.State = MinionState.Returning; // Phasing back to player
                 return;
             }
-            
+
             if ((int)proj.ai[0] == 2) {
                 info.State = MinionState.Dashing;
                 return;
             }
-            
+
             // ai[0] == 0: normal state - could be idle, following, or attacking
             Player owner = Main.player[proj.owner];
             float distanceToOwner = Vector2.Distance(proj.Center, owner.Center);
-            
+
             // These minions acquire targets per-frame, so we check distance
             if (distanceToOwner > 100f)
                 info.State = MinionState.Following;
@@ -270,7 +269,7 @@ namespace TerrariaSurvivalMod.TetheredMinions
             float state = proj.ai[0];
             Player owner = Main.player[proj.owner];
             float distanceToOwner = Vector2.Distance(proj.Center, owner.Center);
-            
+
             if (proj.type == 533) { // Deadly Sphere
                 if (state >= 9f) {
                     info.State = MinionState.Returning; // Phasing
@@ -310,7 +309,7 @@ namespace TerrariaSurvivalMod.TetheredMinions
         private static void ExtractAiStyle67(Projectile proj, ref MinionStateInfo info)
         {
             info.AttackCooldown = proj.localAI[0];
-            
+
             if (proj.ai[0] == 1f) {
                 // Being carried by parrot = returning and phasing
                 info.State = MinionState.Returning;
@@ -319,7 +318,7 @@ namespace TerrariaSurvivalMod.TetheredMinions
             else {
                 Player owner = Main.player[proj.owner];
                 float distanceToOwner = Vector2.Distance(proj.Center, owner.Center);
-                
+
                 if (distanceToOwner > 80f)
                     info.State = MinionState.Following; // Walking toward player
                 else
@@ -339,7 +338,7 @@ namespace TerrariaSurvivalMod.TetheredMinions
                 info.State = MinionState.Unknown;
                 return;
             }
-            
+
             // Head checks for targets each frame
             // Always phases so Following vs Returning distinction less relevant
             Player owner = Main.player[proj.owner];
@@ -376,7 +375,7 @@ namespace TerrariaSurvivalMod.TetheredMinions
         {
             Player owner = Main.player[proj.owner];
             float distanceToOwner = Vector2.Distance(proj.Center, owner.Center);
-            
+
             if (!proj.tileCollide) {
                 info.State = MinionState.Returning; // Phasing
             }
@@ -397,33 +396,33 @@ namespace TerrariaSurvivalMod.TetheredMinions
         private static void CheckWhipTarget(Projectile proj, ref MinionStateInfo info)
         {
             Player owner = Main.player[proj.owner];
-            
+
             if (!owner.HasMinionAttackTargetNPC)
                 return;
-                
+
             int targetIdx = owner.MinionAttackTargetNPC;
             if (targetIdx < 0 || targetIdx >= Main.maxNPCs)
                 return;
-                
+
             NPC target = Main.npc[targetIdx];
             if (!target.active || !target.CanBeChasedBy(proj))
                 return;
-            
+
             // Check line of sight (unless always-phasing)
             bool canSee = info.AlwaysPhases || Collision.CanHitLine(
                 proj.Center, 1, 1, target.Center, 1, 1);
-            
+
             if (canSee) {
                 info.HasTarget = true;
                 info.TargetNPCIndex = targetIdx;
                 info.TargetPosition = target.Center;
                 info.TargetIsWhipTagged = true;
-                
+
                 if (info.State == MinionState.Idle || info.State == MinionState.Following)
                     info.State = MinionState.Attacking;
             }
         }
-        
+
         /// <summary>
         /// Quick check: does this minion need pathfinding help right now?
         /// Primary use case: ground minions FOLLOWING player through terrain
@@ -432,30 +431,30 @@ namespace TerrariaSurvivalMod.TetheredMinions
         {
             if (!proj.active || !proj.minion)
                 return false;
-                
+
             var state = GetMinionState(proj);
-            
+
             // Never help always-phasing minions
             if (state.AlwaysPhases || state.CurrentlyPhasing)
                 return false;
-            
+
             // GROUND MINIONS FOLLOWING = PRIMARY TARGET
             // This is the main QoL use case
-            if (state.Locomotion == MinionLocomotion.Ground && 
+            if (state.Locomotion == MinionLocomotion.Ground &&
                 state.State == MinionState.Following) {
                 return true;
             }
-            
+
             // FLYING MINIONS in Following state also need consideration
             if (state.Locomotion == MinionLocomotion.Flying &&
                 state.State == MinionState.Following &&
                 proj.tileCollide) {
                 return true;
             }
-            
+
             return false;
         }
-        
+
         /// <summary>
         /// Get the position the minion is trying to reach
         /// </summary>
@@ -463,19 +462,19 @@ namespace TerrariaSurvivalMod.TetheredMinions
         {
             if (state.HasTarget && state.State == MinionState.Attacking)
                 return state.TargetPosition;
-            
+
             // Otherwise, returning to player
             Player owner = Main.player[proj.owner];
-            
+
             // Ground minions have formation positions
             if (state.Locomotion == MinionLocomotion.Ground && state.MinionPosIndex >= 0) {
                 // Offset based on minionPos (alternating left/right of player)
                 float offset = (state.MinionPosIndex + 1) * 20f;
-                if (state.MinionPosIndex % 2 == 1) 
+                if (state.MinionPosIndex % 2 == 1)
                     offset = -offset;
                 return owner.Center + new Vector2(offset, 0);
             }
-            
+
             // Flying minions hover above player
             return owner.Center - new Vector2(0, 60);
         }

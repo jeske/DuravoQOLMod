@@ -2,13 +2,13 @@
 using System.ComponentModel;
 using Terraria.ModLoader.Config;
 
-namespace TerrariaSurvivalMod
+namespace CrucibleMod
 {
     /// <summary>
     /// Client-side configuration for the Terraria Survival Mod.
     /// Access via ModContent.GetInstance<TerrariaSurvivalModConfig>().
     /// </summary>
-    public class TerrariaSurvivalModConfig : ModConfig
+    public class CruicibleModConfig : ModConfig
     {
         public override ConfigScope Mode => ConfigScope.ClientSide;
 

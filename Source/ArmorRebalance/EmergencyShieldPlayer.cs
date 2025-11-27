@@ -7,7 +7,7 @@ using Terraria.Localization;
 using Terraria.ModLoader;
 using System;
 
-namespace TerrariaSurvivalMod.ArmorRebalance
+namespace CrucibleMod.ArmorRebalance
 {
     /// <summary>
     /// Handles the Emergency Shield mechanic for Copper/Tin and Gold/Platinum armor.
@@ -21,7 +21,7 @@ namespace TerrariaSurvivalMod.ArmorRebalance
         // ╚════════════════════════════════════════════════════════════════════╝
 
         /// <summary>DEBUG: Reads from mod config - enables verbose shield activation logging</summary>
-        private static bool DebugShieldActivation => ModContent.GetInstance<TerrariaSurvivalModConfig>()?.Debug?.DebugArmorShields ?? false;
+        private static bool DebugShieldActivation => ModContent.GetInstance<CruicibleModConfig>()?.Debug?.DebugArmorShields ?? false;
 
         /// <summary>Cooldown in seconds for Copper/Tin tier shield</summary>
         private const int CopperTinShieldCooldownSeconds = 60;

@@ -5,9 +5,9 @@ using Terraria;
 using Terraria.ID;
 using Terraria.ModLoader;
 using Terraria.ModLoader.IO;
-using TerrariaSurvivalMod;
+using CrucibleMod;
 
-namespace TerrariaSurvivalMod.PersistentPosition
+namespace CrucibleMod.PersistentPosition
 {
     /// <summary>
     /// Saves and restores player position on world exit/enter.
@@ -23,7 +23,7 @@ namespace TerrariaSurvivalMod.PersistentPosition
         private const double SpawnImmunityDurationSeconds = 3.0;
 
         /// <summary>Get debug player persistence setting from mod config</summary>
-        private static bool DebugMessagesEnabled => ModContent.GetInstance<TerrariaSurvivalModConfig>()?.Debug?.DebugPlayerPersistence ?? false;
+        private static bool DebugMessagesEnabled => ModContent.GetInstance<CruicibleModConfig>()?.Debug?.DebugPlayerPersistence ?? false;
 
         /// <summary>DEBUG: Block Environmental/Unknown damage during immunity (suffocation, etc)</summary>
         private const bool BlockEnvironmentalDamageDuringImmunity = true;
@@ -112,12 +112,12 @@ namespace TerrariaSurvivalMod.PersistentPosition
                 else {
                     // Find best spawn position (may be bumped if inside solid tiles)
                     Vector2 finalSpawnPosition = FindBestSpawnPosition(savedExitPosition);
-                    
+
                     // Nudge player UP by 1/5 tile (3.2 pixels) to prevent spawning inside ground
                     const float PositionNudgeUpPixels = 16f / 5f;
                     Player.position = finalSpawnPosition - new Vector2(0, PositionNudgeUpPixels);
                     Player.velocity = Vector2.Zero;
-                    
+
                     if (finalSpawnPosition == savedExitPosition) {
                         Main.NewText($"[TSM] Position restored. Immune for {SpawnImmunityDurationSeconds}s.", 100, 255, 100);
                     }

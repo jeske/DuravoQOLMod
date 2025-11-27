@@ -5,7 +5,7 @@ using Microsoft.Xna.Framework;
 using Terraria;
 using Terraria.ModLoader;
 
-namespace TerrariaSurvivalMod.TetheredMinions
+namespace CrucibleMod.TetheredMinions
 {
     /// <summary>
     /// Simple A* pathfinder on Terraria's tile grid.
@@ -18,7 +18,7 @@ namespace TerrariaSurvivalMod.TetheredMinions
         // ╚════════════════════════════════════════════════════════════════════╝
 
         /// <summary>Get debug pathfinding setting from mod config</summary>
-        private static bool DebugPathfinding => ModContent.GetInstance<TerrariaSurvivalModConfig>()?.Debug?.DebugMinionPathfinding ?? false;
+        private static bool DebugPathfinding => ModContent.GetInstance<CruicibleModConfig>()?.Debug?.DebugMinionPathfinding ?? false;
 
         /// <summary>Default maximum search radius in tiles (bounded by minion tether distance)</summary>
         public const int DefaultMaxSearchRadiusTiles = 100;

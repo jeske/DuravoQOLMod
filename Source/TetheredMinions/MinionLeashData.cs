@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using Terraria.ID;
 
-namespace TerrariaSurvivalMod.TetheredMinions
+namespace CrucibleMod.TetheredMinions
 {
     /// <summary>
     /// Minion projectile types that we track for tethering.
@@ -153,8 +153,7 @@ namespace TerrariaSurvivalMod.TetheredMinions
         public const float DefaultDetectionRangeTiles = 100f;
 
         // Pre-computed lookup table for all known minions
-        private static readonly Dictionary<int, MinionRangeInfo> MinionRangeTable = new()
-        {
+        private static readonly Dictionary<int, MinionRangeInfo> MinionRangeTable = new() {
             // ═══════════════════════════════════════════════════════════
             //  PRE-HARDMODE MINIONS
             // ═══════════════════════════════════════════════════════════

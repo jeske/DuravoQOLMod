@@ -5,7 +5,7 @@ using Terraria.ID;
 using Terraria.Localization;
 using Terraria.ModLoader;
 
-namespace TerrariaSurvivalMod.ArmorRebalance
+namespace CrucibleMod.ArmorRebalance
 {
     /// <summary>
     /// Rebalances vanilla armor defense values.

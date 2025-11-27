@@ -17,27 +17,27 @@ Leash distances are **NOT** exposed in `ProjectileID.Sets` arrays. Unlike yoyos 
 
 | Minion | Staff | ProjectileID(s) | Detection | Return (Leash) | aiStyle | Notes |
 |--------|-------|-----------------|-----------|----------------|---------|-------|
-| **Baby Finch** | Finch Staff | 759 `BabyBird` | 50 tiles | 50 tiles | 158 | Rests on player's head when idle |
-| **Baby Slime** | Slime Staff | 266 `BabySlime` | 50 + 2.5×pos | **62.5 + 2.5×pos** | 26 | Ground minion, same AI as Pygmy |
-| **Flinx** | Flinx Staff | 895-896 | 50 tiles | ~500px (twirls back) | 124 | Bounces on contact; **cannot phase**; twirls to player when too far; 1.4.1+ |
-| **Abigail** | Abigail's Flower | 979 `Abigail` | 125 tiles (187.5†) | **62.5 tiles** | 62 | 1.4.3+; phases through blocks during attack; scales with summons |
-| **Hornet** | Hornet Staff | 373 `Hornet` | 125 tiles (187.5†) | **31.25 tiles** | 62 | 500px base / 1000px targeted |
-| **Flying Imp** | Imp Staff | 375 `FlyingImp` | 125 tiles (187.5†) | **31.25 tiles** | 62 | 500px base; Shoots 376 `ImpFireball` |
-| **Vampire Frog** | Vampire Frog Staff | 758 `VampireFrog` | 50 tiles | — (parrot) | 67 | Same AI as Pirate; can swim |
-| **Spider** | Spider Staff | 390 `VenomSpider`, 391 `JumperSpider`, 392 `DangerousSpider` | 50 + 2.5×pos | **87.5 + 2.5×pos** | 26 | `minionPos` scaling; wall-climbing |
-| **Enchanted Dagger** | Blade Staff | 864 `Smolstar` | 50 tiles | **56.25 tiles** | — | Only 75% whip tag damage |
-| **Twins** | Optic Staff | 387 `Retanimini`, 388 `Spazmamini` | 125 tiles | **75 tiles** ⚠️ | 66 | **TIGHTEST flying leash** - interrupts attacks frequently |
-| **Pirate** | Pirate Staff | 393 `OneEyedPirate`, 394 `SoulscourgePirate`, 395 `PirateCaptain` | 50 tiles | **31.25 tiles** (parrot) | 67 | Parrot carries back at 500px |
-| **Pygmy** | Pygmy Staff | 191-194 `Pygmy`, `Pygmy2`, `Pygmy3`, `Pygmy4` | 50 + 2.5×pos | **62.5 + 2.5×pos** | 26 | Shoots 195 `PygmySpear`; `minionPos` scaling |
-| **Raven** | Raven Staff | 317 `Raven` | 56.25 tiles | **87.5 tiles** | 54 | Bounces at 0.6x velocity on collision |
-| **Sanguine Bat** | Sanguine Staff | 755 `BatOfLight` | — | — (phases) | 156 | `tileCollide = false`; always phases |
-| **Desert Tiger** | Desert Tiger Staff | 831-835 `StormTiger*` | 100×50 rect | — | — | Pounce-based, not traditional leash |
-| **Sharknado** | Tempest Staff | 407 `Tempest` | 125 tiles (187.5†) | **125 tiles** | 62 | `tileCollide` forced false; Shoots 408 `MiniSharkron` |
-| **Deadly Sphere** | Deadly Sphere Staff | 533 `DeadlySphere` | 50 tiles | **93.75 tiles** | 66 | Bounces with velocity reversal on collision |
-| **UFO** | Xeno Staff | 423 `UFOMinion` | 125 tiles (187.5†) | **75 tiles** (1200px targeted) | 62 | Teleports 18.75-50 tiles to target |
-| **Stardust Cell** | Stardust Cell Staff | 613 `StardustCellMinion` | 125 tiles (187.5†) | **84.4 tiles** (1350px targeted) | 62 | Teleports 28.75-53.75 tiles; shoots 614 `StardustCellMinionShot` |
-| **Stardust Dragon** | Stardust Dragon Staff | 625-628 `StardustDragon1-4` | 62.5 tiles (87.5†) | **125 tiles** | 121 | Head segment (625); `tileCollide = false` |
-| **Terraprisma** | Terraprisma | 946 `EmpressBlade` | — | — (phases) | 156 | `tileCollide = false`; always phases |
+| **Baby Finch** | Finch Staff | 759 `BabyBird` | 50 tiles | 50 tiles | 158 | 1.4.0.1; Rests on player's head when idle |
+| **Baby Slime** | Slime Staff | 266 `BabySlime` | 50 + 2.5×pos | **62.5 + 2.5×pos** | 26 | 1.2; Ground minion, same AI as Pygmy |
+| **Flinx** | Flinx Staff | 895-896 | 50 tiles | ~500px (twirls back) | 124 | 1.4.1; Bounces on contact; **cannot phase**; twirls to player when too far |
+| **Abigail** | Abigail's Flower | 979 `Abigail` | 125 tiles (187.5†) | **62.5 tiles** | 62 | 1.4.3; Phases through blocks during attack; scales with summons |
+| **Hornet** | Hornet Staff | 373 `Hornet` | 125 tiles (187.5†) | **31.25 tiles** | 62 | 1.2.4; 500px base / 1000px targeted |
+| **Flying Imp** | Imp Staff | 375 `FlyingImp` | 125 tiles (187.5†) | **31.25 tiles** | 62 | 1.2.4; 500px base; Shoots 376 `ImpFireball` |
+| **Vampire Frog** | Vampire Frog Staff | 758 `VampireFrog` | 50 tiles | — (parrot) | 67 | 1.4.0.1; Same AI as Pirate; can swim |
+| **Spider** | Spider Staff | 390 `VenomSpider`, 391 `JumperSpider`, 392 `DangerousSpider` | 50 + 2.5×pos | **87.5 + 2.5×pos** | 26 | 1.2.4; `minionPos` scaling; wall-climbing |
+| **Enchanted Dagger** | Blade Staff | 864 `Smolstar` | 50 tiles | **56.25 tiles** | — | 1.4.0.1; Only 75% whip tag damage |
+| **Twins** | Optic Staff | 387 `Retanimini`, 388 `Spazmamini` | 125 tiles | **75 tiles** ⚠️ | 66 | 1.2.4; **TIGHTEST flying leash** - interrupts attacks frequently |
+| **Pirate** | Pirate Staff | 393 `OneEyedPirate`, 394 `SoulscourgePirate`, 395 `PirateCaptain` | 50 tiles | **31.25 tiles** (parrot) | 67 | 1.2.4; Parrot carries back at 500px |
+| **Pygmy** | Pygmy Staff | 191-194 `Pygmy`, `Pygmy2`, `Pygmy3`, `Pygmy4` | 50 + 2.5×pos | **62.5 + 2.5×pos** | 26 | 1.2; Shoots 195 `PygmySpear`; `minionPos` scaling |
+| **Raven** | Raven Staff | 317 `Raven` | 56.25 tiles | **87.5 tiles** | 54 | 1.2.1; Bounces at 0.6x velocity on collision |
+| **Sanguine Bat** | Sanguine Staff | 755 `BatOfLight` | — | — (phases) | 156 | 1.4.0.1; `tileCollide = false`; always phases |
+| **Desert Tiger** | Desert Tiger Staff | 831-835 `StormTiger*` | 100×50 rect | — | — | 1.4.0.1; Pounce-based, not traditional leash |
+| **Sharknado** | Tempest Staff | 407 `Tempest` | 125 tiles (187.5†) | **125 tiles** | 62 | 1.2.4; `tileCollide` forced false; Shoots 408 `MiniSharkron` |
+| **Deadly Sphere** | Deadly Sphere Staff | 533 `DeadlySphere` | 50 tiles | **93.75 tiles** | 66 | 1.3.0.1; Bounces with velocity reversal on collision |
+| **UFO** | Xeno Staff | 423 `UFOMinion` | 125 tiles (187.5†) | **75 tiles** (1200px targeted) | 62 | 1.3.0.1; Teleports 18.75-50 tiles to target |
+| **Stardust Cell** | Stardust Cell Staff | 613 `StardustCellMinion` | 125 tiles (187.5†) | **84.4 tiles** (1350px targeted) | 62 | 1.3.0.1; Teleports 28.75-53.75 tiles; shoots 614 `StardustCellMinionShot` |
+| **Stardust Dragon** | Stardust Dragon Staff | 625-628 `StardustDragon1-4` | 62.5 tiles (87.5†) | **125 tiles** | 121 | 1.3.0.1; Head segment (625); `tileCollide = false` |
+| **Terraprisma** | Terraprisma | 946 `EmpressBlade` | — | — (phases) | 156 | 1.4.0.1; `tileCollide = false`; always phases |
 
 **Legend:**
 - `pos` = `minionPos` (slot index, starting at 0)

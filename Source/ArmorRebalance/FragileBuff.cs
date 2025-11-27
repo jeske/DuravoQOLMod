@@ -2,7 +2,7 @@
 using Terraria;
 using Terraria.ModLoader;
 
-namespace TerrariaSurvivalMod.ArmorRebalance
+namespace CrucibleMod.ArmorRebalance
 {
     /// <summary>
     /// Visual indicator that the player cannot acquire an emergency shield temporarily.

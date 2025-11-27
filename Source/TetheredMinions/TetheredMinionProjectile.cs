@@ -30,7 +30,7 @@ using Terraria.ModLoader;
 //
 // ═════════════════════════════════════════════════════════════════════════════════════════════
 
-namespace TerrariaSurvivalMod.TetheredMinions
+namespace CrucibleMod.TetheredMinions
 {
     /// <summary>
     /// GlobalProjectile that handles minion anti-cheese and QoL pathing.
@@ -48,13 +48,13 @@ namespace TerrariaSurvivalMod.TetheredMinions
         // ╚════════════════════════════════════════════════════════════════════╝
 
         /// <summary>Get debug pathfinding setting from mod config</summary>
-        private static bool DebugTethering => ModContent.GetInstance<TerrariaSurvivalModConfig>()?.Debug?.DebugMinionPathfinding ?? false;
+        private static bool DebugTethering => ModContent.GetInstance<CruicibleModConfig>()?.Debug?.DebugMinionPathfinding ?? false;
 
         /// <summary>Get smart pathfinding enabled setting from mod config</summary>
-        private static bool EnableQoLFollowPathing => ModContent.GetInstance<TerrariaSurvivalModConfig>()?.MinionSmartPathfinding ?? true;
+        private static bool EnableQoLFollowPathing => ModContent.GetInstance<CruicibleModConfig>()?.MinionSmartPathfinding ?? true;
 
         /// <summary>Get isolated return (anti-cheese) enabled setting from mod config</summary>
-        private static bool EnableIsolatedReturn => ModContent.GetInstance<TerrariaSurvivalModConfig>()?.MinionIsolatedReturn ?? true;
+        private static bool EnableIsolatedReturn => ModContent.GetInstance<CruicibleModConfig>()?.MinionIsolatedReturn ?? true;
 
         // ╔════════════════════════════════════════════════════════════════════╗
         // ║                        TUNABLE CONSTANTS                           ║
