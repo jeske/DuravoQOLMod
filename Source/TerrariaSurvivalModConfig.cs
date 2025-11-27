@@ -12,14 +12,33 @@ namespace TerrariaSurvivalMod
         public override ConfigScope Mode => ConfigScope.ClientSide;
 
         // ╔════════════════════════════════════════════════════════════════════╗
-        // ║                          DEBUG OPTIONS                             ║
+        // ║                      MINION BEHAVIOR (TOP LEVEL)                    ║
         // ╚════════════════════════════════════════════════════════════════════╝
 
-        [Header("Debug")]
-        
-        [Label("Enable Debug Messages")]
-        [Tooltip("Show detailed debug messages in chat (immunity status, damage blocking, etc.)")]
+        [Header("MinionBehavior")]
+        [DefaultValue(true)]
+        public bool MinionSmartPathfinding { get; set; } = true;
+
+        [DefaultValue(true)]
+        public bool MinionIsolatedReturn { get; set; } = true;
+
+        // ╔════════════════════════════════════════════════════════════════════╗
+        // ║                      DEBUG (SEPARATE PAGE)                          ║
+        // ╚════════════════════════════════════════════════════════════════════╝
+
+        [SeparatePage]
+        public DebugSettings Debug { get; set; } = new();
+    }
+
+    /// <summary>
+    /// Debug and development settings.
+    /// </summary>
+    public class DebugSettings
+    {
         [DefaultValue(false)]
         public bool EnableDebugMessages { get; set; }
+
+        [DefaultValue(false)]
+        public bool DebugMinionPathfinding { get; set; }
     }
 }

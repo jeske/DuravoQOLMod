@@ -22,7 +22,7 @@ namespace TerrariaSurvivalMod.PersistentPosition
         private const double SpawnImmunityDurationSeconds = 3.0;
 
         /// <summary>Get debug message setting from mod config</summary>
-        private static bool DebugMessagesEnabled => ModContent.GetInstance<TerrariaSurvivalModConfig>()?.EnableDebugMessages ?? false;
+        private static bool DebugMessagesEnabled => ModContent.GetInstance<TerrariaSurvivalModConfig>()?.Debug?.EnableDebugMessages ?? false;
 
         /// <summary>DEBUG: Block Environmental/Unknown damage during immunity (suffocation, etc)</summary>
         private const bool BlockEnvironmentalDamageDuringImmunity = true;

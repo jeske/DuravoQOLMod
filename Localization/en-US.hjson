@@ -6,12 +6,38 @@ Mods: {
 		Configs: {
 			TerrariaSurvivalModConfig: {
 				DisplayName: Terraria Survival Mod Config
-				Headers.Debug: Debug Header
+				Headers.MinionBehavior: Minion Behavior
+
+				MinionSmartPathfinding: {
+					Label: Smart Pathfinding
+					Tooltip: When a minion is blocked by terrain while following you, it will find a path around obstacles instead of getting stuck. Disable to use vanilla minion movement.
+				}
+
+				MinionIsolatedReturn: {
+					Label: Isolated Return
+					Tooltip: When you place a block that traps a minion with no line of sight and no path back, the minion will phase through walls to return to you. Prevents 'cheese' strategies where minions attack through walls.
+				}
+
+				Debug: {
+					Label: Debug Options
+					Tooltip: ""
+				}
+			}
+
+			DebugSettings: {
+				DisplayName: Debug Settings
 
 				EnableDebugMessages: {
-					Label: Enable Debug Messages
+					Label: Debug Messages
 					Tooltip: Show detailed debug messages in chat (immunity status, damage blocking, etc.)
 				}
+
+				DebugMinionPathfinding: {
+					Label: Debug Minion Pathfinding
+					Tooltip: Show debug information about minion pathfinding decisions (blocked detection, A* path, phasing, etc.)
+				}
+
+				Tooltip: ""
 			}
 		}
 

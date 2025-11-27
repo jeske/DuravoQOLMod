@@ -43,14 +43,21 @@ namespace TerrariaSurvivalMod.TetheredMinions
     public class TetheredMinionProjectile : GlobalProjectile
     {
         // ╔════════════════════════════════════════════════════════════════════╗
-        // ║                        TUNABLE CONSTANTS                           ║
+        // ║                        CONFIG ACCESSORS                            ║
         // ╚════════════════════════════════════════════════════════════════════╝
 
-        /// <summary>DEBUG: Set to true for verbose tether logging</summary>
-        private const bool DebugTethering = true;
+        /// <summary>Get debug pathfinding setting from mod config</summary>
+        private static bool DebugTethering => ModContent.GetInstance<TerrariaSurvivalModConfig>()?.Debug?.DebugMinionPathfinding ?? false;
 
-        /// <summary>Enable QoL "blocked" pathing - detects when minion is blocked by solid tile while following player</summary>
-        private const bool EnableQoLFollowPathing = true;
+        /// <summary>Get smart pathfinding enabled setting from mod config</summary>
+        private static bool EnableQoLFollowPathing => ModContent.GetInstance<TerrariaSurvivalModConfig>()?.MinionSmartPathfinding ?? true;
+
+        /// <summary>Get isolated return (anti-cheese) enabled setting from mod config</summary>
+        private static bool EnableIsolatedReturn => ModContent.GetInstance<TerrariaSurvivalModConfig>()?.MinionIsolatedReturn ?? true;
+
+        // ╔════════════════════════════════════════════════════════════════════╗
+        // ║                        TUNABLE CONSTANTS                           ║
+        // ╚════════════════════════════════════════════════════════════════════╝
 
         /// <summary>Max distance in tiles for cheese check / QoL pathing to apply</summary>
         private const float MaxDistanceForCheckTiles = 35f;
@@ -208,7 +215,7 @@ namespace TerrariaSurvivalMod.TetheredMinions
             // PlaceInWorld fires BEFORE the tile exists, so we wait until DoCheeseCheckOnTick
             // New block placement ALWAYS triggers check (no cooldown - player action is deliberate)
             // ═══════════════════════════════════════════════════════════
-            if (currentTick >= DoCheeseCheckOnTick && BlockPlacerPlayerIndex == projectile.owner) {
+            if (EnableIsolatedReturn && currentTick >= DoCheeseCheckOnTick && BlockPlacerPlayerIndex == projectile.owner) {
                 // Reset immediately so we don't re-check every frame
                 DoCheeseCheckOnTick = int.MaxValue;
 
