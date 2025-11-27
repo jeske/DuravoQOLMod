@@ -1,3 +1,4 @@
+// MIT Licensed - Copyright (c) 2025 David W. Jeske
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Terraria;
@@ -20,8 +21,11 @@ namespace TerrariaSurvivalMod.ArmorRebalance
         // ╚════════════════════════════════════════════════════════════════════╝
 
         // --- Sparkle Timing ---
-        /// <summary>Duration in seconds for sparkle fade-out</summary>
+        /// <summary>Duration in seconds for sparkle fade-out (normal)</summary>
         private const double SparkleFadeDurationSeconds = 1.0;
+
+        /// <summary>Duration in seconds for FAST sparkle fade-out (when buff ends)</summary>
+        private const double SparkleFastDecayDurationSeconds = 0.2;
 
         /// <summary>Fixed cooldown in seconds after sparkle finishes before it can trigger again</summary>
         private const double SparkleSpawnCooldownSeconds = 5.0;
@@ -45,7 +49,7 @@ namespace TerrariaSurvivalMod.ArmorRebalance
 
         // --- Debug Flags (set to false before release) ---
         /// <summary>DEBUG FLAG: Set to true to force Shiny effect active regardless of armor</summary>
-        private const bool DebugForceShinyActive = true; // DEBUG: Set to false for release
+        private const bool DebugForceShinyActive = false; // DEBUG: Set to false for release
 
         /// <summary>DEBUG FLAG: Set to true to also highlight stone (for easier testing)</summary>
         private const bool DebugHighlightStone = false;
@@ -109,6 +113,12 @@ namespace TerrariaSurvivalMod.ArmorRebalance
         /// <summary>Set by ShinyBuff.Update() when the buff is active</summary>
         public bool HasShinyBuff { get; set; }
 
+        /// <summary>Static flag for DrawSparkles to check if ANY player has the buff active</summary>
+        private static bool anyPlayerHasShinyBuff = false;
+
+        /// <summary>Epoch time when the buff was last active (for fast decay calculation)</summary>
+        private static double lastBuffActiveTimeEpoch = 0.0;
+
         public override void ResetEffects()
         {
             currentChestplateTier = ChestplateTier.None;
@@ -144,11 +154,22 @@ namespace TerrariaSurvivalMod.ArmorRebalance
 
         public override void PostUpdateBuffs()
         {
-            if (DebugForceShinyActive || HasShinyBuff) {
+            bool buffActive = DebugForceShinyActive || HasShinyBuff;
+
+            // Update static buff tracking (for fast decay in DrawSparkles)
+            if (buffActive) {
+                anyPlayerHasShinyBuff = true;
+                lastBuffActiveTimeEpoch = GetEpochTimeSeconds();
+
                 SpawnNewSparkles();
-                UpdateAndCleanupSparkles();
                 ApplyShinyDarknessGlow();
             }
+            else {
+                anyPlayerHasShinyBuff = false;
+            }
+
+            // Always call cleanup (handles fast decay when buff ends)
+            UpdateAndCleanupSparkles();
         }
 
         private void ApplyShinyDarknessGlow()
@@ -201,12 +222,27 @@ namespace TerrariaSurvivalMod.ArmorRebalance
         {
             double currentTimeEpoch = GetEpochTimeSeconds();
 
+            // Use fast decay duration if buff is not active
+            double effectiveFadeDuration = anyPlayerHasShinyBuff
+                ? SparkleFadeDurationSeconds
+                : SparkleFastDecayDurationSeconds;
+
             for (int i = activeSparkles.Count - 1; i >= 0; i--) {
                 ActiveSparkle sparkle = activeSparkles[i];
                 double visibleTimeEpoch = sparkle.BecomeVisibleTimeEpoch;
                 double ageAfterVisible = currentTimeEpoch - visibleTimeEpoch;
 
-                if (ageAfterVisible > SparkleFadeDurationSeconds) {
+                // When buff ends, calculate age relative to when buff ended for fast decay
+                if (!anyPlayerHasShinyBuff && lastBuffActiveTimeEpoch > visibleTimeEpoch) {
+                    // Sparkle was created while buff was active, now buff ended
+                    // Treat age as time since buff ended + fast decay offset
+                    double timeSinceBuffEnded = currentTimeEpoch - lastBuffActiveTimeEpoch;
+                    if (timeSinceBuffEnded > SparkleFastDecayDurationSeconds) {
+                        activeSparkles.RemoveAt(i);
+                        continue;
+                    }
+                }
+                else if (ageAfterVisible > effectiveFadeDuration) {
                     activeSparkles.RemoveAt(i);
                 }
             }
@@ -292,7 +328,23 @@ namespace TerrariaSurvivalMod.ArmorRebalance
                 double ageAfterVisible = currentTimeEpoch - visibleTimeEpoch;
 
                 if (ageAfterVisible < 0) continue;
-                if (ageAfterVisible > SparkleFadeDurationSeconds) continue;
+
+                // Calculate fade based on whether buff is active
+                double effectiveFadeDuration = anyPlayerHasShinyBuff
+                    ? SparkleFadeDurationSeconds
+                    : SparkleFastDecayDurationSeconds;
+
+                // When buff ends, use time since buff ended for fade calculation
+                float fadeProgress;
+                if (!anyPlayerHasShinyBuff && lastBuffActiveTimeEpoch > visibleTimeEpoch) {
+                    double timeSinceBuffEnded = currentTimeEpoch - lastBuffActiveTimeEpoch;
+                    fadeProgress = (float)(timeSinceBuffEnded / SparkleFastDecayDurationSeconds);
+                }
+                else {
+                    fadeProgress = (float)(ageAfterVisible / effectiveFadeDuration);
+                }
+
+                if (fadeProgress > 1f) continue;
 
                 float distanceToPlayerTiles = Vector2.Distance(sparkle.WorldPosition, localPlayerCenter) / 16f;
                 float distanceFalloffFactor;
@@ -307,7 +359,6 @@ namespace TerrariaSurvivalMod.ArmorRebalance
                     continue;
                 }
 
-                float fadeProgress = (float)(ageAfterVisible / SparkleFadeDurationSeconds);
                 float fadeMultiplier = 1f - fadeProgress;
 
                 Color fadedColor = sparkle.SparkleColor * fadeMultiplier * distanceFalloffFactor;

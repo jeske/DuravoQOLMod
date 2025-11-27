@@ -1,7 +1,9 @@
+// MIT Licensed - Copyright (c) 2025 David W. Jeske
 using System;
 using System.Collections.Generic;
 using Microsoft.Xna.Framework;
 using Terraria;
+using Terraria.ModLoader;
 
 namespace TerrariaSurvivalMod.TetheredMinions
 {
@@ -15,8 +17,8 @@ namespace TerrariaSurvivalMod.TetheredMinions
         // ║                        TUNABLE CONSTANTS                           ║
         // ╚════════════════════════════════════════════════════════════════════╝
 
-        /// <summary>DEBUG: Set to true for verbose pathfinding logging</summary>
-        private const bool DebugPathfinding = true;
+        /// <summary>Get debug pathfinding setting from mod config</summary>
+        private static bool DebugPathfinding => ModContent.GetInstance<TerrariaSurvivalModConfig>()?.Debug?.DebugMinionPathfinding ?? false;
 
         /// <summary>Default maximum search radius in tiles (bounded by minion tether distance)</summary>
         public const int DefaultMaxSearchRadiusTiles = 100;

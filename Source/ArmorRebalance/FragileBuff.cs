@@ -1,3 +1,4 @@
+// MIT Licensed - Copyright (c) 2025 David W. Jeske
 using Terraria;
 using Terraria.ModLoader;
 

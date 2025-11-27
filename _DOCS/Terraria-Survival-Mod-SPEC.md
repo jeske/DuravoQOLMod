@@ -50,6 +50,15 @@ NOTE: Reddit thread at: https://www.reddit.com/r/Terraria/comments/1p6n7jd/inter
 
 ---
 
+# Jack Ideas
+
+- [ ] deeper-depth ores shoulid have a higher quality likelyhood
+  - [ ] make "conversions" of basic mineral into rare spawns (block by block chance)
+  - [ ] make "conversions" of stone (and each biome equivalent) mineral into gems (very rare) so you learn you can find gems inside stone at deep depths
+- [ ] consider making "Super Shiny" buff for higher tier armor set bonus that has a longer range, and does NOT highlight low tier ores
+
+---
+
 ## Open Questions
 
 1. **Mod compatibility** : How will this interact with Calamity, Thorium, etc.? New enemy types need categorization.

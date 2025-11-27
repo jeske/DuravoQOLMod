@@ -1,3 +1,4 @@
+// MIT Licensed - Copyright (c) 2025 David W. Jeske
 using System;
 using System.Collections.Generic;
 using Microsoft.Xna.Framework;
@@ -256,14 +257,14 @@ namespace TerrariaSurvivalMod.TetheredMinions
 
         /// <summary>
         /// Cheese prevention check: Player placed a block, minion is nearby.
-        /// If no LOS and no A* path, immediately phase minion to player.
+        /// If no simple path and no A* path, immediately phase minion to player.
         /// </summary>
         private void CheckCheesePrevention(Projectile minion, Player ownerPlayer)
         {
-            // Check LOS first
-            bool hasLOS = HasLineOfSight(minion.Center, ownerPlayer.Center);
-            if (hasLOS) {
-                // LOS is clear, no cheese prevention needed
+            // Check if minion has a simple L-path to player (clearance-aware)
+            bool hasSimplePath = MinionHasSimplePathToLocation(minion, ownerPlayer.position);
+            if (hasSimplePath) {
+                // Simple path exists, no cheese prevention needed
                 return;
             }
 
@@ -297,28 +298,35 @@ namespace TerrariaSurvivalMod.TetheredMinions
         // ╚════════════════════════════════════════════════════════════════════╝
 
         /// <summary>
-        /// QoL blocked detection: If minion is in "Following" state and the next tile
-        /// toward player is solid, compute A* path and follow it.
-        /// Simple approach: state detection + immediate tile check = instant pathing response.
+        /// QoL blocked detection: If minion is in "Following" or "Idle" state and blocked from player,
+        /// compute A* path and follow it.
+        /// Note: "Idle" minions that can't reach player also need help (wall between them).
         /// </summary>
         private void CheckBlockedAndPathfind(Projectile minion, Player ownerPlayer)
         {
-            // Step 1: Get minion state - must be "Following" player (not Attacking, Idle, Returning, etc.)
+            // Step 1: Get minion state - must be "Following" or "Idle" (not Attacking, Returning, etc.)
             MinionStateInfo minionState = MinionStateExtractor.GetMinionState(minion);
 
-            if (minionState.State != MinionState.Following)
+            // Skip attacking minions - they're busy
+            if (minionState.State == MinionState.Attacking)
+                return;
+
+            // Skip returning/dashing/spawning - these are already handling movement
+            if (minionState.State == MinionState.Returning ||
+                minionState.State == MinionState.Dashing ||
+                minionState.State == MinionState.Spawning)
+                return;
+
+            // Only process Following and Idle states
+            if (minionState.State != MinionState.Following && minionState.State != MinionState.Idle)
                 return;
 
             // Skip always-phasing minions (they don't need pathfinding help)
             if (minionState.AlwaysPhases || minionState.CurrentlyPhasing)
                 return;
 
-            // Step 2: Must be far enough from player to bother with pathfinding
+            // Step 2: Compute distance and L-path check FIRST (used for both Idle and Following filtering)
             float distanceToOwnerPixels = Vector2.Distance(minion.Center, ownerPlayer.Center);
-            if (distanceToOwnerPixels < MinDistanceForQoLPathing)
-                return;
-
-            // Step 3: Determine vector to player and which direction to check
             Vector2 vectorToPlayer = ownerPlayer.Center - minion.Center;
 
             // Get the UPPER-LEFT tile of the minion (for proper edge detection)
@@ -328,22 +336,41 @@ namespace TerrariaSurvivalMod.TetheredMinions
             int clearanceWidth = TilePathfinder.CalculateTileClearance(minion.width);
             int clearanceHeight = TilePathfinder.CalculateTileClearance(minion.height);
 
+            // Check L-path to player (dominant axis first, then secondary)
+            Point playerTopLeftTile = (ownerPlayer.position + new Vector2(2f, 2f)).ToTileCoordinates();
+            bool lPathBlocked = IsLPathBlocked(minionTopLeftTile, playerTopLeftTile, clearanceWidth, clearanceHeight, out Point blockingTile);
+
+            // Track which axis is dominant for exit condition later
+            bool horizontalDominant = Math.Abs(vectorToPlayer.X) >= Math.Abs(vectorToPlayer.Y);
+
             // Debug: Check if the minion's own tile is blocked (would indicate bad tile conversion)
             if (DebugTethering && Main.GameUpdateCount % 120 == 0) {
                 bool ownTileBlocked = IsSolidBlockingTile(minionTopLeftTile.X, minionTopLeftTile.Y);
-                Main.NewText($"[DEBUG] {minion.Name} pos=({minion.position.X:F1},{minion.position.Y:F1})px → tile({minionTopLeftTile.X},{minionTopLeftTile.Y}), ownTileBlocked={ownTileBlocked}, clearance={clearanceWidth}x{clearanceHeight}", Color.Cyan);
+                Main.NewText($"[DEBUG] {minion.Name} pos=({minion.position.X:F1},{minion.position.Y:F1})px → tile({minionTopLeftTile.X},{minionTopLeftTile.Y}), ownTileBlocked={ownTileBlocked}, clearance={clearanceWidth}x{clearanceHeight}, lPathBlocked={lPathBlocked}", Color.Cyan);
             }
 
-            // Step 4: Check if there's a clear "L-path" to the player using Bresenham-style walking
-            // Walk the dominant axis first, then the other axis. If blocked anywhere → need A*
-            Point playerTopLeftTile = (ownerPlayer.position + new Vector2(2f, 2f)).ToTileCoordinates();
-            bool lPathBlocked = IsLPathBlocked(minionTopLeftTile, playerTopLeftTile, clearanceWidth, clearanceHeight, out Point blockingTile);
+            // Step 3: Filter based on state
+            if (minionState.State == MinionState.Idle) {
+                // For "Idle" minions: only help if L-path is blocked
+                // (They might be marked idle due to short straight-line distance, but L-path blocked by wall)
+                if (!lPathBlocked) {
+                    return; // L-path is clear, genuinely idle - don't interfere
+                }
+                // L-path blocked = needs help, continue to pathfinding
+                if (DebugTethering && Main.GameUpdateCount % 60 == 0) {
+                    Main.NewText($"[TETHER] {minion.Name} is 'Idle' but L-path blocked - checking A*", Color.Yellow);
+                }
+            }
+            else {
+                // Following state - must be far enough from player to bother
+                if (distanceToOwnerPixels < MinDistanceForQoLPathing)
+                    return;
+            }
+
+            // Step 4: Use L-path result for blocked detection
             bool nextTileIsSolid = lPathBlocked;
             int checkTileX = blockingTile.X;
             int checkTileY = blockingTile.Y;
-            
-            // Track which axis is dominant for exit condition later
-            bool horizontalDominant = Math.Abs(vectorToPlayer.X) >= Math.Abs(vectorToPlayer.Y);
 
             // Step 4b: Also check "stuck" detection - minion hasn't made progress toward player
             long currentTimeMs = GetEpochTimeMs();
@@ -429,8 +456,56 @@ namespace TerrariaSurvivalMod.TetheredMinions
             return tile.HasTile && Main.tileSolid[tile.TileType] && !Main.tileSolidTop[tile.TileType];
         }
 
+        // ╔════════════════════════════════════════════════════════════════════╗
+        // ║                      SIMPLE PATH CHECK                              ║
+        // ╚════════════════════════════════════════════════════════════════════╝
+
+        // ────────────────────────────────────────────────────────────────────────────────────────
+        // WHY "SIMPLE PATH" INSTEAD OF STRAIGHT-LINE LOS?
+        //
+        // Straight-line LOS (like Collision.CanHitLine) is almost NEVER useful for minion pathing
+        // decisions. It fails constantly because:
+        //   - Uses 1x1 pixel hitbox - ignores minion's actual NxM tile clearance
+        //   - Can slip through "touching corners" (diagonally adjacent solid tiles)
+        //   - Any diagonal clips corners that a real entity couldn't traverse
+        //   - Moving minions rarely travel in perfect straight lines
+        //   - Even a single protruding tile blocks the check
+        //
+        // The "simple path" check (L-path: dominant axis first, then secondary) represents a
+        // REALISTIC path that a minion might actually take - walking horizontally then
+        // dropping/climbing, or moving vertically then sliding over. It uses the minion's
+        // actual tile clearance (NxM) to ensure the path is actually traversable.
+        //
+        // PHILOSOPHY: We should never do aggressive interventions (like phasing) based on
+        // straight-line LOS alone. The simple path check is a "softer" test that better
+        // reflects actual navigation feasibility before we decide the minion needs A* help.
+        // ────────────────────────────────────────────────────────────────────────────────────────
+
         /// <summary>
-        /// Check if there's a clear "L-path" from start to goal.
+        /// Check if minion has a simple L-path to the target location.
+        /// Uses the minion's actual tile clearance (NxM) for accurate collision detection.
+        /// Returns TRUE if path is CLEAR (minion can likely reach target without A* pathfinding).
+        /// </summary>
+        /// <param name="minion">The minion projectile (used for position and size)</param>
+        /// <param name="targetLocation">Target world position (e.g., player.position)</param>
+        /// <returns>True if simple path exists, false if blocked</returns>
+        private static bool MinionHasSimplePathToLocation(Projectile minion, Vector2 targetLocation)
+        {
+            // Convert positions to tile coordinates (add 2px to avoid boundary issues)
+            Point minionTile = (minion.position + new Vector2(2f, 2f)).ToTileCoordinates();
+            Point targetTile = (targetLocation + new Vector2(2f, 2f)).ToTileCoordinates();
+
+            // Calculate minion's tile clearance
+            int clearanceWidth = TilePathfinder.CalculateTileClearance(minion.width);
+            int clearanceHeight = TilePathfinder.CalculateTileClearance(minion.height);
+
+            // Check if L-path is blocked - invert result for "has path" semantics
+            bool isBlocked = IsLPathBlocked(minionTile, targetTile, clearanceWidth, clearanceHeight, out _);
+            return !isBlocked;
+        }
+
+        /// <summary>
+        /// Internal: Check if there's a clear "L-path" from start to goal.
         /// Uses Bresenham-style walking: move on the dominant axis first, then switch to the other.
         /// Returns true if ANY tile on the L-path is blocked.
         /// </summary>
@@ -537,7 +612,7 @@ namespace TerrariaSurvivalMod.TetheredMinions
             // Exit condition: Minion's CENTER has moved PAST the exit threshold in PIXEL space
             // The threshold is computed from the blocking tile: (blockingTile + 1) * 16 + minionWidth/2
             // This ensures minion's center has definitively cleared the obstacle.
-            
+
             // Get minion's current position on the dominant axis
             float minionCenterOnDominantAxis = pathStartDominantAxisWasHorizontal
                 ? minion.Center.X
@@ -549,7 +624,7 @@ namespace TerrariaSurvivalMod.TetheredMinions
             float minionHalfSizeOnAxis = pathStartDominantAxisWasHorizontal
                 ? minion.width / 2f
                 : minion.height / 2f;
-            
+
             int exitTileCoord = blockingTilePositionOnDominantAxis + pathStartDirectionToPlayer;
             float exitThresholdWorldPixels = exitTileCoord * 16f + minionHalfSizeOnAxis;
 
@@ -587,7 +662,7 @@ namespace TerrariaSurvivalMod.TetheredMinions
             // Get current waypoint target - skip waypoints we've already passed
             Vector2 waypointWorldPosition = currentPathWaypoints[currentWaypointIndex];
             float distanceToWaypoint = Vector2.Distance(minion.Center, waypointWorldPosition);
-            
+
             // Advance through waypoints we've already reached
             while (distanceToWaypoint < WaypointArrivalDistance &&
                    currentWaypointIndex < currentPathWaypoints.Count - 1) {
@@ -595,7 +670,7 @@ namespace TerrariaSurvivalMod.TetheredMinions
                 waypointWorldPosition = currentPathWaypoints[currentWaypointIndex];
                 distanceToWaypoint = Vector2.Distance(minion.Center, waypointWorldPosition);
             }
-            
+
             // If we've reached the last waypoint, we're done! The path endpoint is the player.
             if (currentWaypointIndex >= currentPathWaypoints.Count - 1 &&
                 distanceToWaypoint < WaypointArrivalDistance) {
@@ -609,12 +684,12 @@ namespace TerrariaSurvivalMod.TetheredMinions
 
             // Move toward current waypoint - disable tileCollide so we can actually follow the path!
             minion.tileCollide = false;
-            
+
             Vector2 directionToWaypoint = waypointWorldPosition - minion.Center;
             if (directionToWaypoint.Length() > 0) {
                 directionToWaypoint.Normalize();
                 minion.velocity = directionToWaypoint * PathFollowSpeed;
-                
+
                 if (DebugTethering && Main.GameUpdateCount % 30 == 0) {
                     // Show direction in compass style: left/right/up/down
                     string horizDir = directionToWaypoint.X > 0.3f ? "R" : (directionToWaypoint.X < -0.3f ? "L" : "-");
@@ -645,9 +720,9 @@ namespace TerrariaSurvivalMod.TetheredMinions
             Vector2 directionToOwner = ownerPlayer.Center - minion.Center;
             float distanceToOwner = directionToOwner.Length();
 
-            // Check if we've reached the owner (back in LOS and close enough)
-            bool hasLOSNow = HasLineOfSight(minion.Center, ownerPlayer.Center);
-            if (hasLOSNow && distanceToOwner < PhasingArrivalDistance) {
+            // Check if we've reached the owner (has simple path and close enough)
+            bool hasSimplePath = MinionHasSimplePathToLocation(minion, ownerPlayer.position);
+            if (hasSimplePath && distanceToOwner < PhasingArrivalDistance) {
                 // Arrived - end phasing
                 EndPhasingState(minion);
 
@@ -709,7 +784,7 @@ namespace TerrariaSurvivalMod.TetheredMinions
             isFollowingPath = true;
             currentPathWaypoints = pathWaypoints;
             currentWaypointIndex = 0;
-            
+
             // Store original tileCollide to restore on exit
             pathFollowingOriginalTileCollide = minion.tileCollide;
 
@@ -735,14 +810,14 @@ namespace TerrariaSurvivalMod.TetheredMinions
         {
             // Restore original tileCollide state
             minion.tileCollide = pathFollowingOriginalTileCollide;
-            
+
             isFollowingPath = false;
             currentPathWaypoints = null;
             currentWaypointIndex = 0;
             pathStartDominantAxisWasHorizontal = false;
             blockingTilePositionOnDominantAxis = 0;
             pathStartDirectionToPlayer = 0;
-            
+
             // Set cooldown to prevent immediate re-entry into pathfinding (1.5 seconds)
             pathFollowingEndedEpochMs = GetEpochTimeMs();
         }
@@ -880,18 +955,6 @@ namespace TerrariaSurvivalMod.TetheredMinions
             }
         }
 
-        // ╔════════════════════════════════════════════════════════════════════╗
-        // ║                      LINE OF SIGHT CHECKS                          ║
-        // ╚════════════════════════════════════════════════════════════════════╝
-
-        /// <summary>
-        /// Check if there's a clear line of sight between two points.
-        /// Uses Terraria's built-in collision check.
-        /// </summary>
-        private static bool HasLineOfSight(Vector2 fromPosition, Vector2 toPosition)
-        {
-            return Collision.CanHitLine(fromPosition, 1, 1, toPosition, 1, 1);
-        }
     }
 
     /// <summary>

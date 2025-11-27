@@ -3,13 +3,15 @@
 > Implementation: [`Source/ArmorRebalance/`](../../Source/ArmorRebalance/)
 >
 > **Completed:**
-> - [x] Defense redistribution into pieces (no more set bonus defense)
-> - [x] Emergency Shield (Copper/Tin, Gold/Platinum chestplates)
-> - [x] Shiny set bonus (ore/gem sparkle effect)
-> - [x] Shield visual layer
-> - [x] Fragile debuff system
+>
+> - [X] Defense redistribution into pieces (no more set bonus defense)
+> - [X] Emergency Shield (Copper/Tin, Gold/Platinum chestplates)
+> - [X] Shiny set bonus (ore/gem sparkle effect)
+> - [X] Shield visual layer
+> - [X] Fragile debuff system
 >
 > **Not Yet Implemented:**
+>
 > - [ ] Iron/Lead +10% crit chance on chestplate
 > - [ ] Silver/Tungsten +15% move speed on chestplate
 > - [ ] Early flails (Lead Mace, Iron Mace)
@@ -52,23 +54,23 @@ Example: Player has Mining Helmet + Tin Chest + Tin Greaves (7 defense). Upgradi
 
 **Copper Tier:**
 
-| Piece           | Vanilla     | Proposed                                    |
-| --------------- | ----------- | ------------------------------------------- |
-| Helmet          | 1           | 1                                           |
-| Chainmail       | 2           | 3 and **Shield** (30 HP, 5s, 60s cd) |
-| Greaves         | 1           | 2                                           |
-| Set Bonus       | +2 def      | **Shiny** (nearby ores/gems sparkle)  |
-| **TOTAL** | **6** | **6**                                 |
+| Piece           | Vanilla     | Proposed                                   |
+| --------------- | ----------- | ------------------------------------------ |
+| Helmet          | 1           | 1                                          |
+| Chainmail       | 2           | 3 and**Shield** (30 HP, 5s, 60s cd)  |
+| Greaves         | 1           | 2                                          |
+| Set Bonus       | +2 def      | **Shiny** (nearby ores/gems sparkle) |
+| **TOTAL** | **6** | **6**                                |
 
 **Tin Tier:**
 
-| Piece           | Vanilla     | Proposed                                    |
-| --------------- | ----------- | ------------------------------------------- |
-| Helmet          | 2           | 2                                           |
-| Chainmail       | 2           | 3 and **Shield** (30 HP, 5s, 60s cd) |
-| Greaves         | 2           | 2                                           |
-| Set Bonus       | +1 def      | **Shiny** (nearby ores/gems sparkle)  |
-| **TOTAL** | **7** | **7**                                 |
+| Piece           | Vanilla     | Proposed                                   |
+| --------------- | ----------- | ------------------------------------------ |
+| Helmet          | 2           | 2                                          |
+| Chainmail       | 2           | 3 and**Shield** (30 HP, 5s, 60s cd)  |
+| Greaves         | 1           | 2                                          |
+| Set Bonus       | +2 def      | **Shiny** (nearby ores/gems sparkle) |
+| **TOTAL** | **7** | **7**                                |
 
 **Iron Tier:**
 
@@ -95,7 +97,7 @@ Example: Player has Mining Helmet + Tin Chest + Tin Greaves (7 defense). Upgradi
 | Piece           | Vanilla      | Proposed                                   |
 | --------------- | ------------ | ------------------------------------------ |
 | Helmet          | 3            | 3                                          |
-| Chainmail       | 4            | 5 and **+15% move speed**            |
+| Chainmail       | 4            | 5 and**+15% move speed**             |
 | Greaves         | 3            | 4                                          |
 | Set Bonus       | +2 def       | **Shiny** (nearby ores/gems sparkle) |
 | **TOTAL** | **12** | **12**                               |
@@ -105,30 +107,30 @@ Example: Player has Mining Helmet + Tin Chest + Tin Greaves (7 defense). Upgradi
 | Piece           | Vanilla      | Proposed                                   |
 | --------------- | ------------ | ------------------------------------------ |
 | Helmet          | 4            | 4                                          |
-| Chainmail       | 4            | 5 and **+15% move speed**            |
+| Chainmail       | 4            | 5 and**+15% move speed**             |
 | Greaves         | 3            | 4                                          |
 | Set Bonus       | +2 def       | **Shiny** (nearby ores/gems sparkle) |
 | **TOTAL** | **13** | **13**                               |
 
 **Gold Tier:**
 
-| Piece           | Vanilla      | Proposed                                              |
-| --------------- | ------------ | ----------------------------------------------------- |
-| Helmet          | 4            | 4                                                     |
-| Chainmail       | 5            | 6 and **Shield** (15% HP, 10s, 120s cd, purges) |
-| Greaves         | 4            | 6                                                     |
-| Set Bonus       | +3 def       | **Shiny** (nearby ores/gems sparkle)            |
-| **TOTAL** | **16** | **16**                                          |
+| Piece           | Vanilla      | Proposed                                             |
+| --------------- | ------------ | ---------------------------------------------------- |
+| Helmet          | 4            | 4                                                    |
+| Chainmail       | 5            | 6 and**Shield** (15% HP, 10s, 120s cd, purges) |
+| Greaves         | 4            | 6                                                    |
+| Set Bonus       | +3 def       | **Shiny** (nearby ores/gems sparkle)           |
+| **TOTAL** | **16** | **16**                                         |
 
 **Platinum Tier:**
 
-| Piece           | Vanilla      | Proposed                                               |
-| --------------- | ------------ | ------------------------------------------------------ |
-| Helmet          | 5            | 5                                                      |
-| Chainmail       | 5            | 7 and **+Shield** (15% HP, 10s, 120s cd, purges) |
-| Greaves         | 4            | 6                                                      |
-| Set Bonus       | +4 def       | **Shiny** (nearby ores/gems sparkle)             |
-| **TOTAL** | **18** | **18**                                           |
+| Piece           | Vanilla      | Proposed                                              |
+| --------------- | ------------ | ----------------------------------------------------- |
+| Helmet          | 5            | 5                                                     |
+| Chainmail       | 5            | 7 and**+Shield** (15% HP, 10s, 120s cd, purges) |
+| Greaves         | 4            | 6                                                     |
+| Set Bonus       | +4 def       | **Shiny** (nearby ores/gems sparkle)            |
+| **TOTAL** | **18** | **18**                                          |
 
 ### Set Bonus Design Philosophy
 
@@ -176,7 +178,7 @@ public class ArmorShieldEffect : ModPlayer {
   
     public override void OnHurt(Player.HurtInfo info) {
         if (shieldCooldown > 0) return;
-    
+  
         if (HasTinOrCopperChestplate()) {
             ActivateShield(30, 5 * 60, 60 * 60, false); // Flat 30 HP shield
         } else if (HasGoldOrPlatinumChestplate()) {
@@ -189,7 +191,7 @@ public class ArmorShieldEffect : ModPlayer {
         shieldHP = shieldAmount;
         shieldDuration = duration;
         shieldCooldown = cooldown;
-    
+  
         if (purgeDebuffs) {
             // Clear common debuffs
             Player.ClearBuff(BuffID.OnFire);
@@ -199,7 +201,7 @@ public class ArmorShieldEffect : ModPlayer {
             Player.ClearBuff(BuffID.Frozen);
             Player.ClearBuff(BuffID.Burning);
         }
-    
+  
         CombatText.NewText(Player.Hitbox, Color.Gold, $"+{shieldHP} Shield");
     }
 }
