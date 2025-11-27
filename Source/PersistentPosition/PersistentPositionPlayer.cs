@@ -98,20 +98,32 @@ namespace TerrariaSurvivalMod.PersistentPosition
 
         /// <summary>
         /// Restore player to their saved position when entering the world.
-        /// Validates the position is safe before restoring.
+        /// ALWAYS restores to saved position (or nudged version) - no free teleport exploits.
+        /// Only fails back to spawn point if position is out of world bounds (bug/glitch).
         /// </summary>
         public override void OnEnterWorld()
         {
-            // Try to restore player to saved position if available and safe
-            if (hasValidSavedPosition && IsPositionSafeForPlayer(savedExitPosition)) {
-                // Nudge player UP by 1/5 tile (3.2 pixels) to prevent spawning inside ground
-                const float PositionNudgeUpPixels = 16f / 5f;
-                Player.position = savedExitPosition - new Vector2(0, PositionNudgeUpPixels);
-                Player.velocity = Vector2.Zero;
-                Main.NewText($"[TSM] Position restored. Immune for {SpawnImmunityDurationSeconds}s.", 100, 255, 100);
-            }
-            else if (hasValidSavedPosition) {
-                Main.NewText($"[TSM] Saved position was unsafe, using spawn point. Immune for {SpawnImmunityDurationSeconds}s.", 255, 200, 100);
+            if (hasValidSavedPosition) {
+                // Check for world bounds - only hard fail case (indicates bug/glitch)
+                if (!IsPositionInWorldBounds(savedExitPosition)) {
+                    Main.NewText($"[TSM] Saved position out of bounds (bug?), using spawn. Immune for {SpawnImmunityDurationSeconds}s.", 255, 100, 100);
+                }
+                else {
+                    // Find best spawn position (may be bumped if inside solid tiles)
+                    Vector2 finalSpawnPosition = FindBestSpawnPosition(savedExitPosition);
+                    
+                    // Nudge player UP by 1/5 tile (3.2 pixels) to prevent spawning inside ground
+                    const float PositionNudgeUpPixels = 16f / 5f;
+                    Player.position = finalSpawnPosition - new Vector2(0, PositionNudgeUpPixels);
+                    Player.velocity = Vector2.Zero;
+                    
+                    if (finalSpawnPosition == savedExitPosition) {
+                        Main.NewText($"[TSM] Position restored. Immune for {SpawnImmunityDurationSeconds}s.", 100, 255, 100);
+                    }
+                    else {
+                        Main.NewText($"[TSM] Position adjusted (was in block). Immune for {SpawnImmunityDurationSeconds}s.", 255, 200, 100);
+                    }
+                }
             }
             else {
                 Main.NewText($"[TSM] World entered. Immune for {SpawnImmunityDurationSeconds}s.", 100, 200, 255);
@@ -301,23 +313,26 @@ namespace TerrariaSurvivalMod.PersistentPosition
         }
 
         /// <summary>
-        /// Check if a position is safe to spawn the player at.
-        /// Returns false if the player would be inside solid blocks, lava, or other hazards.
+        /// Check if position is within valid world bounds.
+        /// This is the ONLY hard fail - indicates data corruption or bug.
         /// </summary>
-        /// <param name="positionToCheck">World position to validate</param>
-        /// <returns>True if position is safe, false if player would be in danger</returns>
-        private bool IsPositionSafeForPlayer(Vector2 positionToCheck)
+        private static bool IsPositionInWorldBounds(Vector2 positionToCheck)
         {
-            // Player.position is top-left corner; convert to tile coordinates
-            // Add 8 pixels (half tile) for center alignment check
             int baseTileX = (int)((positionToCheck.X + 8) / 16);
             int baseTileY = (int)((positionToCheck.Y + 8) / 16);
 
-            // Check tile bounds (player is ~2 tiles wide, ~3 tiles tall)
-            if (baseTileX < 1 || baseTileX >= Main.maxTilesX - 3 ||
-                baseTileY < 1 || baseTileY >= Main.maxTilesY - 4) {
-                return false; // Out of world bounds
-            }
+            // Player is ~2 tiles wide, ~3 tiles tall
+            return baseTileX >= 1 && baseTileX < Main.maxTilesX - 3 &&
+                   baseTileY >= 1 && baseTileY < Main.maxTilesY - 4;
+        }
+
+        /// <summary>
+        /// Check if a position overlaps any solid tiles (player hitbox: 2x3 tiles).
+        /// </summary>
+        private static bool IsPositionInSolidTiles(Vector2 positionToCheck)
+        {
+            int baseTileX = (int)((positionToCheck.X + 8) / 16);
+            int baseTileY = (int)((positionToCheck.Y + 8) / 16);
 
             // Check a 2x3 tile area (player hitbox size)
             for (int xOffset = 0; xOffset < 2; xOffset++) {
@@ -325,55 +340,59 @@ namespace TerrariaSurvivalMod.PersistentPosition
                     int tileX = baseTileX + xOffset;
                     int tileY = baseTileY + yOffset;
 
+                    // Bounds check for the specific tile
+                    if (tileX < 0 || tileX >= Main.maxTilesX || tileY < 0 || tileY >= Main.maxTilesY)
+                        continue;
+
                     Tile tileAtPosition = Main.tile[tileX, tileY];
 
-                    // Check if tile is solid and would block the player
-                    if (tileAtPosition.HasTile && Main.tileSolid[tileAtPosition.TileType]) {
-                        return false; // Would spawn inside solid blocks
-                    }
-
-                    // Check for dangerous liquids
-                    if (tileAtPosition.LiquidAmount > 0) {
-                        // LiquidType: 0=water, 1=lava, 2=honey, 3=shimmer
-                        if (tileAtPosition.LiquidType == Terraria.ID.LiquidID.Lava) {
-                            return false; // Would spawn in lava
-                        }
+                    // Check if tile is solid (not platforms)
+                    if (tileAtPosition.HasTile && Main.tileSolid[tileAtPosition.TileType] && !Main.tileSolidTop[tileAtPosition.TileType]) {
+                        return true; // In solid tile
                     }
                 }
             }
 
-            // Check for solid ground beneath the player (don't spawn in mid-air over void)
-            int groundCheckY = baseTileY + 3; // Just below player's feet
-            if (groundCheckY < Main.maxTilesY) {
-                bool hasGroundOrPlatform = false;
-                for (int xOffset = 0; xOffset < 2; xOffset++) {
-                    Tile groundTile = Main.tile[baseTileX + xOffset, groundCheckY];
-                    if (groundTile.HasTile && (Main.tileSolid[groundTile.TileType] || Main.tileSolidTop[groundTile.TileType])) {
-                        hasGroundOrPlatform = true;
-                        break;
-                    }
-                }
+            return false;
+        }
 
-                // If no ground within 10 tiles, might be dangerous fall - still allow but warn
-                if (!hasGroundOrPlatform) {
-                    int emptyTilesBelow = 0;
-                    for (int checkY = groundCheckY; checkY < groundCheckY + 30 && checkY < Main.maxTilesY; checkY++) {
-                        Tile checkTile = Main.tile[baseTileX, checkY];
-                        if (checkTile.HasTile && Main.tileSolid[checkTile.TileType])
-                            break;
-                        if (checkTile.LiquidAmount > 0 && checkTile.LiquidType == Terraria.ID.LiquidID.Lava)
-                            return false; // Lava below
-                        emptyTilesBelow++;
-                    }
+        /// <summary>
+        /// Find the best spawn position, trying bump offsets if inside solid tiles.
+        /// Returns the original position if clear, or a bumped position if found, or original anyway if no bump works.
+        /// </summary>
+        private static Vector2 FindBestSpawnPosition(Vector2 originalPosition)
+        {
+            // If original position is clear, use it
+            if (!IsPositionInSolidTiles(originalPosition)) {
+                return originalPosition;
+            }
 
-                    // More than 25 tiles of empty space = dangerous fall
-                    if (emptyTilesBelow >= 25) {
-                        return false; // Would die from fall damage
+            // Try bump offsets: -0.5 to 2 tiles in 0.5 tile (8 pixel) increments
+            // Prioritize smaller bumps first
+            float[] bumpDistancesTiles = { -0.5f, 0.5f, -1f, 1f, -1.5f, 1.5f, -2f, 2f };
+            const float PixelsPerTile = 16f;
+
+            foreach (float xBumpTiles in bumpDistancesTiles) {
+                foreach (float yBumpTiles in bumpDistancesTiles) {
+                    // Skip (0, 0) - we already checked original
+                    if (xBumpTiles == 0f && yBumpTiles == 0f)
+                        continue;
+
+                    Vector2 bumpedPosition = originalPosition + new Vector2(xBumpTiles * PixelsPerTile, yBumpTiles * PixelsPerTile);
+
+                    // Check bounds first
+                    if (!IsPositionInWorldBounds(bumpedPosition))
+                        continue;
+
+                    // Check if bumped position is clear
+                    if (!IsPositionInSolidTiles(bumpedPosition)) {
+                        return bumpedPosition; // Found a clear spot
                     }
                 }
             }
 
-            return true;
+            // No clear bump found - spawn at original anyway (player will be pushed out by game)
+            return originalPosition;
         }
     }
 }
