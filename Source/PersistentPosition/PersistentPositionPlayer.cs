@@ -210,22 +210,20 @@ namespace TerrariaSurvivalMod.PersistentPosition
             bool shouldBlock = ShouldBlockDamageCategory(damageCategory);
 
             if (shouldBlock) {
-                // Debug log BEFORE blocking (so we see original values)
+                // Cancel removes the damage event entirely (no damage sound, no knockback, no visual feedback)
+                modifiers.Cancel();
+
+                // Only show debug info if enabled
                 if (DebugMessagesEnabled) {
                     string sourceDetails = GetDamageSourceDetails(modifiers, damageCategory);
                     int secondsRemaining = (int)GetImmunityRemainingSeconds();
                     Main.NewText($"[TSM] BLOCKING {damageCategory}: src={sourceDamageBase} final={finalDamageBase} | {sourceDetails} ({secondsRemaining}s left)", 100, 255, 100);
                 }
-
-                // Block this damage
-                modifiers.FinalDamage *= 0f;
-                CombatText.NewText(Player.Hitbox, Color.Cyan, "Protected!");
+                return;
             }
-            else {
-                if (DebugMessagesEnabled) {
-                    string sourceDetails = GetDamageSourceDetails(modifiers, damageCategory);
-                    Main.NewText($"[TSM] ALLOWING {damageCategory}: src={sourceDamageBase} final={finalDamageBase} | {sourceDetails}", 255, 100, 100);
-                }
+            else if (DebugMessagesEnabled) {
+                string sourceDetails = GetDamageSourceDetails(modifiers, damageCategory);
+                Main.NewText($"[TSM] ALLOWING {damageCategory}: src={sourceDamageBase} final={finalDamageBase} | {sourceDetails}", 255, 100, 100);
             }
         }
 
