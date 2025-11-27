@@ -1,7 +1,7 @@
 using Terraria;
 using Terraria.ModLoader;
 
-namespace TerrariaSurvivalMod.Buffs
+namespace TerrariaSurvivalMod.ArmorRebalance
 {
     /// <summary>
     /// Visual indicator that the player cannot acquire an emergency shield temporarily.

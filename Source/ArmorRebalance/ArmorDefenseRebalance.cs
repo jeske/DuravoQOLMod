@@ -4,7 +4,7 @@ using Terraria.ID;
 using Terraria.Localization;
 using Terraria.ModLoader;
 
-namespace TerrariaSurvivalMod.Items
+namespace TerrariaSurvivalMod.ArmorRebalance
 {
     /// <summary>
     /// Rebalances vanilla armor defense values.
@@ -21,8 +21,7 @@ namespace TerrariaSurvivalMod.Items
         public override void SetDefaults(Item item)
         {
             // Goal: Redistribute set bonus defense into pieces, keeping same total
-            switch (item.type)
-            {
+            switch (item.type) {
                 // === COPPER ARMOR === (vanilla 1+2+1+2set = 6, proposed 1+3+2 = 6)
                 case ItemID.CopperHelmet:
                     item.defense = 1; // unchanged
@@ -121,20 +120,18 @@ namespace TerrariaSurvivalMod.Items
         {
             // Remove vanilla "Set bonus: X defense" tooltip line
             tooltips.RemoveAll(line => line.Name == "SetBonus");
-            
+
             string chestplateBonusKey = GetChestplateBonusKey(item.type);
             bool isOreArmorPiece = IsOreArmorPiece(item.type);
 
             // Add chestplate-specific bonus first (if applicable)
-            if (chestplateBonusKey != null)
-            {
+            if (chestplateBonusKey != null) {
                 string chestplateText = Language.GetTextValue($"Mods.TerrariaSurvivalMod.ArmorBonus.{chestplateBonusKey}");
                 tooltips.Add(new TooltipLine(Mod, "ChestplateBonus", chestplateText));
             }
 
             // Add set bonus for any armor piece
-            if (isOreArmorPiece)
-            {
+            if (isOreArmorPiece) {
                 string setTooltip = Language.GetTextValue("Mods.TerrariaSurvivalMod.ArmorBonus.SetBonusShiny");
                 tooltips.Add(new TooltipLine(Mod, "FullSetBonus", setTooltip));
             }
@@ -145,20 +142,19 @@ namespace TerrariaSurvivalMod.Items
         /// </summary>
         private static string GetChestplateBonusKey(int itemType)
         {
-            return itemType switch
-            {
+            return itemType switch {
                 // Tin/Copper tier - Emergency Shield
                 ItemID.TinChainmail or ItemID.CopperChainmail => "ShieldTinCopper",
-                
+
                 // Iron/Lead tier - Crit bonus
                 ItemID.IronChainmail or ItemID.LeadChainmail => "CritIronLead",
-                
+
                 // Silver/Tungsten tier - Speed bonus
                 ItemID.SilverChainmail or ItemID.TungstenChainmail => "SpeedSilverTungsten",
-                
+
                 // Gold/Platinum tier - Enhanced Emergency Shield
                 ItemID.GoldChainmail or ItemID.PlatinumChainmail => "ShieldGoldPlatinum",
-                
+
                 _ => null
             };
         }
@@ -168,32 +164,31 @@ namespace TerrariaSurvivalMod.Items
         /// </summary>
         private static bool IsOreArmorPiece(int itemType)
         {
-            return itemType switch
-            {
+            return itemType switch {
                 // Tin set
                 ItemID.TinHelmet or ItemID.TinChainmail or ItemID.TinGreaves => true,
-                
+
                 // Copper set
                 ItemID.CopperHelmet or ItemID.CopperChainmail or ItemID.CopperGreaves => true,
-                
+
                 // Iron set
                 ItemID.IronHelmet or ItemID.IronChainmail or ItemID.IronGreaves => true,
-                
+
                 // Lead set
                 ItemID.LeadHelmet or ItemID.LeadChainmail or ItemID.LeadGreaves => true,
-                
+
                 // Silver set
                 ItemID.SilverHelmet or ItemID.SilverChainmail or ItemID.SilverGreaves => true,
-                
+
                 // Tungsten set
                 ItemID.TungstenHelmet or ItemID.TungstenChainmail or ItemID.TungstenGreaves => true,
-                
+
                 // Gold set
                 ItemID.GoldHelmet or ItemID.GoldChainmail or ItemID.GoldGreaves => true,
-                
+
                 // Platinum set
                 ItemID.PlatinumHelmet or ItemID.PlatinumChainmail or ItemID.PlatinumGreaves => true,
-                
+
                 _ => false
             };
         }

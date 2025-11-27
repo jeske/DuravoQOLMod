@@ -6,7 +6,7 @@ using Terraria.GameContent;
 using Terraria.ModLoader;
 using System;
 
-namespace TerrariaSurvivalMod.Players
+namespace TerrariaSurvivalMod.ArmorRebalance
 {
     /// <summary>
     /// Custom draw layer that renders the emergency shield visual effect around the player.
@@ -60,8 +60,7 @@ namespace TerrariaSurvivalMod.Players
             Color circleColor = baseColor * (0.2f + 0.3f * fillRatio);
 
             // Draw circle outline using line segments
-            for (int i = 0; i < segments; i++)
-            {
+            for (int i = 0; i < segments; i++) {
                 float angle1 = (float)i / segments * MathHelper.TwoPi;
                 float angle2 = (float)(i + 1) / segments * MathHelper.TwoPi;
 
@@ -81,7 +80,7 @@ namespace TerrariaSurvivalMod.Players
 
                 // Line thickness proportional to shield remaining (1-4 pixels)
                 float lineThickness = 1f + 3f * fillRatio;
-                
+
                 // Create draw data for the line segment
                 DrawData lineSegment = new DrawData(
                     pixelTexture,
@@ -110,8 +109,7 @@ namespace TerrariaSurvivalMod.Players
             Texture2D pixelTexture = TextureAssets.MagicPixel.Value;
             int segments = 16;
 
-            for (int i = 0; i < segments; i++)
-            {
+            for (int i = 0; i < segments; i++) {
                 float angle1 = (float)i / segments * MathHelper.TwoPi;
                 float angle2 = (float)(i + 1) / segments * MathHelper.TwoPi;
 

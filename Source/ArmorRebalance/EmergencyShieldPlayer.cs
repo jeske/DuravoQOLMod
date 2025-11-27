@@ -6,7 +6,7 @@ using Terraria.Localization;
 using Terraria.ModLoader;
 using System;
 
-namespace TerrariaSurvivalMod.Players
+namespace TerrariaSurvivalMod.ArmorRebalance
 {
     /// <summary>
     /// Handles the Emergency Shield mechanic for Copper/Tin and Gold/Platinum armor.
@@ -212,7 +212,7 @@ namespace TerrariaSurvivalMod.Players
                 isGoldTierShield = false;
 
                 // Add Fragile debuff to show cooldown
-                Player.AddBuff(ModContent.BuffType<Buffs.FragileBuff>(), CopperTinShieldCooldownSeconds * 60);
+                Player.AddBuff(ModContent.BuffType<FragileBuff>(), CopperTinShieldCooldownSeconds * 60);
             }
             else // GoldPlatinum
             {
@@ -222,7 +222,7 @@ namespace TerrariaSurvivalMod.Players
                 isGoldTierShield = true;
 
                 // Add Fragile debuff to show cooldown
-                Player.AddBuff(ModContent.BuffType<Buffs.FragileBuff>(), GoldPlatinumShieldCooldownSeconds * 60);
+                Player.AddBuff(ModContent.BuffType<FragileBuff>(), GoldPlatinumShieldCooldownSeconds * 60);
 
                 // Gold tier purges debuffs
                 PurgeCommonDebuffs();

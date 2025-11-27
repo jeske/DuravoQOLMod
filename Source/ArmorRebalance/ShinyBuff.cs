@@ -2,7 +2,7 @@ using Terraria;
 using Terraria.ID;
 using Terraria.ModLoader;
 
-namespace TerrariaSurvivalMod.Buffs
+namespace TerrariaSurvivalMod.ArmorRebalance
 {
     /// <summary>
     /// Buff that grants nearby ore highlighting while wearing full ore armor set.
@@ -27,7 +27,7 @@ namespace TerrariaSurvivalMod.Buffs
         {
             // Mark player as having the shiny effect active
             // ArmorSetBonusPlayer checks for this buff to apply ore glow
-            player.GetModPlayer<Players.ArmorSetBonusPlayer>().HasShinyBuff = true;
+            player.GetModPlayer<ArmorRebalance.ArmorSetBonusPlayer>().HasShinyBuff = true;
         }
     }
 }

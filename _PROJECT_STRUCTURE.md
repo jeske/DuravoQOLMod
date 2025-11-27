@@ -135,37 +135,33 @@ DOCS/
 
 ---
 
-## Planned Source Structure (DO NOT CREATE YET)
+## Source Structure: FEATURE-ORIENTED
 
-When we start coding, the structure will grow like this:
+Code is organized by **feature**, not by tModLoader hook type. Each feature directory contains ALL files related to that feature (ModPlayer, GlobalItem, GlobalNPC, ModBuff, etc.).
 
 ```
-Source/                              # Created with Phase 0
-├── TerrariaSurvivalMod.cs           # Main mod class (Phase 0)
+Source/
+├── TerrariaSurvivalMod.cs           # Main mod class
+├── TerrariaSurvivalModConfig.cs     # Mod configuration
 │
-├── Players/                         # Created when needed
-│   └── PersistentPositionPlayer.cs  # Phase 0-1
+├── ArmorRebalance/                  # Early-game armor overhaul
+│   │                                # Defense redistribution, set bonuses,
+│   │                                # Emergency Shield, Shiny sparkle effect
+│   │                                # Contains: GlobalItem, ModPlayer, GlobalNPC,
+│   │                                #           GlobalProjectile, ModBuff, PlayerDrawLayer, ModSystem
 │
-├── Systems/                         # Created when needed
-│   └── LineOfSightSystem.cs         # Phase 1
+├── PersistentPosition/              # Logout position saving
+│   │                                # Contains: ModPlayer for position save/restore
 │
-├── NPCs/                            # Created when needed
-│   ├── DepthScaledDamage.cs         # Phase 2
-│   ├── SmartHopper.cs               # Phase 3
-│   └── AggroBurrower.cs             # Phase 3
-│
-├── Projectiles/                     # Created when needed
-│   └── TetheredMinion.cs            # Phase 4
-│
-├── Items/                           # Created when needed
-│   └── PortalStone.cs               # Phase 4
-│
-└── Utilities/                       # Created when needed
-    ├── RaycastUtils.cs              # Phase 1
-    └── BiomeUtils.cs                # Phase 4
+└── [future-features]/               # Each new feature gets its own directory
+                                     # with all related classes inside
 ```
 
-**Remember:** This is a PLAN. These folders/files don't exist until we're coding them.
+**Why feature-based:**
+- All code for a feature lives together
+- Easier to understand what a feature does
+- Adding/removing features is clean
+- Avoids scattered files across type-based directories
 
 ---
 

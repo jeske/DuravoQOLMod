@@ -7,7 +7,7 @@ using Terraria.ID;
 using Terraria.ModLoader;
 using System;
 
-namespace TerrariaSurvivalMod.Players
+namespace TerrariaSurvivalMod.ArmorRebalance
 {
     /// <summary>
     /// Handles armor set bonuses for crit chance, movement speed, and the Shiny sparkle effect.
@@ -138,7 +138,7 @@ namespace TerrariaSurvivalMod.Players
 
             // Apply Shiny buff when wearing full ore armor set
             if (DebugForceShinyActive || hasFullOreArmorSet) {
-                Player.AddBuff(ModContent.BuffType<Buffs.ShinyBuff>(), 2);
+                Player.AddBuff(ModContent.BuffType<ShinyBuff>(), 2);
             }
         }
 

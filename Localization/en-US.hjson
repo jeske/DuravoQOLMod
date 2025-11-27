@@ -24,9 +24,7 @@ Mods: {
 			}
 		}
 
-		CombatText: {
-			ShieldBlocked: "{0} (blocked)"
-		}
+		CombatText.ShieldBlocked: "{0} (blocked)"
 
 		ArmorBonus: {
 			# Chestplate-only bonuses
