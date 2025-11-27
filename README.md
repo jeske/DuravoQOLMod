@@ -38,4 +38,4 @@ See [`_PROJECT_STRUCTURE.md`](_PROJECT_STRUCTURE.md) for project organization an
 
 ## License
 
-TBD
+[MIT](LICENSE)
