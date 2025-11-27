@@ -56,6 +56,7 @@ NOTE: Reddit thread at: https://www.reddit.com/r/Terraria/comments/1p6n7jd/inter
   - [ ] make "conversions" of basic mineral into rare spawns (block by block chance)
   - [ ] make "conversions" of stone (and each biome equivalent) mineral into gems (very rare) so you learn you can find gems inside stone at deep depths
 - [ ] consider making "Super Shiny" buff for higher tier armor set bonus that has a longer range, and does NOT highlight low tier ores
+- [ ] stop friendly NPCs from opening doors when monsters are close to the outside, and make sure they always close doors
 
 ---
 

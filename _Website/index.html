@@ -36,18 +36,40 @@
         /* Header */
         header {
             text-align: center;
-            padding: 5rem 0 3rem;
+            padding: 3rem 0 1.5rem;
         }
         
         h1 {
             font-size: 3.5rem;
             font-weight: 700;
             letter-spacing: -0.02em;
-            margin-bottom: 0.75rem;
+            line-height: 1;
+            margin-bottom: 0;
             background: linear-gradient(135deg, var(--accent-light), var(--accent));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
+        }
+        
+        .requires {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            line-height: 1;
+            margin-top: 4px;
+            margin-bottom: 0;
+        }
+        
+        .header-spacer {
+            height: 2rem;
+        }
+        
+        .requires a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+        
+        .requires a:hover {
+            text-decoration: underline;
         }
         
         .tagline {
@@ -98,32 +120,6 @@
             background: rgba(255,255,255,0.15);
         }
         
-        /* Snippets Section */
-        .snippets {
-            padding: 3rem 0 4rem;
-        }
-        
-        .snippets-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 2rem;
-        }
-        
-        .snippet {
-            color: var(--text-muted);
-            font-size: 1.1rem;
-            line-height: 1.7;
-        }
-        
-        .snippet strong {
-            color: var(--text);
-            font-weight: 600;
-        }
-        
-        .snippet em {
-            color: var(--accent-light);
-            font-style: normal;
-        }
         
         /* Feature Showcase - Apple Style */
         .feature-showcase {
@@ -186,39 +182,40 @@
             padding: 2rem;
         }
         
-        /* Goals Section */
-        .goals {
-            background: var(--bg-section);
-            padding: 6rem 0;
+        /* Philosophy Section */
+        .philosophy {
+            padding: 0.5rem 0 0.5rem;
             text-align: center;
         }
         
-        .goals h2 {
-            font-size: 2.5rem;
-            font-weight: 600;
-            margin-bottom: 3rem;
-        }
-        
-        .goals-grid {
+        .philosophy-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 2rem;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.5rem;
             max-width: 1000px;
             margin: 0 auto;
         }
         
-        .goal-item {
-            padding: 1.5rem;
+        .philosophy-item h4 {
+            font-size: 1.1rem;
+            margin-bottom: 0.25rem;
         }
         
-        .goal-item h4 {
-            font-size: 1.25rem;
-            margin-bottom: 0.5rem;
-        }
-        
-        .goal-item p {
+        .philosophy-item p {
             color: var(--text-muted);
-            font-size: 1rem;
+            font-size: 0.95rem;
+        }
+        
+        @media (max-width: 768px) {
+            .philosophy-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .philosophy-grid {
+                grid-template-columns: 1fr;
+            }
         }
         
         /* Footer */
@@ -265,28 +262,51 @@
     <div class="container">
         <header>
             <h1>Duravo Mod</h1>
+            <p class="requires">Requires <a href="https://store.steampowered.com/app/105600/Terraria/">Terraria</a> and <a href="https://store.steampowered.com/app/1281930/tModLoader/">tModLoader</a></p>
+            <div class="header-spacer"></div>
             <p class="tagline">For players who want their victories to feel truly earned</p>
             
             <div class="button-group">
                 <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=YOUR_WORKSHOP_ID" class="btn btn-primary">
                     Steam Workshop
                 </a>
+                <a href="https://forums.terraria.org/index.php?threads/YOUR_THREAD_ID/" class="btn btn-primary">
+                    Community
+                </a>
                 <a href="https://github.com/YOUR_USERNAME/DuravoMod" class="btn btn-secondary">
-                    GitHub
+                    GitHub Source
                 </a>
             </div>
         </header>
     </div>
     
     <div class="container">
-        <section class="snippets">
-            <div class="snippets-grid">
-                <p class="snippet">Improved quality of life, such as <strong>smart minion pathfinding</strong> and <strong>persistent location</strong> when you exit and enter the game.</p>
-                <p class="snippet">Armor rework with an <em>ore finding visual</em>, and choices between <em>shields</em>, <em>speed boosts</em>, and <em>damage</em>.</p>
-                <p class="snippet"><strong>Biome-specific housing items</strong> made essential instead of just cosmetic.</p>
-                <p class="snippet">Travel reimagined: <strong>pylons are the only fast travel</strong>, making your journey through the world feel connected.</p>
-                <p class="snippet">Smarter enemies that can <em>navigate terrain</em> and <em>adapt to obstacles</em> instead of getting stuck.</p>
-                <p class="snippet">Exploration feels <strong>more rewarding</strong> with meaningful progression tied to the world around you.</p>
+        <section class="philosophy">
+            <div class="philosophy-grid">
+                <div class="philosophy-item">
+                    <h4>Deeper Engagement</h4>
+                    <p>Connect with Terraria's rich world through meaningful exploration</p>
+                </div>
+                <div class="philosophy-item">
+                    <h4>Start Anywhere</h4>
+                    <p>More biomes become viable starting locations</p>
+                </div>
+                <div class="philosophy-item">
+                    <h4>Quality of Life</h4>
+                    <p>Improved minion pathfinding, persistent position, and intuitive improvements</p>
+                </div>
+                <div class="philosophy-item">
+                    <h4>Risk vs Reward</h4>
+                    <p>Satisfying tension that makes victories feel earned</p>
+                </div>
+                <div class="philosophy-item">
+                    <h4>Armor Progression</h4>
+                    <p>Every upgrade matters, every piece has purpose</p>
+                </div>
+                <div class="philosophy-item">
+                    <h4>Biome Crafting</h4>
+                    <p>Give purpose to biome-specific base items</p>
+                </div>
             </div>
         </section>
     </div>
@@ -343,42 +363,10 @@
         </article>
     </div>
     
-    <section class="goals">
-        <div class="container">
-            <h2>Design Philosophy</h2>
-            <div class="goals-grid">
-                <div class="goal-item">
-                    <h4>Deeper Engagement</h4>
-                    <p>Connect with Terraria's rich world through meaningful exploration</p>
-                </div>
-                <div class="goal-item">
-                    <h4>Start Anywhere</h4>
-                    <p>More biomes become viable starting locations</p>
-                </div>
-                <div class="goal-item">
-                    <h4>Risk vs Reward</h4>
-                    <p>Satisfying tension that makes victories feel earned</p>
-                </div>
-                <div class="goal-item">
-                    <h4>Armor Progression</h4>
-                    <p>Every upgrade matters, every piece has purpose</p>
-                </div>
-                <div class="goal-item">
-                    <h4>Slower Zoom-Zoom</h4>
-                    <p>Increase investment to reach late-game mobility</p>
-                </div>
-                <div class="goal-item">
-                    <h4>Biome Crafting</h4>
-                    <p>Give purpose to biome-specific base items</p>
-                </div>
-            </div>
-        </div>
-    </section>
     
     <footer>
         <div class="container">
             <p>Duravo Mod by KuroParkCity — <a href="LICENSE.txt">MIT License</a></p>
-            <p>Requires tModLoader for Terraria</p>
         </div>
     </footer>
 </body>
