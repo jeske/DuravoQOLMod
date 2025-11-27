@@ -18,12 +18,12 @@ NOTE: Reddit thread at: https://www.reddit.com/r/Terraria/comments/1p6n7jd/inter
 
 **Foundational (do first):**
 
-- [x] Persistent Player Position - without this nothing else matters
-- [x] Minion Tethering - no AFK murder rooms, A* pathfinding for player following
-- [x] Armor Redesign (partial):
-  - [x] Defense redistribution (set bonus defense baked into pieces)
-  - [x] Emergency Shield (Copper/Tin low-tier, Gold/Platinum high-tier)
-  - [x] Shiny set bonus (ore/gem sparkle effect)
+- [X] Persistent Player Position - without this nothing else matters
+- [X] Minion Tethering - no AFK murder rooms, A* pathfinding for player following
+- [X] Armor Redesign (partial):
+  - [X] Defense redistribution (set bonus defense baked into pieces)
+  - [X] Emergency Shield (Copper/Tin low-tier, Gold/Platinum high-tier)
+  - [X] Shiny set bonus (ore/gem sparkle effect)
   - [ ] Iron/Lead +10% crit chance
   - [ ] Silver/Tungsten +15% move speed
 - [ ] Enemy Smart Jump Height (WIP - code exists, needs testing)
@@ -42,10 +42,11 @@ NOTE: Reddit thread at: https://www.reddit.com/r/Terraria/comments/1p6n7jd/inter
 **Cleanup:**
 
 - [ ] Enemy Rebalancing - make surface survivable without cheese
+- [ ] Remove Item Recall - softcore should get a free mirror (as a UI item?), recall scrolls removed - only way home in medium+ is base-to-base pylons
 
 **Maybe:**
 
-- [ ] Combat Building Lockout? - can't wall off mid-fight (lowest priority, may not need)
+- [ ] Combat Solid Wall Building Lockout? - stop mid fight wall-off (low priority, may not need - doesn't affect boss fights, mostly about early game mob cheesing)
 
 ---
 
