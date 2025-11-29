@@ -84,86 +84,67 @@ public partial class CraftingInfoPanelUI
 
     #region Weapons Tab Data
 
-    // Header materials (Wood + 8 ore bars)
-    private static readonly int[] WeaponMaterialHeaderIds = {
-        ItemID.Wood, ItemID.CopperBar, ItemID.TinBar, ItemID.IronBar, ItemID.LeadBar,
-        ItemID.SilverBar, ItemID.TungstenBar, ItemID.GoldBar, ItemID.PlatinumBar
-    };
-
-    // Swords row (all have wood+ore versions)
-    private static readonly int[] SwordItemIds = {
-        ItemID.WoodenSword, ItemID.CopperBroadsword, ItemID.TinBroadsword, ItemID.IronBroadsword, ItemID.LeadBroadsword,
-        ItemID.SilverBroadsword, ItemID.TungstenBroadsword, ItemID.GoldBroadsword, ItemID.PlatinumBroadsword
-    };
-
-    // Bows row
-    private static readonly int[] BowItemIds = {
-        ItemID.WoodenBow, ItemID.CopperBow, ItemID.TinBow, ItemID.IronBow, ItemID.LeadBow,
-        ItemID.SilverBow, ItemID.TungstenBow, ItemID.GoldBow, ItemID.PlatinumBow
-    };
-
-    // Pickaxes row (no wood version, first slot empty = -1)
-    private static readonly int[] PickaxeItemIds = {
-        -1, ItemID.CopperPickaxe, ItemID.TinPickaxe, ItemID.IronPickaxe, ItemID.LeadPickaxe,
-        ItemID.SilverPickaxe, ItemID.TungstenPickaxe, ItemID.GoldPickaxe, ItemID.PlatinumPickaxe
-    };
-
-    // Axes row (no wood version)
-    private static readonly int[] AxeItemIds = {
-        -1, ItemID.CopperAxe, ItemID.TinAxe, ItemID.IronAxe, ItemID.LeadAxe,
-        ItemID.SilverAxe, ItemID.TungstenAxe, ItemID.GoldAxe, ItemID.PlatinumAxe
-    };
-
-    // Hammers row
-    private static readonly int[] HammerItemIds = {
-        ItemID.WoodenHammer, ItemID.CopperHammer, ItemID.TinHammer, ItemID.IronHammer, ItemID.LeadHammer,
-        ItemID.SilverHammer, ItemID.TungstenHammer, ItemID.GoldHammer, ItemID.PlatinumHammer
+    // Pre-hardmode weapon data organized by material type (9 materials: Wood + 8 ores)
+    // Each material has 6 items arranged in 2-col × 3-row format:
+    //   Row 0: [Material (header), Pickaxe (header)] + gap
+    //   Row 1: [Sword, Bow]
+    //   Row 2: [Axe, Hammer]
+    // Array order: Material, Pickaxe, Sword, Bow, Axe, Hammer
+    private static readonly int[][] PreHardmodeWeaponsByMaterial = {
+        // Wood (no pickaxe, no axe)
+        new int[] { ItemID.Wood, -1, ItemID.WoodenSword, ItemID.WoodenBow, -1, ItemID.WoodenHammer },
+        // Copper
+        new int[] { ItemID.CopperBar, ItemID.CopperPickaxe, ItemID.CopperBroadsword, ItemID.CopperBow, ItemID.CopperAxe, ItemID.CopperHammer },
+        // Tin
+        new int[] { ItemID.TinBar, ItemID.TinPickaxe, ItemID.TinBroadsword, ItemID.TinBow, ItemID.TinAxe, ItemID.TinHammer },
+        // Iron
+        new int[] { ItemID.IronBar, ItemID.IronPickaxe, ItemID.IronBroadsword, ItemID.IronBow, ItemID.IronAxe, ItemID.IronHammer },
+        // Lead
+        new int[] { ItemID.LeadBar, ItemID.LeadPickaxe, ItemID.LeadBroadsword, ItemID.LeadBow, ItemID.LeadAxe, ItemID.LeadHammer },
+        // Silver
+        new int[] { ItemID.SilverBar, ItemID.SilverPickaxe, ItemID.SilverBroadsword, ItemID.SilverBow, ItemID.SilverAxe, ItemID.SilverHammer },
+        // Tungsten
+        new int[] { ItemID.TungstenBar, ItemID.TungstenPickaxe, ItemID.TungstenBroadsword, ItemID.TungstenBow, ItemID.TungstenAxe, ItemID.TungstenHammer },
+        // Gold
+        new int[] { ItemID.GoldBar, ItemID.GoldPickaxe, ItemID.GoldBroadsword, ItemID.GoldBow, ItemID.GoldAxe, ItemID.GoldHammer },
+        // Platinum
+        new int[] { ItemID.PlatinumBar, ItemID.PlatinumPickaxe, ItemID.PlatinumBroadsword, ItemID.PlatinumBow, ItemID.PlatinumAxe, ItemID.PlatinumHammer }
     };
 
     #endregion
 
     #region Hardmode Weapons Tab Data
 
-    // Hardmode weapon header materials (6 columns)
-    private static readonly int[] HardmodeWeaponMaterialHeaderIds = {
-        ItemID.CobaltBar, ItemID.PalladiumBar, ItemID.MythrilBar, ItemID.OrichalcumBar,
-        ItemID.AdamantiteBar, ItemID.TitaniumBar
-    };
-
-    // Hardmode swords
-    private static readonly int[] HardmodeSwordItemIds = {
-        ItemID.CobaltSword, ItemID.PalladiumSword, ItemID.MythrilSword, ItemID.OrichalcumSword,
-        ItemID.AdamantiteSword, ItemID.TitaniumSword
-    };
-
-    // Hardmode pickaxes
-    private static readonly int[] HardmodePickaxeItemIds = {
-        ItemID.CobaltPickaxe, ItemID.PalladiumPickaxe, ItemID.MythrilPickaxe, ItemID.OrichalcumPickaxe,
-        ItemID.AdamantitePickaxe, ItemID.TitaniumPickaxe
-    };
-
-    // Hardmode drills
-    private static readonly int[] HardmodeDrillItemIds = {
-        ItemID.CobaltDrill, ItemID.PalladiumDrill, ItemID.MythrilDrill, ItemID.OrichalcumDrill,
-        ItemID.AdamantiteDrill, ItemID.TitaniumDrill
-    };
-
-    // Hardmode waraxes
-    private static readonly int[] HardmodeWaraxeItemIds = {
-        ItemID.CobaltWaraxe, ItemID.PalladiumWaraxe, ItemID.MythrilWaraxe, ItemID.OrichalcumWaraxe,
-        ItemID.AdamantiteWaraxe, ItemID.TitaniumWaraxe
-    };
-
-    // Hardmode chainsaws
-    private static readonly int[] HardmodeChainsawItemIds = {
-        ItemID.CobaltChainsaw, ItemID.PalladiumChainsaw, ItemID.MythrilChainsaw, ItemID.OrichalcumChainsaw,
-        ItemID.AdamantiteChainsaw, ItemID.TitaniumChainsaw
-    };
-
-    // Hardmode repeaters (bows)
-    private static readonly int[] HardmodeRepeaterItemIds = {
-        ItemID.CobaltRepeater, ItemID.PalladiumRepeater, ItemID.MythrilRepeater, ItemID.OrichalcumRepeater,
-        ItemID.AdamantiteRepeater, ItemID.TitaniumRepeater
+    // Hardmode weapon data organized by ore type (7 ores including Hallowed)
+    // Each ore has 7 items arranged in 2-col × 4-row format:
+    //   Row 0: [Bar, Pickaxe]
+    //   Row 1: [Sword, Chainsaw]
+    //   Row 2: [Waraxe, Repeater]
+    //   Row 3: [Drill, (empty)]
+    // Array order: Bar, Pickaxe, Sword, Chainsaw, Waraxe, Repeater, Drill
+    private static readonly int[][] HardmodeWeaponsByOre = {
+        // Cobalt
+        new int[] { ItemID.CobaltBar, ItemID.CobaltPickaxe, ItemID.CobaltSword, ItemID.CobaltChainsaw,
+                    ItemID.CobaltWaraxe, ItemID.CobaltRepeater, ItemID.CobaltDrill },
+        // Palladium
+        new int[] { ItemID.PalladiumBar, ItemID.PalladiumPickaxe, ItemID.PalladiumSword, ItemID.PalladiumChainsaw,
+                    ItemID.PalladiumWaraxe, ItemID.PalladiumRepeater, ItemID.PalladiumDrill },
+        // Mythril
+        new int[] { ItemID.MythrilBar, ItemID.MythrilPickaxe, ItemID.MythrilSword, ItemID.MythrilChainsaw,
+                    ItemID.MythrilWaraxe, ItemID.MythrilRepeater, ItemID.MythrilDrill },
+        // Orichalcum
+        new int[] { ItemID.OrichalcumBar, ItemID.OrichalcumPickaxe, ItemID.OrichalcumSword, ItemID.OrichalcumChainsaw,
+                    ItemID.OrichalcumWaraxe, ItemID.OrichalcumRepeater, ItemID.OrichalcumDrill },
+        // Adamantite
+        new int[] { ItemID.AdamantiteBar, ItemID.AdamantitePickaxe, ItemID.AdamantiteSword, ItemID.AdamantiteChainsaw,
+                    ItemID.AdamantiteWaraxe, ItemID.AdamantiteRepeater, ItemID.AdamantiteDrill },
+        // Titanium
+        new int[] { ItemID.TitaniumBar, ItemID.TitaniumPickaxe, ItemID.TitaniumSword, ItemID.TitaniumChainsaw,
+                    ItemID.TitaniumWaraxe, ItemID.TitaniumRepeater, ItemID.TitaniumDrill },
+        // Hallowed (hybrid items: PickaxeAxe = pickaxe+waraxe, Drax = drill+chainsaw)
+        // Layout: Bar, PickaxeAxe, Excalibur, Drax, (empty), HallowedRepeater, (empty)
+        new int[] { ItemID.HallowedBar, ItemID.PickaxeAxe, ItemID.Excalibur, ItemID.Drax,
+                    -1, ItemID.HallowedRepeater, -1 }
     };
 
     #endregion
@@ -248,8 +229,7 @@ public partial class CraftingInfoPanelUI
         // === Main Armor Grid (8 columns × 4 rows) ===
 
         // Header row (material bars)
-        for (int col = 0; col < ArmorMaterialHeaderIds.Length; col++)
-        {
+        for (int col = 0; col < ArmorMaterialHeaderIds.Length; col++) {
             int slotX = col * (SLOT_SIZE + SLOT_SPACING);
             armorTabLayout.AddElement(slotX, currentY, SLOT_SIZE, SLOT_SIZE,
                 new CraftingSlotInfo(ArmorMaterialHeaderIds[col], isHeader: true));
@@ -257,14 +237,11 @@ public partial class CraftingInfoPanelUI
         currentY += SLOT_SIZE + SLOT_SPACING + 4; // Extra gap after header
 
         // Armor rows (3 rows)
-        for (int row = 0; row < 3; row++)
-        {
-            for (int col = 0; col < ArmorMaterialHeaderIds.Length; col++)
-            {
+        for (int row = 0; row < 3; row++) {
+            for (int col = 0; col < ArmorMaterialHeaderIds.Length; col++) {
                 int slotX = col * (SLOT_SIZE + SLOT_SPACING);
                 int itemId = ArmorGridItemIds[row, col];
-                if (itemId > 0)
-                {
+                if (itemId > 0) {
                     armorTabLayout.AddElement(slotX, currentY, SLOT_SIZE, SLOT_SIZE,
                         new CraftingSlotInfo(itemId, isHeader: false));
                 }
@@ -277,8 +254,7 @@ public partial class CraftingInfoPanelUI
         int accessoryY = 0;
 
         // Header row
-        for (int col = 0; col < AccessoryMaterialHeaderIds.Length; col++)
-        {
+        for (int col = 0; col < AccessoryMaterialHeaderIds.Length; col++) {
             int slotX = accessoryStartX + col * (SLOT_SIZE + SLOT_SPACING);
             armorTabLayout.AddElement(slotX, accessoryY, SLOT_SIZE, SLOT_SIZE,
                 new CraftingSlotInfo(AccessoryMaterialHeaderIds[col], isHeader: true));
@@ -286,8 +262,7 @@ public partial class CraftingInfoPanelUI
         accessoryY += SLOT_SIZE + SLOT_SPACING + 4;
 
         // Watches row
-        for (int col = 0; col < WatchItemIds.Length; col++)
-        {
+        for (int col = 0; col < WatchItemIds.Length; col++) {
             int slotX = accessoryStartX + col * (SLOT_SIZE + SLOT_SPACING);
             armorTabLayout.AddElement(slotX, accessoryY, SLOT_SIZE, SLOT_SIZE,
                 new CraftingSlotInfo(WatchItemIds[col], isHeader: false));
@@ -295,8 +270,7 @@ public partial class CraftingInfoPanelUI
         accessoryY += SLOT_SIZE + SLOT_SPACING;
 
         // Chandeliers row
-        for (int col = 0; col < ChandelierItemIds.Length; col++)
-        {
+        for (int col = 0; col < ChandelierItemIds.Length; col++) {
             int slotX = accessoryStartX + col * (SLOT_SIZE + SLOT_SPACING);
             armorTabLayout.AddElement(slotX, accessoryY, SLOT_SIZE, SLOT_SIZE,
                 new CraftingSlotInfo(ChandelierItemIds[col], isHeader: false));
@@ -304,41 +278,57 @@ public partial class CraftingInfoPanelUI
     }
 
     /// <summary>
-    /// Build the Weapons tab layout (9 columns × 6 rows including header).
+    /// Build the Weapons tab layout using 2-column blocks per material type.
+    /// Layout per material block (2 cols × 3 rows with header gap):
+    ///   Row 0: [Material (header), Pickaxe (header)] + gap
+    ///   Row 1: [Sword, Bow]
+    ///   Row 2: [Axe, Hammer]
+    /// 9 material blocks total: Wood, Copper, Tin, Iron, Lead, Silver, Tungsten, Gold, Platinum
     /// </summary>
     private void BuildWeaponsTabLayout()
     {
         weaponsTabLayout = new PanelPositionCalculator<CraftingSlotInfo>(padding: 8);
 
-        int currentY = 0;
-        int columnCount = WeaponMaterialHeaderIds.Length;
+        int materialBlockWidth = 2 * (SLOT_SIZE + SLOT_SPACING);  // 2 columns per material block
+        int gapBetweenBlocks = 8;  // Visual separation between material groups
+        int headerGap = 4;  // Extra gap after header row
 
-        // Header row
-        for (int col = 0; col < columnCount; col++)
-        {
-            int slotX = col * (SLOT_SIZE + SLOT_SPACING);
-            weaponsTabLayout.AddElement(slotX, currentY, SLOT_SIZE, SLOT_SIZE,
-                new CraftingSlotInfo(WeaponMaterialHeaderIds[col], isHeader: true));
-        }
-        currentY += SLOT_SIZE + SLOT_SPACING + 4;
+        // For each material type, place items in 2-col × 3-row format
+        for (int materialIndex = 0; materialIndex < PreHardmodeWeaponsByMaterial.Length; materialIndex++) {
+            int[] materialItems = PreHardmodeWeaponsByMaterial[materialIndex];
+            int blockStartX = materialIndex * (materialBlockWidth + gapBetweenBlocks);
 
-        // Weapon rows
-        int[][] weaponRows = { SwordItemIds, BowItemIds, PickaxeItemIds, AxeItemIds, HammerItemIds };
+            // Item indices in the materialItems array:
+            // 0=Material, 1=Pickaxe, 2=Sword, 3=Bow, 4=Axe, 5=Hammer
+            // Layout positions (col, row):
+            // (0,0)=Material, (1,0)=Pickaxe, (0,1)=Sword, (1,1)=Bow, (0,2)=Axe, (1,2)=Hammer
 
-        foreach (int[] rowItems in weaponRows)
-        {
-            for (int col = 0; col < rowItems.Length; col++)
-            {
-                int itemId = rowItems[col];
-                if (itemId > 0)
-                {
-                    int slotX = col * (SLOT_SIZE + SLOT_SPACING);
-                    weaponsTabLayout.AddElement(slotX, currentY, SLOT_SIZE, SLOT_SIZE,
-                        new CraftingSlotInfo(itemId, isHeader: false));
+            for (int itemIndex = 0; itemIndex < materialItems.Length; itemIndex++) {
+                int itemId = materialItems[itemIndex];
+                if (itemId <= 0) {
+                    continue;  // Skip empty slots (-1)
                 }
-                // Empty slots (itemId = -1) are simply not added
+
+                // Determine position based on item index
+                int col, row;
+                bool isHeader;
+                switch (itemIndex) {
+                    case 0: col = 0; row = 0; isHeader = true; break;   // Material at col 0, row 0 (header)
+                    case 1: col = 1; row = 0; isHeader = true; break;   // Pickaxe at col 1, row 0 (header)
+                    case 2: col = 0; row = 1; isHeader = false; break;  // Sword at col 0, row 1
+                    case 3: col = 1; row = 2; isHeader = false; break;  // Bow at col 1, row 2 (swapped with Hammer)
+                    case 4: col = 0; row = 2; isHeader = false; break;  // Axe at col 0, row 2
+                    case 5: col = 1; row = 1; isHeader = false; break;  // Hammer at col 1, row 1 (swapped with Bow)
+                    default: continue;
+                }
+
+                int slotX = blockStartX + col * (SLOT_SIZE + SLOT_SPACING);
+                // Add header gap for rows after the header (row > 0)
+                int slotY = row * (SLOT_SIZE + SLOT_SPACING) + (row > 0 ? headerGap : 0);
+
+                weaponsTabLayout.AddElement(slotX, slotY, SLOT_SIZE, SLOT_SIZE,
+                    new CraftingSlotInfo(itemId, isHeader));
             }
-            currentY += SLOT_SIZE + SLOT_SPACING;
         }
     }
 
@@ -352,8 +342,7 @@ public partial class CraftingInfoPanelUI
         int currentY = 0;
 
         // Bars row (all craftable, not headers)
-        for (int col = 0; col < BarItemIds.Length; col++)
-        {
+        for (int col = 0; col < BarItemIds.Length; col++) {
             int slotX = col * (SLOT_SIZE + SLOT_SPACING);
             materialsTabLayout.AddElement(slotX, currentY, SLOT_SIZE, SLOT_SIZE,
                 new CraftingSlotInfo(BarItemIds[col], isHeader: false));
@@ -361,8 +350,7 @@ public partial class CraftingInfoPanelUI
         currentY += SLOT_SIZE + SLOT_SPACING;
 
         // Bricks row
-        for (int col = 0; col < BrickItemIds.Length; col++)
-        {
+        for (int col = 0; col < BrickItemIds.Length; col++) {
             int slotX = col * (SLOT_SIZE + SLOT_SPACING);
             materialsTabLayout.AddElement(slotX, currentY, SLOT_SIZE, SLOT_SIZE,
                 new CraftingSlotInfo(BrickItemIds[col], isHeader: false));
@@ -370,8 +358,7 @@ public partial class CraftingInfoPanelUI
         currentY += SLOT_SIZE + SLOT_SPACING + 10; // Gap before misc
 
         // Misc row
-        for (int col = 0; col < MiscMaterialItemIds.Length; col++)
-        {
+        for (int col = 0; col < MiscMaterialItemIds.Length; col++) {
             int slotX = col * (SLOT_SIZE + SLOT_SPACING);
             materialsTabLayout.AddElement(slotX, currentY, SLOT_SIZE, SLOT_SIZE,
                 new CraftingSlotInfo(MiscMaterialItemIds[col], isHeader: false));
@@ -379,8 +366,7 @@ public partial class CraftingInfoPanelUI
         currentY += SLOT_SIZE + SLOT_SPACING + 10; // Gap before stations
 
         // Crafting stations row
-        for (int col = 0; col < CraftingStationItemIds.Length; col++)
-        {
+        for (int col = 0; col < CraftingStationItemIds.Length; col++) {
             int slotX = col * (SLOT_SIZE + SLOT_SPACING);
             materialsTabLayout.AddElement(slotX, currentY, SLOT_SIZE, SLOT_SIZE,
                 new CraftingSlotInfo(CraftingStationItemIds[col], isHeader: false));
@@ -397,17 +383,14 @@ public partial class CraftingInfoPanelUI
         int colCount = 10;  // 10 furniture types per row
 
         // First 4 wood types (rows 0-3)
-        for (int row = 0; row < 4; row++)
-        {
+        for (int row = 0; row < 4; row++) {
             int rowY = row * (SLOT_SIZE + SLOT_SPACING);
 
-            for (int col = 0; col < colCount; col++)
-            {
+            for (int col = 0; col < colCount; col++) {
                 int slotX = col * (SLOT_SIZE + SLOT_SPACING);
                 int itemId = FurnitureGridItemIds[row, col];
 
-                if (itemId > 0)
-                {
+                if (itemId > 0) {
                     furniture1TabLayout.AddElement(slotX, rowY, SLOT_SIZE, SLOT_SIZE,
                         new CraftingSlotInfo(itemId, isHeader: false));
                 }
@@ -425,18 +408,15 @@ public partial class CraftingInfoPanelUI
         int colCount = 10;  // 10 furniture types per row
 
         // Last 4 wood types (rows 4-7 of data, but positioned at 0-3 visually)
-        for (int dataRow = 4; dataRow < 8; dataRow++)
-        {
+        for (int dataRow = 4; dataRow < 8; dataRow++) {
             int visualRow = dataRow - 4;
             int rowY = visualRow * (SLOT_SIZE + SLOT_SPACING);
 
-            for (int col = 0; col < colCount; col++)
-            {
+            for (int col = 0; col < colCount; col++) {
                 int slotX = col * (SLOT_SIZE + SLOT_SPACING);
                 int itemId = FurnitureGridItemIds[dataRow, col];
 
-                if (itemId > 0)
-                {
+                if (itemId > 0) {
                     furniture2TabLayout.AddElement(slotX, rowY, SLOT_SIZE, SLOT_SIZE,
                         new CraftingSlotInfo(itemId, isHeader: false));
                 }
@@ -503,39 +483,59 @@ public partial class CraftingInfoPanelUI
     }
 
     /// <summary>
-    /// Build the Hardmode Weapons tab layout (Cobalt through Titanium tools and weapons).
+    /// Build the Hardmode Weapons tab layout using 2-column blocks per ore type.
+    /// Layout per ore block (2 cols × 4 rows with header gap):
+    ///   Row 0: [Bar (header), Pickaxe (header)] + gap
+    ///   Row 1: [Sword, Chainsaw]
+    ///   Row 2: [Waraxe, Repeater]
+    ///   Row 3: [Drill, (empty)]
+    /// 7 ore blocks total: Cobalt, Palladium, Mythril, Orichalcum, Adamantite, Titanium, Hallowed
     /// </summary>
     private void BuildHardmodeWeaponsTabLayout()
     {
         hardmodeWeaponsTabLayout = new PanelPositionCalculator<CraftingSlotInfo>(padding: 8);
 
-        int currentY = 0;
-        int columnCount = HardmodeWeaponMaterialHeaderIds.Length;
+        int oreBlockWidth = 2 * (SLOT_SIZE + SLOT_SPACING);  // 2 columns per ore block
+        int gapBetweenBlocks = 8;  // Visual separation between ore groups
+        int headerGap = 4;  // Extra gap after header row (like armor tab)
 
-        // Header row
-        for (int col = 0; col < columnCount; col++) {
-            int slotX = col * (SLOT_SIZE + SLOT_SPACING);
-            hardmodeWeaponsTabLayout.AddElement(slotX, currentY, SLOT_SIZE, SLOT_SIZE,
-                new CraftingSlotInfo(HardmodeWeaponMaterialHeaderIds[col], isHeader: true));
-        }
-        currentY += SLOT_SIZE + SLOT_SPACING + 4;
+        // For each ore type, place items in 2-col × 4-row format
+        for (int oreIndex = 0; oreIndex < HardmodeWeaponsByOre.Length; oreIndex++) {
+            int[] oreItems = HardmodeWeaponsByOre[oreIndex];
+            int blockStartX = oreIndex * (oreBlockWidth + gapBetweenBlocks);
 
-        // Weapon rows: Swords, Pickaxes, Drills, Waraxes, Chainsaws, Repeaters
-        int[][] weaponRows = {
-            HardmodeSwordItemIds, HardmodePickaxeItemIds, HardmodeDrillItemIds,
-            HardmodeWaraxeItemIds, HardmodeChainsawItemIds, HardmodeRepeaterItemIds
-        };
+            // Item indices in the oreItems array:
+            // 0=Bar, 1=Pickaxe, 2=Sword, 3=Chainsaw, 4=Waraxe, 5=Repeater, 6=Drill
+            // Layout positions (col, row) - row values will be adjusted for header gap
+            // Row 0 = header row, rows 1-3 = content rows (offset by headerGap)
 
-        foreach (int[] rowItems in weaponRows) {
-            for (int col = 0; col < rowItems.Length; col++) {
-                int itemId = rowItems[col];
-                if (itemId > 0) {
-                    int slotX = col * (SLOT_SIZE + SLOT_SPACING);
-                    hardmodeWeaponsTabLayout.AddElement(slotX, currentY, SLOT_SIZE, SLOT_SIZE,
-                        new CraftingSlotInfo(itemId, isHeader: false));
+            for (int itemIndex = 0; itemIndex < oreItems.Length; itemIndex++) {
+                int itemId = oreItems[itemIndex];
+                if (itemId <= 0) {
+                    continue;  // Skip empty slots (-1)
                 }
+
+                // Determine position based on item index
+                int col, row;
+                bool isHeader;
+                switch (itemIndex) {
+                    case 0: col = 0; row = 0; isHeader = true; break;   // Bar at col 0, row 0 (header)
+                    case 1: col = 1; row = 0; isHeader = true; break;   // Pickaxe at col 1, row 0 (header)
+                    case 2: col = 0; row = 1; isHeader = false; break;  // Sword at col 0, row 1
+                    case 3: col = 1; row = 1; isHeader = false; break;  // Chainsaw at col 1, row 1
+                    case 4: col = 0; row = 2; isHeader = false; break;  // Waraxe at col 0, row 2
+                    case 5: col = 1; row = 2; isHeader = false; break;  // Repeater at col 1, row 2
+                    case 6: col = 0; row = 3; isHeader = false; break;  // Drill at col 0, row 3
+                    default: continue;
+                }
+
+                int slotX = blockStartX + col * (SLOT_SIZE + SLOT_SPACING);
+                // Add header gap for rows after the header (row > 0)
+                int slotY = row * (SLOT_SIZE + SLOT_SPACING) + (row > 0 ? headerGap : 0);
+
+                hardmodeWeaponsTabLayout.AddElement(slotX, slotY, SLOT_SIZE, SLOT_SIZE,
+                    new CraftingSlotInfo(itemId, isHeader));
             }
-            currentY += SLOT_SIZE + SLOT_SPACING;
         }
     }
 

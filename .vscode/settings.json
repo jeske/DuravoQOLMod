@@ -3,5 +3,12 @@
         "statusBar.noFolderBackground": "#af2828",
         "tab.activeBackground": "#555b3d",
         "tab.activeBorderTop": "#9daa0a"
-    }
+    },
+    "codeLineCounter.includeDirs": [
+        "c:\\PROJECTS\\TerrariaSurvivalMod\\Source"
+    ],
+    "codeLineCounter.excludePatterns": [
+        "**/node_modules/**",
+        "**/.git/**"
+    ]
 }
