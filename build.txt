@@ -1,4 +1,4 @@
-displayName = Duravo Progression and QOL
+displayName = Duravo QOL
 author = KuroParkCity
 version = 0.1.0
 homepage = http://duravomod.org

@@ -45,111 +45,125 @@ Example: Player has Mining Helmet + Tin Chest + Tin Greaves (7 defense). Upgradi
 ### Solution
 
 1. **Bake defense into pieces** - each piece gives full value standalone
-2. **Set bonuses become utility** - crit, speed, knockback resist (not more defense)
+2. **Multi-piece buffs replace set bonuses** - mix-and-match across armor types
 3. **Higher base values** - compensate for cheese removal
+
+---
+
+## Multi-Piece Buff System
+
+Instead of requiring a full matching set, armor pieces contribute **tags** toward multi-piece buffs. Wearing 2+ pieces with the same tag activates the buff. This enables mix-and-match builds.
+
+### Buff Definitions
+
+| Buff | Pieces Required | Effect | Contributing Armors |
+|------|-----------------|--------|---------------------|
+| **Shiny** | 2+ | Nearby ores/gems sparkle (base range) | Copper, Tin, Silver |
+| **Super Shiny** | 2+ | Nearby ores/gems sparkle (farther range) | Gold, Platinum |
+| **Heavy** | 2+ | +15% knockback dealt, -15% knockback received (reflected to attacker) | Iron, Lead, Tungsten |
+
+**Note:** Super Shiny counts as Shiny (but not vice versa). A player with 1 Gold + 1 Copper piece has 2 Shiny-contributors, activating Shiny 2pc.
+
+---
+
+### Tooltip Display System
+
+Tooltips change based on context (inventory vs equipped):
+
+**Inventory View** (unequipped armor in inventory/chest):
+- Shows what the armor provides as a static description
+- Color: Standard greyish tooltip text
+- Example: `Heavy (2pc) +15% knockback and knockback reflection`
+
+**Equipped View** (hovering over equipped armor piece):
+- Shows the current state of the buff (current/required pieces)
+- **Inactive** (not enough pieces):
+  - Buff name + description: Darker grey (dimmed)
+  - Current count: RED
+  - Example: `Heavy (`<span style="color:red">`1`</span>`/2pc) +15% knockback and knockback reflection`
+- **Active** (2+ matching pieces equipped):
+  - Buff name: GREEN
+  - Description: Standard light grey
+  - Example: <span style="color:green">`Heavy`</span>` (2/2pc) +15% knockback and knockback reflection`
+
+**Implementation Notes:**
+```csharp
+// Pseudo-code for tooltip generation
+string GetMultiPieceTooltip(Item item, bool isEquipped) {
+    var tag = GetArmorTag(item); // "Shiny", "Heavy", "Super Shiny"
+    var description = GetTagDescription(tag);
+    
+    if (!isEquipped) {
+        // Inventory view - static description
+        return $"{tag} (2pc) {description}";
+    }
+    
+    // Equipped view - show current state
+    int currentCount = CountEquippedPiecesWithTag(tag);
+    bool isActive = currentCount >= 2;
+    
+    if (isActive) {
+        // Green buff name, light grey description
+        return $"[c/00FF00:{tag}] ({currentCount}/2pc) {description}";
+    } else {
+        // Dimmed text, red count
+        return $"[c/666666:{tag}] ([c/FF0000:{currentCount}]/2pc) {description}]";
+    }
+}
+```
+
+### Armor Tag Assignments
+
+| Armor | Tag | Chest Bonus |
+|-------|-----|-------------|
+| **Copper** | Shiny | Shield (30HP, 5s, 60s cd) |
+| **Tin** | Shiny | Shield (30HP, 5s, 60s cd) |
+| **Iron** | Heavy | +10% crit chance |
+| **Lead** | Heavy | +10% crit chance |
+| **Silver** | Shiny | +15% move speed |
+| **Tungsten** | Heavy | +15% move speed |
+| **Gold** | Super Shiny | Shield (15%HP, 10s, 120s, purge) |
+| **Platinum** | Super Shiny | Shield (15%HP, 10s, 120s, purge) |
+
+---
 
 ### Proposed Early Armor Values
 
 **Goal:** Redistribute vanilla set bonus defense into pieces. Same total defense, but each piece stands alone.
 
-**Copper Tier:**
+| Tier | Vanilla H/C/B | V.Set | V.Def | Proposed H/C/B | P.Chest Bonus | P.Tag | P.Def |
+|------|---------------|-------|-------|----------------|---------------|-------|-------|
+| **Copper** | 1/2/1 | +2 def | **6** | 1/3/2 | Shield (30HP, 5s, 60s cd) | Shiny | **6** |
+| **Tin** | 2/2/1 | +2 def | **7** | 2/3/2 | Shield (30HP, 5s, 60s cd) | Shiny | **7** |
+| **Iron** | 2/3/2 | +2 def | **9** | 2/4/3 | +10% crit chance | Heavy | **9** |
+| **Lead** | 3/3/3 | +1 def | **10** | 3/4/3 | +10% crit chance | Heavy | **10** |
+| **Silver** | 3/4/3 | +2 def | **12** | 3/5/4 | +15% move speed | Shiny | **12** |
+| **Tungsten** | 4/4/3 | +2 def | **13** | 4/5/4 | +15% move speed | Heavy | **13** |
+| **Gold** | 4/5/4 | +3 def | **16** | 4/6/6 | Shield (15%HP, 10s, 120s, purge) | Super Shiny | **16** |
+| **Platinum** | 5/5/4 | +4 def | **18** | 5/7/6 | Shield (15%HP, 10s, 120s, purge) | Super Shiny | **18** |
 
-| Piece           | Vanilla     | Proposed                                   |
-| --------------- | ----------- | ------------------------------------------ |
-| Helmet          | 1           | 1                                          |
-| Chainmail       | 2           | 3 and**Shield** (30 HP, 5s, 60s cd)  |
-| Greaves         | 1           | 2                                          |
-| Set Bonus       | +2 def      | **Shiny** (nearby ores/gems sparkle) |
-| **TOTAL** | **6** | **6**                                |
+**Legend:** H/C/B = Helmet/Chainmail/Boots defense values.
 
-**Tin Tier:**
+---
 
-| Piece           | Vanilla     | Proposed                                   |
-| --------------- | ----------- | ------------------------------------------ |
-| Helmet          | 2           | 2                                          |
-| Chainmail       | 2           | 3 and**Shield** (30 HP, 5s, 60s cd)  |
-| Greaves         | 1           | 2                                          |
-| Set Bonus       | +2 def      | **Shiny** (nearby ores/gems sparkle) |
-| **TOTAL** | **7** | **7**                                |
+### Multi-Piece Buff Design Philosophy
 
-**Iron Tier:**
+**Mix-and-match creates meaningful choices:**
 
-| Piece           | Vanilla     | Proposed                                   |
-| --------------- | ----------- | ------------------------------------------ |
-| Helmet          | 2           | 2                                          |
-| Chainmail       | 3           | 4 and +**10% crit chance**           |
-| Greaves         | 2           | 3                                          |
-| Set Bonus       | +2 def      | **Shiny** (nearby ores/gems sparkle) |
-| **TOTAL** | **9** | **9**                                |
-
-**Lead Tier:**
-
-| Piece           | Vanilla      | Proposed                                   |
-| --------------- | ------------ | ------------------------------------------ |
-| Helmet          | 3            | 3                                          |
-| Chainmail       | 3            | 4 and +**10% crit chance**          |
-| Greaves         | 3            | 3                                          |
-| Set Bonus       | +1 def       | **Shiny** (nearby ores/gems sparkle) |
-| **TOTAL** | **10** | **10**                               |
-
-**Silver Tier:**
-
-| Piece           | Vanilla      | Proposed                                   |
-| --------------- | ------------ | ------------------------------------------ |
-| Helmet          | 3            | 3                                          |
-| Chainmail       | 4            | 5 and**+15% move speed**             |
-| Greaves         | 3            | 4                                          |
-| Set Bonus       | +2 def       | **Shiny** (nearby ores/gems sparkle) |
-| **TOTAL** | **12** | **12**                               |
-
-**Tungsten Tier:**
-
-| Piece           | Vanilla      | Proposed                                   |
-| --------------- | ------------ | ------------------------------------------ |
-| Helmet          | 4            | 4                                          |
-| Chainmail       | 4            | 5 and**+15% move speed**             |
-| Greaves         | 3            | 4                                          |
-| Set Bonus       | +2 def       | **Shiny** (nearby ores/gems sparkle) |
-| **TOTAL** | **13** | **13**                               |
-
-**Gold Tier:**
-
-| Piece           | Vanilla      | Proposed                                             |
-| --------------- | ------------ | ---------------------------------------------------- |
-| Helmet          | 4            | 4                                                    |
-| Chainmail       | 5            | 6 and**Shield** (15% HP, 10s, 120s cd, purges) |
-| Greaves         | 4            | 6                                                    |
-| Set Bonus       | +3 def       | **Shiny** (nearby ores/gems sparkle)           |
-| **TOTAL** | **16** | **16**                                         |
-
-**Platinum Tier:**
-
-| Piece           | Vanilla      | Proposed                                              |
-| --------------- | ------------ | ----------------------------------------------------- |
-| Helmet          | 5            | 5                                                     |
-| Chainmail       | 5            | 7 and**+Shield** (15% HP, 10s, 120s cd, purges) |
-| Greaves         | 4            | 6                                                     |
-| Set Bonus       | +4 def       | **Shiny** (nearby ores/gems sparkle)            |
-| **TOTAL** | **18** | **18**                                          |
-
-### Set Bonus Design Philosophy
-
-**The progression creates meaningful choices:**
-
-| Tier            | Identity        | Trade-off                                      |
-| --------------- | --------------- | ---------------------------------------------- |
-| Tin/Copper      | Training wheels | Safety net for new players                     |
-| Iron/Lead       | Glass cannon    | Give up shield, gain kill speed                |
-| Silver/Tungsten | Evasion         | No shield, no damage boost, just don't get hit |
-| Gold/Platinum   | Tank            | Shield returns (slower), plus debuff cleanse   |
+| Build Example | Pieces | Active Buffs | Trade-off |
+|---------------|--------|--------------|-----------|
+| Tin Helm + Copper Chest + Silver Boots | 3 Shiny | Shiny 2pc | Pure mining/exploration focus |
+| Iron Helm + Lead Chest + Tungsten Boots | 3 Heavy | Heavy 2pc | Combat focus, no sparkle |
+| Gold Helm + Tin Chest + Lead Boots | 1 Super Shiny, 1 Shiny, 1 Heavy | Shiny 2pc (Gold counts) | Mixed - shield chest + ore detection |
+| Gold Helm + Platinum Chest | 2 Super Shiny | Super Shiny 2pc | Best mining, double shield chest bonus |
 
 **Key tensions:**
 
-- Tin → Iron: "Do I give up my panic button for +4 def and +10% crit?"
-- Iron → Silver: "Trade damage for speed? Only +3 def gain..."
-- Silver → Gold: "Give up speed, become unkillable?"
+- Shiny vs Heavy: "Do I want ore detection or combat power?"
+- Mixing tiers: "Gold helm + Tin chest = I get Shiny AND keep my early shield"
+- Super Shiny investment: "Is the extended range worth 2 high-tier pieces?"
 
-Some players may *stay* in Silver for mobility even when Gold is affordable. That's good design - horizontal choice, not just vertical power.
+Players can now upgrade individual pieces without losing their build identity. A player who values Shiny can upgrade Copper → Tin → Silver while maintaining their ore detection.
 
 ### Shield Implementation
 
