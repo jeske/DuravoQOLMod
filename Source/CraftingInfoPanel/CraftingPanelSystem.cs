@@ -22,11 +22,17 @@ namespace DuravoQOLMod.CraftingInfoPanel
         /// <summary>Whether the panel is currently visible</summary>
         private bool isPanelVisible = false;
         
+        /// <summary>Whether the panel was auto-opened (vs manually opened)</summary>
+        private bool wasAutoOpened = false;
+        
         /// <summary>Singleton accessor for other classes to use</summary>
         public static CraftingPanelSystem Instance => ModContent.GetInstance<CraftingPanelSystem>();
         
         /// <summary>Public accessor for panel visibility</summary>
         public bool IsPanelVisible => isPanelVisible;
+        
+        /// <summary>Public accessor for whether panel was auto-opened</summary>
+        public bool WasAutoOpened => wasAutoOpened;
         
         public override void Load()
         {
@@ -49,24 +55,40 @@ namespace DuravoQOLMod.CraftingInfoPanel
         
         /// <summary>
         /// Toggle panel visibility. Called by the toggle button.
+        /// Manual toggle clears auto-opened state.
         /// </summary>
         public void TogglePanel()
         {
-            isPanelVisible = !isPanelVisible;
-            
             if (isPanelVisible) {
-                craftingPanelInterface?.SetState(craftingPanelState);
-            } else {
-                craftingPanelInterface?.SetState(null);
+                ClosePanel();
+            }
+            else {
+                OpenPanel(wasAutoOpened: false);
             }
         }
         
         /// <summary>
-        /// Force panel to close. Called when inventory closes.
+        /// Open the panel explicitly.
+        /// </summary>
+        /// <param name="wasAutoOpened">True if opened automatically (near bench), false if manual toggle</param>
+        public void OpenPanel(bool wasAutoOpened)
+        {
+            if (isPanelVisible) {
+                return; // Already open
+            }
+            
+            isPanelVisible = true;
+            this.wasAutoOpened = wasAutoOpened;
+            craftingPanelInterface?.SetState(craftingPanelState);
+        }
+        
+        /// <summary>
+        /// Force panel to close. Called when inventory closes or auto-close triggers.
         /// </summary>
         public void ClosePanel()
         {
             isPanelVisible = false;
+            wasAutoOpened = false;
             craftingPanelInterface?.SetState(null);
         }
         

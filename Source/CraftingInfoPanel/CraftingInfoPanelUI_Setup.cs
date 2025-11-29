@@ -44,6 +44,44 @@ public partial class CraftingInfoPanelUI
 
     #endregion
 
+    #region Hardmode Armor Tab Data
+
+    // Hardmode header materials (6 columns: Cobalt/Palladium/Mythril/Orichalcum/Adamantite/Titanium)
+    private static readonly int[] HardmodeArmorMaterialHeaderIds = {
+        ItemID.CobaltBar, ItemID.PalladiumBar, ItemID.MythrilBar, ItemID.OrichalcumBar,
+        ItemID.AdamantiteBar, ItemID.TitaniumBar
+    };
+
+    // Hardmode helmets (multiple variants per material - showing melee helmet for simplicity)
+    private static readonly int[] HardmodeHelmetItemIds = {
+        ItemID.CobaltHelmet, ItemID.PalladiumHelmet, ItemID.MythrilHelmet, ItemID.OrichalcumHelmet,
+        ItemID.AdamantiteHelmet, ItemID.TitaniumHelmet
+    };
+
+    // Hardmode chestplates
+    private static readonly int[] HardmodeChestplateItemIds = {
+        ItemID.CobaltBreastplate, ItemID.PalladiumBreastplate, ItemID.MythrilChainmail, ItemID.OrichalcumBreastplate,
+        ItemID.AdamantiteBreastplate, ItemID.TitaniumBreastplate
+    };
+
+    // Hardmode leggings
+    private static readonly int[] HardmodeLeggingsItemIds = {
+        ItemID.CobaltLeggings, ItemID.PalladiumLeggings, ItemID.MythrilGreaves, ItemID.OrichalcumLeggings,
+        ItemID.AdamantiteLeggings, ItemID.TitaniumLeggings
+    };
+
+    // Secondary hardmode materials (Hallowed bars)
+    private static readonly int[] HardmodeSecondaryMaterialHeaderIds = {
+        ItemID.HallowedBar
+    };
+
+    // Hallowed armor variants (headgear/helmet/hood/mask + breastplate + greaves)
+    private static readonly int[] HallowedArmorItemIds = {
+        ItemID.HallowedHelmet, ItemID.HallowedPlateMail, ItemID.HallowedGreaves
+    };
+
+    #endregion
+
     #region Weapons Tab Data
 
     // Header materials (Wood + 8 ore bars)
@@ -80,6 +118,52 @@ public partial class CraftingInfoPanelUI
     private static readonly int[] HammerItemIds = {
         ItemID.WoodenHammer, ItemID.CopperHammer, ItemID.TinHammer, ItemID.IronHammer, ItemID.LeadHammer,
         ItemID.SilverHammer, ItemID.TungstenHammer, ItemID.GoldHammer, ItemID.PlatinumHammer
+    };
+
+    #endregion
+
+    #region Hardmode Weapons Tab Data
+
+    // Hardmode weapon header materials (6 columns)
+    private static readonly int[] HardmodeWeaponMaterialHeaderIds = {
+        ItemID.CobaltBar, ItemID.PalladiumBar, ItemID.MythrilBar, ItemID.OrichalcumBar,
+        ItemID.AdamantiteBar, ItemID.TitaniumBar
+    };
+
+    // Hardmode swords
+    private static readonly int[] HardmodeSwordItemIds = {
+        ItemID.CobaltSword, ItemID.PalladiumSword, ItemID.MythrilSword, ItemID.OrichalcumSword,
+        ItemID.AdamantiteSword, ItemID.TitaniumSword
+    };
+
+    // Hardmode pickaxes
+    private static readonly int[] HardmodePickaxeItemIds = {
+        ItemID.CobaltPickaxe, ItemID.PalladiumPickaxe, ItemID.MythrilPickaxe, ItemID.OrichalcumPickaxe,
+        ItemID.AdamantitePickaxe, ItemID.TitaniumPickaxe
+    };
+
+    // Hardmode drills
+    private static readonly int[] HardmodeDrillItemIds = {
+        ItemID.CobaltDrill, ItemID.PalladiumDrill, ItemID.MythrilDrill, ItemID.OrichalcumDrill,
+        ItemID.AdamantiteDrill, ItemID.TitaniumDrill
+    };
+
+    // Hardmode waraxes
+    private static readonly int[] HardmodeWaraxeItemIds = {
+        ItemID.CobaltWaraxe, ItemID.PalladiumWaraxe, ItemID.MythrilWaraxe, ItemID.OrichalcumWaraxe,
+        ItemID.AdamantiteWaraxe, ItemID.TitaniumWaraxe
+    };
+
+    // Hardmode chainsaws
+    private static readonly int[] HardmodeChainsawItemIds = {
+        ItemID.CobaltChainsaw, ItemID.PalladiumChainsaw, ItemID.MythrilChainsaw, ItemID.OrichalcumChainsaw,
+        ItemID.AdamantiteChainsaw, ItemID.TitaniumChainsaw
+    };
+
+    // Hardmode repeaters (bows)
+    private static readonly int[] HardmodeRepeaterItemIds = {
+        ItemID.CobaltRepeater, ItemID.PalladiumRepeater, ItemID.MythrilRepeater, ItemID.OrichalcumRepeater,
+        ItemID.AdamantiteRepeater, ItemID.TitaniumRepeater
     };
 
     #endregion
@@ -357,6 +441,101 @@ public partial class CraftingInfoPanelUI
                         new CraftingSlotInfo(itemId, isHeader: false));
                 }
             }
+        }
+    }
+
+    /// <summary>
+    /// Build the Hardmode Armor tab layout (Cobalt through Titanium + Hallowed).
+    /// </summary>
+    private void BuildHardmodeArmorTabLayout()
+    {
+        hardmodeArmorTabLayout = new PanelPositionCalculator<CraftingSlotInfo>(padding: 8);
+
+        int currentY = 0;
+        int columnCount = HardmodeArmorMaterialHeaderIds.Length;
+
+        // Header row (material bars)
+        for (int col = 0; col < columnCount; col++) {
+            int slotX = col * (SLOT_SIZE + SLOT_SPACING);
+            hardmodeArmorTabLayout.AddElement(slotX, currentY, SLOT_SIZE, SLOT_SIZE,
+                new CraftingSlotInfo(HardmodeArmorMaterialHeaderIds[col], isHeader: true));
+        }
+        currentY += SLOT_SIZE + SLOT_SPACING + 4;
+
+        // Helmets row
+        for (int col = 0; col < HardmodeHelmetItemIds.Length; col++) {
+            int slotX = col * (SLOT_SIZE + SLOT_SPACING);
+            hardmodeArmorTabLayout.AddElement(slotX, currentY, SLOT_SIZE, SLOT_SIZE,
+                new CraftingSlotInfo(HardmodeHelmetItemIds[col], isHeader: false));
+        }
+        currentY += SLOT_SIZE + SLOT_SPACING;
+
+        // Chestplates row
+        for (int col = 0; col < HardmodeChestplateItemIds.Length; col++) {
+            int slotX = col * (SLOT_SIZE + SLOT_SPACING);
+            hardmodeArmorTabLayout.AddElement(slotX, currentY, SLOT_SIZE, SLOT_SIZE,
+                new CraftingSlotInfo(HardmodeChestplateItemIds[col], isHeader: false));
+        }
+        currentY += SLOT_SIZE + SLOT_SPACING;
+
+        // Leggings row
+        for (int col = 0; col < HardmodeLeggingsItemIds.Length; col++) {
+            int slotX = col * (SLOT_SIZE + SLOT_SPACING);
+            hardmodeArmorTabLayout.AddElement(slotX, currentY, SLOT_SIZE, SLOT_SIZE,
+                new CraftingSlotInfo(HardmodeLeggingsItemIds[col], isHeader: false));
+        }
+        currentY += SLOT_SIZE + SLOT_SPACING + 10;
+
+        // === Hallowed section ===
+        int hallowedStartX = columnCount * (SLOT_SIZE + SLOT_SPACING) + 20;
+
+        // Hallowed header
+        hardmodeArmorTabLayout.AddElement(hallowedStartX, 0, SLOT_SIZE, SLOT_SIZE,
+            new CraftingSlotInfo(HardmodeSecondaryMaterialHeaderIds[0], isHeader: true));
+
+        // Hallowed armor (vertical: helmet, chestplate, greaves)
+        int hallowedY = SLOT_SIZE + SLOT_SPACING + 4;
+        for (int row = 0; row < HallowedArmorItemIds.Length; row++) {
+            hardmodeArmorTabLayout.AddElement(hallowedStartX, hallowedY, SLOT_SIZE, SLOT_SIZE,
+                new CraftingSlotInfo(HallowedArmorItemIds[row], isHeader: false));
+            hallowedY += SLOT_SIZE + SLOT_SPACING;
+        }
+    }
+
+    /// <summary>
+    /// Build the Hardmode Weapons tab layout (Cobalt through Titanium tools and weapons).
+    /// </summary>
+    private void BuildHardmodeWeaponsTabLayout()
+    {
+        hardmodeWeaponsTabLayout = new PanelPositionCalculator<CraftingSlotInfo>(padding: 8);
+
+        int currentY = 0;
+        int columnCount = HardmodeWeaponMaterialHeaderIds.Length;
+
+        // Header row
+        for (int col = 0; col < columnCount; col++) {
+            int slotX = col * (SLOT_SIZE + SLOT_SPACING);
+            hardmodeWeaponsTabLayout.AddElement(slotX, currentY, SLOT_SIZE, SLOT_SIZE,
+                new CraftingSlotInfo(HardmodeWeaponMaterialHeaderIds[col], isHeader: true));
+        }
+        currentY += SLOT_SIZE + SLOT_SPACING + 4;
+
+        // Weapon rows: Swords, Pickaxes, Drills, Waraxes, Chainsaws, Repeaters
+        int[][] weaponRows = {
+            HardmodeSwordItemIds, HardmodePickaxeItemIds, HardmodeDrillItemIds,
+            HardmodeWaraxeItemIds, HardmodeChainsawItemIds, HardmodeRepeaterItemIds
+        };
+
+        foreach (int[] rowItems in weaponRows) {
+            for (int col = 0; col < rowItems.Length; col++) {
+                int itemId = rowItems[col];
+                if (itemId > 0) {
+                    int slotX = col * (SLOT_SIZE + SLOT_SPACING);
+                    hardmodeWeaponsTabLayout.AddElement(slotX, currentY, SLOT_SIZE, SLOT_SIZE,
+                        new CraftingSlotInfo(itemId, isHeader: false));
+                }
+            }
+            currentY += SLOT_SIZE + SLOT_SPACING;
         }
     }
 

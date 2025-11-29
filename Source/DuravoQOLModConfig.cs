@@ -37,6 +37,9 @@ namespace DuravoQOLMod
         /// <summary>Check if Client Persistent Position is enabled (stores in player file). ALWAYS use this static property.</summary>
         public static bool EnableClientPersistentPosition => ModContent.GetInstance<DuravoQOLModConfig>()?.ClientPersistentPosition ?? true;
 
+        /// <summary>Check if Crafting Panel should only show items with seen ingredients. ALWAYS use this static property.</summary>
+        public static bool EnableCraftingPanelOnlyShowSeenItems => ModContent.GetInstance<DuravoQOLModConfig>()?.CraftingPanelOnlyShowSeenItems ?? true;
+
         // ╔════════════════════════════════════════════════════════════════════╗
         // ║                      FEATURE TOGGLES (TOP LEVEL)                    ║
         // ╚════════════════════════════════════════════════════════════════════╝
@@ -50,6 +53,10 @@ namespace DuravoQOLMod
 
         [DefaultValue(false)]
         public bool EnemySmartHopping { get; set; } = false;
+
+        [DefaultValue(true)]
+        [Tooltip("Only show craftable items in the Crafting Panel if you've seen at least one recipe ingredient.\nPreserves the discovery experience as you progress.")]
+        public bool CraftingPanelOnlyShowSeenItems { get; set; } = true;
 
         // ╔════════════════════════════════════════════════════════════════════╗
         // ║                      MINION BEHAVIOR                                ║

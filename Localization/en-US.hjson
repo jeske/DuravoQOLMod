@@ -41,6 +41,15 @@ Mods: {
 					Label: Debug Options
 					Tooltip: ""
 				}
+
+				CraftingPanelOnlyShowSeenItems: {
+					Label: Crafting Panel Only Show Seen Items
+					Tooltip:
+						'''
+						Only show craftable items in the Crafting Panel if you've seen at least one recipe ingredient.
+						Preserves the discovery experience as you progress.
+						'''
+				}
 			}
 
 			DuravoQOLModServerConfig: {

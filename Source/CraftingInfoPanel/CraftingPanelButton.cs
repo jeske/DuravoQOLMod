@@ -122,11 +122,20 @@ namespace DuravoQOLMod.CraftingInfoPanel
 
             // Draw tooltip on hover
             if (isHovering) {
-                string tooltip = isPanelVisible
-                    ? "Hide Crafting Panel"
-                    : "Show Crafting Panel";
-
-                if (!isNearStation) {
+                bool autoShowEnabled = CraftingPanelPlayer.LocalPlayerAutoShowAtBenches;
+                string tooltip;
+                
+                if (isNearStation) {
+                    // Near station: clicking toggles auto-show setting
+                    tooltip = autoShowEnabled
+                        ? "Disable auto-show at benches\n(Currently: ON)"
+                        : "Enable auto-show at benches\n(Currently: OFF)";
+                }
+                else {
+                    // Not near station: regular toggle
+                    tooltip = isPanelVisible
+                        ? "Hide Crafting Panel"
+                        : "Show Crafting Panel";
                     tooltip += "\n(No crafting station nearby)";
                 }
 
@@ -135,7 +144,18 @@ namespace DuravoQOLMod.CraftingInfoPanel
 
             // Handle click
             if (isHovering && Main.mouseLeft && Main.mouseLeftRelease) {
-                CraftingPanelSystem.Instance?.TogglePanel();
+                if (isNearStation) {
+                    // Near station: toggle auto-show setting and panel
+                    bool newAutoShowState = !CraftingPanelPlayer.LocalPlayerAutoShowAtBenches;
+                    CraftingPanelPlayer.SetLocalPlayerAutoShowAtBenches(newAutoShowState);
+                    
+                    // Also toggle panel to match new state
+                    CraftingPanelSystem.Instance?.TogglePanel();
+                }
+                else {
+                    // Not near station: just toggle panel
+                    CraftingPanelSystem.Instance?.TogglePanel();
+                }
                 Main.mouseLeftRelease = false;  // Consume click
             }
         }

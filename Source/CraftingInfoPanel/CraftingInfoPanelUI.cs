@@ -64,29 +64,42 @@ public partial class CraftingInfoPanelUI : UIState
     private PanelPositionCalculator<CraftingSlotInfo> materialsTabLayout = null!;
     private PanelPositionCalculator<CraftingSlotInfo> furniture1TabLayout = null!;
     private PanelPositionCalculator<CraftingSlotInfo> furniture2TabLayout = null!;
+    
+    /// <summary>Hardmode layout calculators for Armor and Weapons tabs</summary>
+    private PanelPositionCalculator<CraftingSlotInfo> hardmodeArmorTabLayout = null!;
+    private PanelPositionCalculator<CraftingSlotInfo> hardmodeWeaponsTabLayout = null!;
 
     /// <summary>Fixed panel dimensions based on largest tab (prevents jumping when switching)</summary>
     private int maxContentWidth;
     private int maxContentHeight;
 
-    /// <summary>Get the current tab's layout</summary>
-    private PanelPositionCalculator<CraftingSlotInfo> CurrentTabLayout => selectedTabIndex switch {
-        0 => armorTabLayout,
-        1 => weaponsTabLayout,
-        2 => materialsTabLayout,
-        3 => furniture1TabLayout,
-        4 => furniture2TabLayout,
-        _ => armorTabLayout
-    };
+    /// <summary>Get the current tab's layout (respects hardmode toggle for tabs 0 and 1)</summary>
+    private PanelPositionCalculator<CraftingSlotInfo> CurrentTabLayout {
+        get {
+            bool useHardmode = CraftingPanelPlayer.LocalPlayerHardmodeToggleActive;
+            return selectedTabIndex switch {
+                0 => useHardmode ? hardmodeArmorTabLayout : armorTabLayout,
+                1 => useHardmode ? hardmodeWeaponsTabLayout : weaponsTabLayout,
+                2 => materialsTabLayout,
+                3 => furniture1TabLayout,
+                4 => furniture2TabLayout,
+                _ => armorTabLayout
+            };
+        }
+    }
 
     public override void OnInitialize()
     {
-        // Build all tab layouts
+        // Build all tab layouts (pre-hardmode)
         BuildArmorTabLayout();
         BuildWeaponsTabLayout();
         BuildMaterialsTabLayout();
         BuildFurniture1TabLayout();
         BuildFurniture2TabLayout();
+        
+        // Build hardmode layouts
+        BuildHardmodeArmorTabLayout();
+        BuildHardmodeWeaponsTabLayout();
 
         // Calculate maximum dimensions across all tabs for fixed positioning
         CalculateMaxPanelDimensions();
@@ -106,20 +119,34 @@ public partial class CraftingInfoPanelUI : UIState
     }
 
     /// <summary>
-    /// Calculate the maximum width and height across all tab layouts.
+    /// Calculate the maximum width and height across all tab layouts (including hardmode).
     /// This ensures the panel stays in a fixed position regardless of which tab is selected.
     /// </summary>
     private void CalculateMaxPanelDimensions()
     {
-        maxContentWidth = System.Math.Max(armorTabLayout.CalculatedWidth,
-            System.Math.Max(weaponsTabLayout.CalculatedWidth,
-            System.Math.Max(materialsTabLayout.CalculatedWidth,
-            System.Math.Max(furniture1TabLayout.CalculatedWidth, furniture2TabLayout.CalculatedWidth))));
-
-        maxContentHeight = System.Math.Max(armorTabLayout.CalculatedHeight,
-            System.Math.Max(weaponsTabLayout.CalculatedHeight,
-            System.Math.Max(materialsTabLayout.CalculatedHeight,
-            System.Math.Max(furniture1TabLayout.CalculatedHeight, furniture2TabLayout.CalculatedHeight))));
+        // Include hardmode layouts in the max calculation
+        int[] allWidths = {
+            armorTabLayout.CalculatedWidth, weaponsTabLayout.CalculatedWidth,
+            materialsTabLayout.CalculatedWidth, furniture1TabLayout.CalculatedWidth,
+            furniture2TabLayout.CalculatedWidth,
+            hardmodeArmorTabLayout.CalculatedWidth, hardmodeWeaponsTabLayout.CalculatedWidth
+        };
+        
+        int[] allHeights = {
+            armorTabLayout.CalculatedHeight, weaponsTabLayout.CalculatedHeight,
+            materialsTabLayout.CalculatedHeight, furniture1TabLayout.CalculatedHeight,
+            furniture2TabLayout.CalculatedHeight,
+            hardmodeArmorTabLayout.CalculatedHeight, hardmodeWeaponsTabLayout.CalculatedHeight
+        };
+        
+        maxContentWidth = 0;
+        maxContentHeight = 0;
+        foreach (int width in allWidths) {
+            if (width > maxContentWidth) maxContentWidth = width;
+        }
+        foreach (int height in allHeights) {
+            if (height > maxContentHeight) maxContentHeight = height;
+        }
     }
 
     public override void Draw(SpriteBatch spriteBatch)
@@ -166,6 +193,20 @@ public partial class CraftingInfoPanelUI : UIState
 
         // Draw content for selected tab
         DrawTabContent(spriteBatch, currentLayout);
+        
+        // Draw hardmode toggle button (only for Armor and Weapons tabs when applicable)
+        if (selectedTabIndex == 0 || selectedTabIndex == 1) {
+            bool shouldShowHardmodeButton = ShouldShowHardmodeButton();
+            
+            // Safety check: if hardmode is active but button shouldn't show, turn it off
+            if (CraftingPanelPlayer.LocalPlayerHardmodeToggleActive && !shouldShowHardmodeButton) {
+                CraftingPanelPlayer.SetLocalPlayerHardmodeToggle(false);
+            }
+            
+            if (shouldShowHardmodeButton) {
+                DrawHardmodeToggleButton(spriteBatch, contentScreenX, contentScreenY);
+            }
+        }
     }
 
     private void DrawContentBackground(SpriteBatch spriteBatch, int x, int y, int width, int height)
@@ -255,7 +296,11 @@ public partial class CraftingInfoPanelUI : UIState
             bool canCraft = slotInfo.IsHeader || CanCraftItem(slotInfo.ItemId);
             DrawItemSlot(spriteBatch, screenBounds, slotInfo.ItemId, slotInfo.IsHeader, canCraft);
 
-            if (screenBounds.Contains(Main.mouseX, Main.mouseY)) {
+            // Check if item is hidden (setting handled in tracker)
+            bool isHidden = !slotInfo.IsHeader && !SeenItemsTracker.ShouldShowItem(slotInfo.ItemId);
+
+            // Only allow hover on visible items
+            if (!isHidden && screenBounds.Contains(Main.mouseX, Main.mouseY)) {
                 hoveredSlot = slotInfo;
                 hoveredScreenBounds = screenBounds;
             }
@@ -298,6 +343,9 @@ public partial class CraftingInfoPanelUI : UIState
     {
         Texture2D pixelTexture = TextureAssets.MagicPixel.Value;
         float opacity = 1f;
+        
+        // Check if item should be hidden (setting handled in tracker)
+        bool shouldHideItem = !isHeader && !SeenItemsTracker.ShouldShowItem(itemId);
 
         Texture2D slotTexture;
         Color slotTint;
@@ -305,6 +353,12 @@ public partial class CraftingInfoPanelUI : UIState
         if (isHeader) {
             slotTexture = TextureAssets.InventoryBack5.Value;
             slotTint = new Color(150, 150, 180);
+        }
+        else if (shouldHideItem) {
+            // Hidden item - draw empty slot
+            slotTexture = TextureAssets.InventoryBack.Value;
+            slotTint = new Color(60, 60, 80);
+            opacity = 0.5f;
         }
         else if (canCraft) {
             slotTexture = TextureAssets.InventoryBack10.Value;
@@ -318,8 +372,8 @@ public partial class CraftingInfoPanelUI : UIState
 
         spriteBatch.Draw(slotTexture, screenBounds, slotTint * opacity);
 
-        // Yellow border for craftable items
-        if (!isHeader && canCraft) {
+        // Yellow border for craftable items (only if not hidden)
+        if (!isHeader && !shouldHideItem && canCraft) {
             Color highlightColor = Color.Yellow;
             int borderWidth = 2;
             spriteBatch.Draw(pixelTexture, new Rectangle(screenBounds.X, screenBounds.Y, screenBounds.Width, borderWidth), highlightColor);
@@ -328,7 +382,15 @@ public partial class CraftingInfoPanelUI : UIState
             spriteBatch.Draw(pixelTexture, new Rectangle(screenBounds.Right - borderWidth, screenBounds.Y, borderWidth, screenBounds.Height), highlightColor);
         }
 
-        // Draw item
+        // Draw item (skip if hidden)
+        if (shouldHideItem) {
+            // Draw question mark or nothing for hidden items
+            Utils.DrawBorderString(spriteBatch, "?",
+                new Vector2(screenBounds.X + SLOT_SIZE / 2f, screenBounds.Y + SLOT_SIZE / 2f),
+                new Color(100, 100, 120), 1f, 0.5f, 0.5f);
+            return;
+        }
+        
         Main.instance.LoadItem(itemId);
         Texture2D itemTexture = TextureAssets.Item[itemId].Value;
 
@@ -512,5 +574,92 @@ public partial class CraftingInfoPanelUI : UIState
                 break;
             }
         }
+    }
+
+    /// <summary>
+    /// Draw the hardmode toggle button at the top-left corner of the content area.
+    /// Only shown when Armor (tab 0) or Weapons (tab 1) are selected.
+    /// </summary>
+    private void DrawHardmodeToggleButton(SpriteBatch spriteBatch, int contentScreenX, int contentScreenY)
+    {
+        Texture2D pixelTexture = TextureAssets.MagicPixel.Value;
+        
+        // Button dimensions and position (top-left corner, slightly offset inside the panel)
+        const int buttonPadding = 4;
+        const int buttonHeight = 24; // Increased from 20 for better text fit
+        string buttonText = "Hardmode";
+        
+        // Measure text width
+        Vector2 textSize = FontAssets.MouseText.Value.MeasureString(buttonText);
+        int buttonWidth = (int)textSize.X + buttonPadding * 2;
+        
+        // Position: top-left corner of content area, offset by panel padding
+        int buttonX = contentScreenX + 4;
+        int buttonY = contentScreenY - buttonHeight - 4; // Above the content area
+        
+        Rectangle buttonRect = new Rectangle(buttonX, buttonY, buttonWidth, buttonHeight);
+        
+        // Button background color based on active state
+        bool isActive = CraftingPanelPlayer.LocalPlayerHardmodeToggleActive;
+        Color buttonBgColor = isActive
+            ? new Color(100, 60, 60, 220)    // Active: reddish tint (hardmode)
+            : new Color(40, 40, 60, 220);    // Inactive: dark blue-purple
+        Color buttonBorderColor = isActive
+            ? new Color(180, 80, 80)         // Active: red border
+            : new Color(60, 60, 100);        // Inactive: standard border
+        Color textColor = isActive
+            ? new Color(255, 180, 180)       // Active: light red text
+            : new Color(150, 150, 180);      // Inactive: grey text
+        
+        // Draw button background
+        spriteBatch.Draw(pixelTexture, buttonRect, buttonBgColor);
+        
+        // Draw button border
+        int borderWidth = 1;
+        spriteBatch.Draw(pixelTexture, new Rectangle(buttonX, buttonY, buttonWidth, borderWidth), buttonBorderColor);
+        spriteBatch.Draw(pixelTexture, new Rectangle(buttonX, buttonY + buttonHeight - borderWidth, buttonWidth, borderWidth), buttonBorderColor);
+        spriteBatch.Draw(pixelTexture, new Rectangle(buttonX, buttonY, borderWidth, buttonHeight), buttonBorderColor);
+        spriteBatch.Draw(pixelTexture, new Rectangle(buttonX + buttonWidth - borderWidth, buttonY, borderWidth, buttonHeight), buttonBorderColor);
+        
+        // Draw button text (centered horizontally, pushed down a bit vertically)
+        // The 0.8f scale affects the actual drawn size, so we need to account for that
+        float textScale = 0.8f;
+        float scaledTextHeight = textSize.Y * textScale;
+        Vector2 textPosition = new Vector2(
+            buttonX + (buttonWidth - textSize.X * textScale) / 2f,
+            buttonY + (buttonHeight - scaledTextHeight) / 2f + 2 // +2 to push down a bit
+        );
+        Utils.DrawBorderString(spriteBatch, buttonText, textPosition, textColor, textScale);
+        
+        // Handle hover and click
+        bool isHovering = buttonRect.Contains(Main.mouseX, Main.mouseY);
+        if (isHovering) {
+            // Block game input when hovering the button
+            Main.LocalPlayer.mouseInterface = true;
+            
+            // Highlight on hover
+            spriteBatch.Draw(pixelTexture, buttonRect, Color.White * 0.1f);
+            Main.hoverItemName = isActive ? "Click to show pre-Hardmode items" : "Click to show Hardmode items";
+            
+            if (Main.mouseLeft && Main.mouseLeftRelease) {
+                CraftingPanelPlayer.SetLocalPlayerHardmodeToggle(!isActive);
+                Main.mouseLeftRelease = false;
+            }
+        }
+    }
+    
+    /// <summary>
+    /// Determine if the hardmode button should be shown.
+    /// Shows if: setting disabled (show all items) OR any hardmode item has been seen.
+    /// </summary>
+    private bool ShouldShowHardmodeButton()
+    {
+        // If hiding items is disabled, always show the button
+        if (!DuravoQOLModConfig.EnableCraftingPanelOnlyShowSeenItems) {
+            return true;
+        }
+        
+        // Otherwise, only show if player has seen any hardmode item
+        return SeenItemsTracker.HasSeenAnyHardmodeItem;
     }
 }
