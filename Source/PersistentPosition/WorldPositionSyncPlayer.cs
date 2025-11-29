@@ -10,9 +10,7 @@
 // ╚════════════════════════════════════════════════════════════════════════════════╝
 using Microsoft.Xna.Framework;
 using Terraria;
-using Terraria.Chat;
 using Terraria.ID;
-using Terraria.Localization;
 using Terraria.ModLoader;
 
 namespace DuravoQOLMod.PersistentPosition
@@ -55,7 +53,11 @@ namespace DuravoQOLMod.PersistentPosition
             Player.position = safePosition - new Vector2(0, PositionNudgeUpPixels);
             Player.velocity = Vector2.Zero;
 
-            Main.NewText($"[World] Position restored. Immune for 3s.", 100, 255, 100);
+            // Grant spawn immunity via shared system
+            double immunityDuration = TemporarySpawnImmunityPlayer.DefaultImmunityDurationSeconds;
+            TemporarySpawnImmunityPlayer.GrantImmunityToLocalPlayer(immunityDuration);
+
+            Main.NewText($"[DuravoQOL] Position restored. Immune for {immunityDuration}s.", 100, 255, 100);
         }
 
         /// <summary>
@@ -64,12 +66,6 @@ namespace DuravoQOLMod.PersistentPosition
         /// </summary>
         public override void SyncPlayer(int toWho, int fromWho, bool newPlayer)
         {
-            // DEBUG: Log SyncPlayer call on server
-            if (Main.netMode == NetmodeID.Server) {
-                string debugMsg = $"[DEBUG] SyncPlayer: toWho={toWho}, fromWho={fromWho}, newPlayer={newPlayer}, Player.name={Player.name}";
-                ChatHelper.BroadcastChatMessage(NetworkText.FromLiteral(debugMsg), new Color(255, 200, 100));
-            }
-
             // Only run on dedicated server (not single-player)
             if (Main.netMode != NetmodeID.Server)
                 return;

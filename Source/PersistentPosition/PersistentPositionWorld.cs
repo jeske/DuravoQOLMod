@@ -14,9 +14,7 @@
 using System.Collections.Generic;
 using Microsoft.Xna.Framework;
 using Terraria;
-using Terraria.Chat;
 using Terraria.ID;
-using Terraria.Localization;
 using Terraria.ModLoader;
 using Terraria.ModLoader.IO;
 
@@ -85,34 +83,17 @@ namespace DuravoQOLMod.PersistentPosition
         /// <param name="playerName">The player's name (used as dictionary key)</param>
         public void SendSavedPositionToClient(int playerWhoAmI, string playerName)
         {
-            // DEBUG: Show entry
-            ChatHelper.BroadcastChatMessage(
-                NetworkText.FromLiteral($"[DEBUG] SendSavedPositionToClient: playerWhoAmI={playerWhoAmI}, playerName={playerName}"),
-                new Color(255, 150, 255));
-
             // Only run on server
-            if (Main.netMode != NetmodeID.Server) {
-                ChatHelper.BroadcastChatMessage(
-                    NetworkText.FromLiteral($"[DEBUG] ABORT: Not server (netMode={Main.netMode})"),
-                    new Color(255, 100, 100));
+            if (Main.netMode != NetmodeID.Server)
                 return;
-            }
 
             // Check if feature is enabled
-            if (!DuravoQOLModServerConfig.EnableWorldServerPersistentPosition) {
-                ChatHelper.BroadcastChatMessage(
-                    NetworkText.FromLiteral($"[DEBUG] ABORT: Feature disabled"),
-                    new Color(255, 100, 100));
+            if (!DuravoQOLModServerConfig.EnableWorldServerPersistentPosition)
                 return;
-            }
 
             // Check if we have a saved position for this player
-            if (!TryGetSavedPosition(playerName, out Vector2 savedPosition)) {
-                ChatHelper.BroadcastChatMessage(
-                    NetworkText.FromLiteral($"[DEBUG] ABORT: No saved position for '{playerName}'"),
-                    new Color(255, 100, 100));
+            if (!TryGetSavedPosition(playerName, out Vector2 savedPosition))
                 return;
-            }
 
             // TODO: This bump logic is basic and may not be enough for server authority.
             // Potential exploit: Player A logs out at position X. Player B intentionally
@@ -131,13 +112,6 @@ namespace DuravoQOLMod.PersistentPosition
             packet.Write(safePosition.X);
             packet.Write(safePosition.Y);
             packet.Send(playerWhoAmI);
-
-            // DEBUG: Confirm packet sent
-            int tileX = (int)(safePosition.X / 16);
-            int tileY = (int)(safePosition.Y / 16);
-            ChatHelper.BroadcastChatMessage(
-                NetworkText.FromLiteral($"[DEBUG] SENT packet to player {playerWhoAmI} at tile ({tileX}, {tileY})"),
-                new Color(100, 255, 100));
         }
 
         /// <summary>
@@ -250,22 +224,6 @@ namespace DuravoQOLMod.PersistentPosition
                 if (player != null && player.active && !player.dead) {
                     // Dictionary[key] = value replaces existing value without allocation for existing keys
                     playerExitPositions[player.name] = player.position;
-
-                    // DEBUG: Show position saved
-                    int tileX = (int)(player.position.X / 16);
-                    int tileY = (int)(player.position.Y / 16);
-                    string debugMessage = $"[World] Saved {player.name} @ tile ({tileX}, {tileY})";
-
-                    if (Main.netMode == NetmodeID.SinglePlayer) {
-                        Main.NewText(debugMessage, 150, 150, 255);
-                    }
-                    else if (Main.netMode == NetmodeID.Server) {
-                        // Send to specific client
-                        ChatHelper.SendChatMessageToClient(
-                            NetworkText.FromLiteral(debugMessage),
-                            new Color(150, 150, 255),
-                            playerIndex);
-                    }
                 }
             }
         }
@@ -294,12 +252,6 @@ namespace DuravoQOLMod.PersistentPosition
         /// </summary>
         public override void SaveWorldData(TagCompound tag)
         {
-            // DEBUG: Log save attempt
-            if (Main.netMode == NetmodeID.SinglePlayer) {
-                Main.NewText($"[DEBUG] SaveWorldData: {playerExitPositions.Count} positions to save", 255, 200, 100);
-            }
-            // Note: Can't send chat messages to clients during save - world is closing
-
             // Even if feature is disabled, save existing data so it's not lost
             if (playerExitPositions.Count == 0)
                 return;
@@ -327,13 +279,8 @@ namespace DuravoQOLMod.PersistentPosition
         {
             playerExitPositions.Clear();
 
-            // DEBUG: Log load attempt - but we can't display to player yet, they haven't connected
-            // We'll show count after load instead
-
-            if (!tag.ContainsKey("persistentPos_names")) {
-                // Will show debug later when player connects
+            if (!tag.ContainsKey("persistentPos_names"))
                 return;
-            }
 
             var playerNames = tag.GetList<string>("persistentPos_names");
             var positionsX = tag.GetList<float>("persistentPos_x");
@@ -347,13 +294,6 @@ namespace DuravoQOLMod.PersistentPosition
             for (int i = 0; i < playerNames.Count; i++) {
                 playerExitPositions[playerNames[i]] = new Vector2(positionsX[i], positionsY[i]);
             }
-
-            // Store count for debug display when first player connects
-            _loadedPositionCount = playerExitPositions.Count;
         }
-
-        // DEBUG: Track how many positions were loaded
-        private int _loadedPositionCount = 0;
-        public int LoadedPositionCount => _loadedPositionCount;
     }
 }
