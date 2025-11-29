@@ -12,10 +12,7 @@
 >
 > **Not Yet Implemented:**
 >
-> - [ ] Iron/Lead +10% crit chance on chestplate
-> - [ ] Silver/Tungsten +15% move speed on chestplate
-> - [ ] Early flails (Lead Mace, Iron Mace)
-> - [ ] Enemy rebalancing tuning
+> - [ ] Early Crafted flails (Lead Mace, Iron Mace) ?? maybe ??
 
 ---
 
@@ -23,9 +20,12 @@
 
 ## Philosophy
 
-Vanilla Terraria balance assumes cheese. Remove cheese, balance breaks. This document tracks specific rebalancing needed to make the mod playable.
+Crafted gear should feel worth the effort spent mining, wheras currently they feel like a waste of time. To do this without incredibly changing the power budget, we shift the set-bonus defense to the pieces themselves, and augment the pieces with new buffs that make them feel more "fun" instead.
 
-**Guiding principle:** Buff player tools rather than nerf enemies. Upgrades should FEEL meaningful, not just slightly-less-terrible.
+## Background
+
+Vanilla Terraria armorcrafting is a noob trap that "feels bad", as crafting is not worth the time spent mining compared to chest looting. When you do craft an armor set, it becomes impossible to upgrade it, because losing the set bonus makes upgrades
+individuals upgrades not worthwhile, and full set upgrades likely don't happen until you don't need them anymore.
 
 ---
 
@@ -56,10 +56,10 @@ Instead of requiring a full matching set, armor pieces contribute **tags** towar
 
 ### Buff Definitions
 
-| Buff | Pieces Required | Effect | Contributing Armors |
-|------|-----------------|--------|---------------------|
-| **Shiny** | 2+ | Nearby ores/gems sparkle (base range) | Copper, Tin, Silver |
-| **Super Shiny** | 2+ | Nearby ores/gems sparkle (farther range) | Gold, Platinum |
+| Buff                  | Pieces Required | Effect                                   | Contributing Armors |
+| --------------------- | --------------- | ---------------------------------------- | ------------------- |
+| **Shiny**       | 2+              | Nearby ores/gems sparkle (base range)    | Copper, Tin, Silver |
+| **Super Shiny** | 2+              | Nearby ores/gems sparkle (farther range) | Gold, Platinum      |
 
 **Note:** Super Shiny counts as Shiny (but not vice versa). A player with 1 Gold + 1 Copper piece has 2 Shiny-contributors, activating Shiny 2pc.
 
@@ -69,12 +69,12 @@ Instead of requiring a full matching set, armor pieces contribute **tags** towar
 
 Some effects are granted directly by the chestplate, not as multi-piece buffs:
 
-| Effect | Chestplates | Description |
-|--------|-------------|-------------|
-| **Shield (Basic)** | Copper, Tin | 30HP shield on damage, 5s duration, 60s cooldown |
-| **Heavy** | Iron, Lead, Tungsten | +15% knockback dealt |
-| **Speed Boost** | Silver | +15% move speed |
-| **Shield (Advanced)** | Gold, Platinum | 15% max HP shield, 10s duration, 120s cooldown, purges debuffs |
+| Effect                      | Chestplates          | Description                                                    |
+| --------------------------- | -------------------- | -------------------------------------------------------------- |
+| **Shield (Basic)**    | Copper, Tin          | 30HP shield on damage, 5s duration, 60s cooldown               |
+| **Heavy**             | Iron, Lead, Tungsten | +15% knockback dealt                                           |
+| **Speed Boost**       | Silver               | +15% move speed                                                |
+| **Shield (Advanced)** | Gold, Platinum       | 15% max HP shield, 10s duration, 120s cooldown, purges debuffs |
 
 **Note:** Iron/Lead/Tungsten do NOT contribute to the Shiny system - they only provide the Heavy knockback effect.
 
@@ -85,37 +85,40 @@ Some effects are granted directly by the chestplate, not as multi-piece buffs:
 Tooltips change based on context (inventory vs equipped):
 
 **Inventory View** (unequipped armor in inventory/chest):
+
 - Shows what the armor provides as a static description
 - Color: Standard greyish tooltip text
 - Example: `Heavy (2pc) +15% knockback and knockback reflection`
 
 **Equipped View** (hovering over equipped armor piece):
+
 - Shows the current state of the buff (current/required pieces)
 - **Inactive** (not enough pieces):
   - Buff name + description: Darker grey (dimmed)
   - Current count: RED
-  - Example: `Heavy (`<span style="color:red">`1`</span>`/2pc) +15% knockback and knockback reflection`
+  - Example: `Heavy (<span style="color:red">``1/2pc) +15% knockback and knockback reflection`
 - **Active** (2+ matching pieces equipped):
   - Buff name: GREEN
   - Description: Standard light grey
-  - Example: <span style="color:green">`Heavy`</span>` (2/2pc) +15% knockback and knockback reflection`
+  - Example: `<span style="color:green">Heavy`` (2/2pc) +15% knockback and knockback reflection`
 
 **Implementation Notes:**
+
 ```csharp
 // Pseudo-code for tooltip generation
 string GetMultiPieceTooltip(Item item, bool isEquipped) {
     var tag = GetArmorTag(item); // "Shiny", "Heavy", "Super Shiny"
     var description = GetTagDescription(tag);
-    
+  
     if (!isEquipped) {
         // Inventory view - static description
         return $"{tag} (2pc) {description}";
     }
-    
+  
     // Equipped view - show current state
     int currentCount = CountEquippedPiecesWithTag(tag);
     bool isActive = currentCount >= 2;
-    
+  
     if (isActive) {
         // Green buff name, light grey description
         return $"[c/00FF00:{tag}] ({currentCount}/2pc) {description}";
@@ -128,15 +131,15 @@ string GetMultiPieceTooltip(Item item, bool isEquipped) {
 
 ### Armor Tag Assignments
 
-| Armor | Shiny Tag | Chest Bonus |
-|-------|-----------|-------------|
-| **Copper** | Shiny | Shield (30HP, 5s, 60s cd) |
-| **Tin** | Shiny | Shield (30HP, 5s, 60s cd) |
-| **Iron** | *(none)* | Heavy (+15% knockback) |
-| **Lead** | *(none)* | Heavy (+15% knockback) |
-| **Silver** | Shiny | +15% move speed |
-| **Tungsten** | *(none)* | Heavy (+15% knockback) |
-| **Gold** | Super Shiny | Shield (15%HP, 10s, 120s, purge) |
+| Armor              | Shiny Tag   | Chest Bonus                      |
+| ------------------ | ----------- | -------------------------------- |
+| **Copper**   | Shiny       | Shield (30HP, 5s, 60s cd)        |
+| **Tin**      | Shiny       | Shield (30HP, 5s, 60s cd)        |
+| **Iron**     | *(none)*  | Heavy (+15% knockback)           |
+| **Lead**     | *(none)*  | Heavy (+15% knockback)           |
+| **Silver**   | Shiny       | +15% move speed                  |
+| **Tungsten** | *(none)*  | Heavy (+15% knockback)           |
+| **Gold**     | Super Shiny | Shield (15%HP, 10s, 120s, purge) |
 | **Platinum** | Super Shiny | Shield (15%HP, 10s, 120s, purge) |
 
 ---
@@ -145,16 +148,16 @@ string GetMultiPieceTooltip(Item item, bool isEquipped) {
 
 **Goal:** Redistribute vanilla set bonus defense into pieces. Same total defense, but each piece stands alone.
 
-| Tier | Vanilla H/C/B | V.Set | V.Def | Proposed H/C/B | P.Chest Bonus | P.Tag | P.Def |
-|------|---------------|-------|-------|----------------|---------------|-------|-------|
-| **Copper** | 1/2/1 | +2 def | **6** | 1/3/2 | Shield (30HP, 5s, 60s cd) | Shiny | **6** |
-| **Tin** | 2/2/1 | +2 def | **7** | 2/3/2 | Shield (30HP, 5s, 60s cd) | Shiny | **7** |
-| **Iron** | 2/3/2 | +2 def | **9** | 2/4/3 | Heavy (+15% knockback) | *(none)* | **9** |
-| **Lead** | 3/3/3 | +1 def | **10** | 3/4/3 | Heavy (+15% knockback) | *(none)* | **10** |
-| **Silver** | 3/4/3 | +2 def | **12** | 3/5/4 | +15% move speed | Shiny | **12** |
-| **Tungsten** | 4/4/3 | +2 def | **13** | 4/5/4 | Heavy (+15% knockback) | *(none)* | **13** |
-| **Gold** | 4/5/4 | +3 def | **16** | 4/6/6 | Shield (15%HP, 10s, 120s, purge) | Super Shiny | **16** |
-| **Platinum** | 5/5/4 | +4 def | **18** | 5/7/6 | Shield (15%HP, 10s, 120s, purge) | Super Shiny | **18** |
+| Tier               | Vanilla H/C/B | V.Set  | V.Def        | Proposed H/C/B | P.Chest Bonus                    | P.Tag       | P.Def        |
+| ------------------ | ------------- | ------ | ------------ | -------------- | -------------------------------- | ----------- | ------------ |
+| **Copper**   | 1/2/1         | +2 def | **6**  | 1/3/2          | Shield (30HP, 5s, 60s cd)        | Shiny       | **6**  |
+| **Tin**      | 2/2/1         | +2 def | **7**  | 2/3/2          | Shield (30HP, 5s, 60s cd)        | Shiny       | **7**  |
+| **Iron**     | 2/3/2         | +2 def | **9**  | 2/4/3          | Heavy (+15% knockback)           | *(none)*  | **9**  |
+| **Lead**     | 3/3/3         | +1 def | **10** | 3/4/3          | Heavy (+15% knockback)           | *(none)*  | **10** |
+| **Silver**   | 3/4/3         | +2 def | **12** | 3/5/4          | +15% move speed                  | Shiny       | **12** |
+| **Tungsten** | 4/4/3         | +2 def | **13** | 4/5/4          | Heavy (+15% knockback)           | *(none)*  | **13** |
+| **Gold**     | 4/5/4         | +3 def | **16** | 4/6/6          | Shield (15%HP, 10s, 120s, purge) | Super Shiny | **16** |
+| **Platinum** | 5/5/4         | +4 def | **18** | 5/7/6          | Shield (15%HP, 10s, 120s, purge) | Super Shiny | **18** |
 
 **Legend:** H/C/B = Helmet/Chainmail/Boots defense values.
 
@@ -164,12 +167,12 @@ string GetMultiPieceTooltip(Item item, bool isEquipped) {
 
 **Mix-and-match creates meaningful choices:**
 
-| Build Example | Pieces | Active Buffs | Trade-off |
-|---------------|--------|--------------|-----------|
-| Tin Helm + Copper Chest + Silver Boots | 3 Shiny | Shiny 2pc | Pure mining/exploration focus |
-| Iron Helm + Lead Chest + Tungsten Boots | 0 Shiny | Heavy (chestplate) | Combat focus, no sparkle |
-| Gold Helm + Tin Chest + Lead Boots | 2 Shiny (Gold counts) | Shiny 2pc | Mixed - ore detection + Heavy chestplate |
-| Gold Helm + Platinum Chest | 2 Super Shiny | Super Shiny 2pc | Best mining, double shield chest bonus |
+| Build Example                           | Pieces                | Active Buffs       | Trade-off                                |
+| --------------------------------------- | --------------------- | ------------------ | ---------------------------------------- |
+| Tin Helm + Copper Chest + Silver Boots  | 3 Shiny               | Shiny 2pc          | Pure mining/exploration focus            |
+| Iron Helm + Lead Chest + Tungsten Boots | 0 Shiny               | Heavy (chestplate) | Combat focus, no sparkle                 |
+| Gold Helm + Tin Chest + Lead Boots      | 2 Shiny (Gold counts) | Shiny 2pc          | Mixed - ore detection + Heavy chestplate |
+| Gold Helm + Platinum Chest              | 2 Super Shiny         | Super Shiny 2pc    | Best mining, double shield chest bonus   |
 
 **Key tensions:**
 

@@ -5,8 +5,27 @@ Mods: {
 		// ═══════════════════════════════════════════════════════════════════
 		Configs: {
 			DuravoQOLModConfig: {
-				DisplayName: Kuro's Duravo Mod Config
-				Headers.MinionBehavior: Minion Behavior
+				DisplayName: Duravo QOL Mod Config
+
+				Headers: {
+					FeatureToggles: Feature Toggles
+					MinionBehavior: Minion Behavior
+				}
+
+				PersistentPosition: {
+					Label: Persistent Character Position
+					Tooltip: Save and restore your character's position when leaving and rejoining a world. No more spawning at world origin after a break.
+				}
+
+				ArmorRebalance: {
+					Label: Crafted Armor Rebalance
+					Tooltip: Enables crafted armor improvements: reactive shields, shiny ore detection buff, and rebalanced defense stats baked into individual pieces.
+				}
+
+				EnemySmartHopping: {
+					Label: Enemy Smart Hopping
+					Tooltip: Enemies calculate better jump trajectories to reach you. Makes ground enemies slightly more capable of navigating terrain.
+				}
 
 				MinionSmartPathfinding: {
 					Label: Minion Smart Follow Pathfinding

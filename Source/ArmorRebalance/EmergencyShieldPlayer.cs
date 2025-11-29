@@ -157,6 +157,10 @@ namespace DuravoQOLMod.ArmorRebalance
         /// <param name="damageSource">Description of damage source for debug logging</param>
         public void ProcessIncomingDamage(ref Player.HurtModifiers modifiers, int incomingDamage, string damageSource)
         {
+            // Check if feature is enabled (static accessor)
+            if (!DuravoQOLModConfig.EnableArmorRebalance)
+                return;
+
             if (DebugShieldActivation) {
                 Main.NewText($"[SHIELD] ProcessIncomingDamage: {incomingDamage} from {damageSource}", Color.Yellow);
             }

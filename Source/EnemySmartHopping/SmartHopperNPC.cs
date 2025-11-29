@@ -57,6 +57,10 @@ namespace DuravoQOLMod.EnemySmartHopping
 
         public override bool PreAI(NPC npc)
         {
+            // Check if feature is enabled in config (static accessor for hot-path)
+            if (!DuravoQOLModConfig.EnableEnemySmartHopping)
+                return true;
+
             // Only process ground-walking enemies
             if (!IsGroundWalkingEnemy(npc))
                 return true;

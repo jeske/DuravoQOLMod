@@ -134,6 +134,10 @@ namespace DuravoQOLMod.ArmorRebalance
 
         public override void UpdateEquips()
         {
+            // Check if feature is enabled (static accessor for hot-path)
+            if (!DuravoQOLModConfig.EnableArmorRebalance)
+                return;
+
             CountArmorTags();
             ApplyChestplateEffects();
 

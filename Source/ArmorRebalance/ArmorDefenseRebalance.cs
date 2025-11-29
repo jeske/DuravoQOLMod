@@ -39,6 +39,10 @@ namespace DuravoQOLMod.ArmorRebalance
 
         public override void SetDefaults(Item item)
         {
+            // Check if feature is enabled (static accessor)
+            if (!DuravoQOLModConfig.EnableArmorRebalance)
+                return;
+
             // Goal: Redistribute set bonus defense into pieces, keeping same total
             switch (item.type) {
                 // === COPPER ARMOR === (vanilla 1+2+1+2set = 6, proposed 1+3+2 = 6)
@@ -138,6 +142,10 @@ namespace DuravoQOLMod.ArmorRebalance
         /// </summary>
         public override void ModifyTooltips(Item item, List<TooltipLine> tooltips)
         {
+            // Check if feature is enabled (static accessor)
+            if (!DuravoQOLModConfig.EnableArmorRebalance)
+                return;
+
             // Remove vanilla "Set bonus: X defense" tooltip line
             tooltips.RemoveAll(line => line.Name == "SetBonus");
 

@@ -72,6 +72,10 @@ namespace DuravoQOLMod.PersistentPosition
         /// </summary>
         public override void SaveData(TagCompound tag)
         {
+            // Check if feature is enabled (static accessor)
+            if (!DuravoQOLModConfig.EnablePersistentPosition)
+                return;
+
             // Don't save position if player is dead - they should respawn normally
             if (Player.dead)
                 return;
@@ -104,6 +108,12 @@ namespace DuravoQOLMod.PersistentPosition
         /// </summary>
         public override void OnEnterWorld()
         {
+            // Check if feature is enabled (static accessor) - if not, skip position restore but still clear saved data
+            if (!DuravoQOLModConfig.EnablePersistentPosition) {
+                hasValidSavedPosition = false;
+                return;
+            }
+
             if (hasValidSavedPosition) {
                 // Check for world bounds - only hard fail case (indicates bug/glitch)
                 if (!IsPositionInWorldBounds(savedExitPosition)) {
