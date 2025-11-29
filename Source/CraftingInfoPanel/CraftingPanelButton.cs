@@ -83,15 +83,42 @@ namespace DuravoQOLMod.CraftingInfoPanel
             // Draw button background
             spriteBatch.Draw(pixel, buttonRect, buttonBgColor);
 
-            // Draw button icon - "C" for Crafting or a simple hammer icon representation
-            // Using text for now, could be replaced with actual texture
-            string buttonLabel = "C";
-            Vector2 textPosition = new Vector2(buttonX + BUTTON_SIZE / 2, buttonY + BUTTON_SIZE / 2);
-            Color textColor = isPanelVisible
+            // Draw button icon - crafting hammer texture from Terraria
+            // CraftToggle is an array: [0] = off state, [1] = on state
+            int textureIndex = isPanelVisible ? 1 : 0;
+            Texture2D craftToggleTexture = TextureAssets.CraftToggle[textureIndex].Value;
+            Rectangle sourceRect = new Rectangle(0, 0, craftToggleTexture.Width, craftToggleTexture.Height);
+
+            // Calculate scale to fit within button (with some padding)
+            float iconPadding = 4;
+            float maxIconSize = BUTTON_SIZE - iconPadding * 2;
+            float scaleX = maxIconSize / craftToggleTexture.Width;
+            float scaleY = maxIconSize / craftToggleTexture.Height;
+            float iconScale = System.Math.Min(scaleX, scaleY);
+            
+            // Center the icon in the button
+            Vector2 iconPosition = new Vector2(
+                buttonX + BUTTON_SIZE / 2f,
+                buttonY + BUTTON_SIZE / 2f
+            );
+            Vector2 iconOrigin = new Vector2(craftToggleTexture.Width / 2f, craftToggleTexture.Height / 2f);
+
+            // Tint based on state
+            Color iconTint = isPanelVisible
                 ? new Color(240, 192, 96)  // Golden when active
                 : (isNearStation ? Color.White : new Color(150, 150, 150));  // Dimmed when no station
 
-            Utils.DrawBorderString(spriteBatch, buttonLabel, textPosition, textColor, 1f, 0.5f, 0.5f);
+            spriteBatch.Draw(
+                craftToggleTexture,
+                iconPosition,
+                sourceRect,
+                iconTint,
+                0f,
+                iconOrigin,
+                iconScale,
+                SpriteEffects.None,
+                0f
+            );
 
             // Draw tooltip on hover
             if (isHovering) {

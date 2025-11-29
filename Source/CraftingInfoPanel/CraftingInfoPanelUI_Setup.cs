@@ -304,16 +304,16 @@ public partial class CraftingInfoPanelUI
     }
 
     /// <summary>
-    /// Build the Furniture tab layout (8 wood types × 10 furniture pieces).
+    /// Build the Furniture 1 tab layout (first 4 wood types: Wood, Boreal, Palm, Rich Mahogany).
     /// </summary>
-    private void BuildFurnitureTabLayout()
+    private void BuildFurniture1TabLayout()
     {
-        furnitureTabLayout = new PanelPositionCalculator<CraftingSlotInfo>(padding: 8);
+        furniture1TabLayout = new PanelPositionCalculator<CraftingSlotInfo>(padding: 8);
 
-        int rowCount = FurnitureWoodTypes.Length;  // 8 wood types
         int colCount = 10;  // 10 furniture types per row
 
-        for (int row = 0; row < rowCount; row++)
+        // First 4 wood types (rows 0-3)
+        for (int row = 0; row < 4; row++)
         {
             int rowY = row * (SLOT_SIZE + SLOT_SPACING);
 
@@ -324,7 +324,36 @@ public partial class CraftingInfoPanelUI
 
                 if (itemId > 0)
                 {
-                    furnitureTabLayout.AddElement(slotX, rowY, SLOT_SIZE, SLOT_SIZE,
+                    furniture1TabLayout.AddElement(slotX, rowY, SLOT_SIZE, SLOT_SIZE,
+                        new CraftingSlotInfo(itemId, isHeader: false));
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Build the Furniture 2 tab layout (last 4 wood types: Ebonwood, Shadewood, Pearlwood, Spooky).
+    /// </summary>
+    private void BuildFurniture2TabLayout()
+    {
+        furniture2TabLayout = new PanelPositionCalculator<CraftingSlotInfo>(padding: 8);
+
+        int colCount = 10;  // 10 furniture types per row
+
+        // Last 4 wood types (rows 4-7 of data, but positioned at 0-3 visually)
+        for (int dataRow = 4; dataRow < 8; dataRow++)
+        {
+            int visualRow = dataRow - 4;
+            int rowY = visualRow * (SLOT_SIZE + SLOT_SPACING);
+
+            for (int col = 0; col < colCount; col++)
+            {
+                int slotX = col * (SLOT_SIZE + SLOT_SPACING);
+                int itemId = FurnitureGridItemIds[dataRow, col];
+
+                if (itemId > 0)
+                {
+                    furniture2TabLayout.AddElement(slotX, rowY, SLOT_SIZE, SLOT_SIZE,
                         new CraftingSlotInfo(itemId, isHeader: false));
                 }
             }

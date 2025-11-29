@@ -1,6 +1,8 @@
 
+using System.Collections.Generic;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using Microsoft.Xna.Framework.Input;
 using Terraria;
 using Terraria.GameContent;
 using Terraria.ID;
@@ -45,13 +47,14 @@ public partial class CraftingInfoPanelUI : UIState
     private int selectedTabIndex = 0;
 
     /// <summary>Tab labels</summary>
-    private readonly string[] tabNames = { "Armor", "Weapons", "Materials", "Furniture" };
+    private readonly string[] tabNames = { "Armor", "Weapons", "Materials", "Furn 1", "Furn 2" };
 
     /// <summary>Position calculators for each tab</summary>
     private PanelPositionCalculator<CraftingSlotInfo> armorTabLayout = null!;
     private PanelPositionCalculator<CraftingSlotInfo> weaponsTabLayout = null!;
     private PanelPositionCalculator<CraftingSlotInfo> materialsTabLayout = null!;
-    private PanelPositionCalculator<CraftingSlotInfo> furnitureTabLayout = null!;
+    private PanelPositionCalculator<CraftingSlotInfo> furniture1TabLayout = null!;
+    private PanelPositionCalculator<CraftingSlotInfo> furniture2TabLayout = null!;
 
     /// <summary>Fixed panel dimensions based on largest tab (prevents jumping when switching)</summary>
     private int maxContentWidth;
@@ -62,7 +65,8 @@ public partial class CraftingInfoPanelUI : UIState
         0 => armorTabLayout,
         1 => weaponsTabLayout,
         2 => materialsTabLayout,
-        3 => furnitureTabLayout,
+        3 => furniture1TabLayout,
+        4 => furniture2TabLayout,
         _ => armorTabLayout
     };
 
@@ -72,7 +76,8 @@ public partial class CraftingInfoPanelUI : UIState
         BuildArmorTabLayout();
         BuildWeaponsTabLayout();
         BuildMaterialsTabLayout();
-        BuildFurnitureTabLayout();
+        BuildFurniture1TabLayout();
+        BuildFurniture2TabLayout();
 
         // Calculate maximum dimensions across all tabs for fixed positioning
         CalculateMaxPanelDimensions();
@@ -99,11 +104,13 @@ public partial class CraftingInfoPanelUI : UIState
     {
         maxContentWidth = System.Math.Max(armorTabLayout.CalculatedWidth,
             System.Math.Max(weaponsTabLayout.CalculatedWidth,
-            System.Math.Max(materialsTabLayout.CalculatedWidth, furnitureTabLayout.CalculatedWidth)));
+            System.Math.Max(materialsTabLayout.CalculatedWidth,
+            System.Math.Max(furniture1TabLayout.CalculatedWidth, furniture2TabLayout.CalculatedWidth))));
 
         maxContentHeight = System.Math.Max(armorTabLayout.CalculatedHeight,
             System.Math.Max(weaponsTabLayout.CalculatedHeight,
-            System.Math.Max(materialsTabLayout.CalculatedHeight, furnitureTabLayout.CalculatedHeight)));
+            System.Math.Max(materialsTabLayout.CalculatedHeight,
+            System.Math.Max(furniture1TabLayout.CalculatedHeight, furniture2TabLayout.CalculatedHeight))));
     }
 
     public override void Draw(SpriteBatch spriteBatch)
@@ -229,13 +236,32 @@ public partial class CraftingInfoPanelUI : UIState
             CraftingSlotInfo slot = hoveredSlot.Value;
 
             spriteBatch.Draw(pixelTexture, hoveredScreenBounds, Color.White * 0.2f);
-
-            Main.hoverItemName = BuildItemTooltip(slot.ItemId, slot.IsHeader);
+            
+            // Check if shift is held for native tooltip mode
+            bool shiftHeld = Main.keyState.IsKeyDown(Keys.LeftShift) || Main.keyState.IsKeyDown(Keys.RightShift);
+            
+            if (shiftHeld) {
+                // Shift held: Show native item tooltip only (full stats, set bonuses, etc.)
+                Main.HoverItem = new Item();
+                Main.HoverItem.SetDefaults(slot.ItemId);
+                Main.hoverItemName = Main.HoverItem.Name;
+            }
+            else {
+                // Default: Show crafting recipe panel only at mouse position
+                DrawRecipeTooltipPanel(spriteBatch, slot.ItemId);
+            }
+            
+            // Store the hovered item ID (for potential future use)
+            CraftingPanelTooltipGlobalItem.HoveredCraftingPanelItemId = slot.ItemId;
 
             if (Main.mouseLeft && Main.mouseLeftRelease) {
                 FocusRecipeForItem(slot.ItemId);
                 Main.mouseLeftRelease = false;
             }
+        }
+        else {
+            // Clear when not hovering our panel
+            CraftingPanelTooltipGlobalItem.HoveredCraftingPanelItemId = -1;
         }
     }
     private void DrawItemSlot(SpriteBatch spriteBatch, Rectangle screenBounds, int itemId, bool isHeader, bool canCraft)
@@ -290,53 +316,113 @@ public partial class CraftingInfoPanelUI : UIState
         spriteBatch.Draw(itemTexture, itemCenter, null, itemTint, 0f, itemOrigin, scale, SpriteEffects.None, 0f);
     }
 
-    private string BuildItemTooltip(int itemId, bool isHeader)
+
+    /// <summary>
+    /// Draws the crafting recipe info panel above where the native tooltip will appear.
+    /// Native tooltip appears at mouseY + 16, so we draw above the mouse.
+    /// Dense format: "Iron Bar (3), Wood (10)" and "Requires: Anvil, Loom"
+    /// </summary>
+    private void DrawRecipeTooltipPanel(SpriteBatch spriteBatch, int itemId)
     {
-        System.Text.StringBuilder tooltipBuilder = new System.Text.StringBuilder();
-
-        string itemName = Lang.GetItemNameValue(itemId);
-        tooltipBuilder.AppendLine(itemName);
-
+        Texture2D pixelTexture = TextureAssets.MagicPixel.Value;
+        
+        // Find recipe for this item
         Recipe? foundRecipe = null;
         for (int recipeIndex = 0; recipeIndex < Recipe.numRecipes; recipeIndex++) {
-            Recipe recipe = Main.recipe[recipeIndex];
-            if (recipe.createItem.type == itemId) {
-                foundRecipe = recipe;
+            if (Main.recipe[recipeIndex].createItem.type == itemId) {
+                foundRecipe = Main.recipe[recipeIndex];
                 break;
             }
         }
-
-        if (foundRecipe != null) {
-            tooltipBuilder.AppendLine("");
-            tooltipBuilder.AppendLine("Recipe:");
-
-            foreach (Item requiredItem in foundRecipe.requiredItem) {
-                if (requiredItem.type == ItemID.None) {
+        
+        if (foundRecipe == null) {
+            return; // No recipe to display
+        }
+        
+        // Build tooltip lines
+        List<string> tooltipLines = new List<string>();
+        
+        // Get item name for header
+        Item displayItem = new Item();
+        displayItem.SetDefaults(itemId);
+        tooltipLines.Add(displayItem.Name);
+        
+        // Build ingredients line: "Iron Bar (3), Wood (10)"
+        List<string> ingredientParts = new List<string>();
+        foreach (Item ingredient in foundRecipe.requiredItem) {
+            if (ingredient.type <= ItemID.None) {
+                break;
+            }
+            ingredientParts.Add($"{ingredient.Name} ({ingredient.stack})");
+        }
+        if (ingredientParts.Count > 0) {
+            tooltipLines.Add(string.Join(", ", ingredientParts));
+        }
+        
+        // Build stations line: "Requires: Anvil, Loom"
+        if (foundRecipe.requiredTile.Count > 0 && foundRecipe.requiredTile[0] >= 0) {
+            List<string> stationNames = new List<string>();
+            foreach (int tileId in foundRecipe.requiredTile) {
+                if (tileId < 0) {
                     break;
                 }
-                string ingredientName = Lang.GetItemNameValue(requiredItem.type);
-                int playerHas = CountPlayerItems(requiredItem.type);
-                tooltipBuilder.AppendLine($"  {ingredientName}: {playerHas}/{requiredItem.stack}");
+                stationNames.Add(GetCraftingStationName(tileId));
             }
-
-            if (foundRecipe.requiredTile.Count > 0 && foundRecipe.requiredTile[0] != -1) {
-                tooltipBuilder.AppendLine("");
-                tooltipBuilder.Append("Requires: ");
-                bool firstTile = true;
-                foreach (int tileId in foundRecipe.requiredTile) {
-                    if (tileId == -1) {
-                        break;
-                    }
-                    if (!firstTile) {
-                        tooltipBuilder.Append(", ");
-                    }
-                    tooltipBuilder.Append(GetCraftingStationName(tileId));
-                    firstTile = false;
-                }
+            if (stationNames.Count > 0) {
+                tooltipLines.Add($"Requires: {string.Join(", ", stationNames)}");
             }
         }
-
-        return tooltipBuilder.ToString().TrimEnd();
+        
+        if (tooltipLines.Count == 0) {
+            return;
+        }
+        
+        // Calculate panel dimensions
+        float maxLineWidth = 0f;
+        foreach (string line in tooltipLines) {
+            // Strip color codes for width calculation
+            string cleanLine = System.Text.RegularExpressions.Regex.Replace(line, @"\[c/[0-9A-Fa-f]+:([^\]]+)\]", "$1");
+            Vector2 lineSize = FontAssets.MouseText.Value.MeasureString(cleanLine);
+            if (lineSize.X > maxLineWidth) {
+                maxLineWidth = lineSize.X;
+            }
+        }
+        
+        int panelPadding = 8;
+        int lineHeight = 22;
+        int panelWidth = (int)maxLineWidth + panelPadding * 2;
+        int panelHeight = tooltipLines.Count * lineHeight + panelPadding * 2;
+        
+        // Position: same as native tooltip (upper-left at mouse + 16,16)
+        int panelX = Main.mouseX + 16;
+        int panelY = Main.mouseY + 16;
+        
+        // Keep on screen
+        if (panelX + panelWidth > Main.screenWidth) {
+            panelX = Main.screenWidth - panelWidth - 5;
+        }
+        if (panelY + panelHeight > Main.screenHeight) {
+            panelY = Main.screenHeight - panelHeight - 5;
+        }
+        
+        // Draw background
+        Rectangle panelBgRect = new Rectangle(panelX, panelY, panelWidth, panelHeight);
+        spriteBatch.Draw(pixelTexture, panelBgRect, new Color(20, 20, 40, 220));
+        
+        // Draw border
+        Color borderColor = new Color(80, 80, 120);
+        spriteBatch.Draw(pixelTexture, new Rectangle(panelX, panelY, panelWidth, 2), borderColor);
+        spriteBatch.Draw(pixelTexture, new Rectangle(panelX, panelY + panelHeight - 2, panelWidth, 2), borderColor);
+        spriteBatch.Draw(pixelTexture, new Rectangle(panelX, panelY, 2, panelHeight), borderColor);
+        spriteBatch.Draw(pixelTexture, new Rectangle(panelX + panelWidth - 2, panelY, 2, panelHeight), borderColor);
+        
+        // Draw text lines - all standard light grey
+        Color standardGrey = new Color(190, 190, 190);
+        float textY = panelY + panelPadding;
+        foreach (string line in tooltipLines) {
+            Utils.DrawBorderString(spriteBatch, line, new Vector2(panelX + panelPadding, textY), standardGrey);
+            textY += lineHeight;
+        }
     }
 
     private string GetCraftingStationName(int tileId)
