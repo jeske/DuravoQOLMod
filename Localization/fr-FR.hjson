@@ -156,9 +156,11 @@ Mods: {
 		CraftingPanel: {
 			// Tab names
 			TabNames: {
+				HardmodeArmor: Armure Mode Difficile
+				HardmodeWeapons: Armes Mode Difficile
 				Armor: Armure
 				Weapons: Armes
-				Materials: Matériaux
+				Materials: Matériaux et Outils
 				Furniture1: Meubles 1
 				Furniture2: Meubles 2
 			}

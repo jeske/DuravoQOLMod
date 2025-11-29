@@ -37,36 +37,80 @@ public partial class CraftingInfoPanelUI : UIState
     /// <summary>The main panel container element</summary>
     private UIElement panelContainer = null!;
 
-    /// <summary>Tab area width (tabs hang off the left side)</summary>
-    private const int TAB_AREA_WIDTH = 50;
+    /// <summary>Tab area height (tabs are now horizontal at top)</summary>
+    private const int TAB_AREA_HEIGHT = 44;
 
     /// <summary>Slot size in pixels (Terraria standard is ~44)</summary>
     private const int SLOT_SIZE = 40;
     private const int SLOT_SPACING = 4;
 
-    /// <summary>Currently selected tab index</summary>
+    /// <summary>Tab size for horizontal tabs</summary>
+    private const int TAB_WIDTH = 40;
+    private const int TAB_HEIGHT = 40;
+    private const int TAB_SPACING = 4;
+
+    /// <summary>Currently selected tab index (index into visible tabs list)</summary>
     private int selectedTabIndex = 0;
 
-    /// <summary>Tab labels localization keys (for tooltips)</summary>
-    private readonly string[] tabNameKeys = { "Armor", "Weapons", "Materials", "Furniture1", "Furniture2" };
+    /// <summary>Internal tab IDs (fixed, never change)</summary>
+    private const int TAB_ID_HARDMODE_ARMOR = 0;
+    private const int TAB_ID_HARDMODE_WEAPONS = 1;
+    private const int TAB_ID_ARMOR = 2;
+    private const int TAB_ID_WEAPONS = 3;
+    private const int TAB_ID_MATERIALS = 4;
+    private const int TAB_ID_FURNITURE1 = 5;
+    private const int TAB_ID_FURNITURE2 = 6;
 
-    /// <summary>Get localized tab name</summary>
-    private string GetTabName(int tabIndex)
+    /// <summary>Tab labels localization keys indexed by internal tab ID</summary>
+    private static readonly string[] allTabNameKeys = {
+        "HardmodeArmor", "HardmodeWeapons", "Armor", "Weapons", "Materials", "Furniture1", "Furniture2"
+    };
+
+    /// <summary>Tab icon item IDs indexed by internal tab ID</summary>
+    private static readonly int[] allTabIconItemIds = {
+        ItemID.CobaltBreastplate,  // HM Armor tab (Cobalt chestplate)
+        ItemID.CobaltWaraxe,       // HM Weapons tab (Cobalt waraxe)
+        ItemID.LeadChainmail,      // Armor tab
+        ItemID.LeadAxe,            // Weapons tab (Lead axe)
+        ItemID.Torch,              // Materials tab
+        ItemID.WorkBench,          // Furniture 1 tab
+        ItemID.SpookyWorkBench     // Furniture 2 tab
+    };
+
+    /// <summary>Get the list of currently visible tab IDs based on hardmode discovery</summary>
+    private List<int> GetVisibleTabIds()
     {
-        if (tabIndex < 0 || tabIndex >= tabNameKeys.Length) {
-            return "";
+        List<int> tabs = new List<int>();
+        if (SeenItemsTracker.HasSeenAnyHardmodeItem || !DuravoQOLModConfig.EnableCraftingPanelOnlyShowSeenItems) {
+            tabs.Add(TAB_ID_HARDMODE_ARMOR);
+            tabs.Add(TAB_ID_HARDMODE_WEAPONS);
         }
-        return Language.GetTextValue($"Mods.DuravoQOLMod.CraftingPanel.TabNames.{tabNameKeys[tabIndex]}");
+        tabs.Add(TAB_ID_ARMOR);
+        tabs.Add(TAB_ID_WEAPONS);
+        tabs.Add(TAB_ID_MATERIALS);
+        tabs.Add(TAB_ID_FURNITURE1);
+        tabs.Add(TAB_ID_FURNITURE2);
+        return tabs;
     }
 
-    /// <summary>Tab icon item IDs</summary>
-    private readonly int[] tabIconItemIds = {
-        ItemID.LeadChainmail,    // Armor tab
-        ItemID.LeadBow,          // Weapons tab
-        ItemID.Torch,            // Materials tab
-        ItemID.WorkBench,        // Furniture 1 tab
-        ItemID.SpookyWorkBench   // Furniture 2 tab
-    };
+    /// <summary>Get the internal tab ID for the currently selected tab</summary>
+    private int GetSelectedTabId()
+    {
+        List<int> visibleTabs = GetVisibleTabIds();
+        if (selectedTabIndex >= 0 && selectedTabIndex < visibleTabs.Count) {
+            return visibleTabs[selectedTabIndex];
+        }
+        return visibleTabs[0]; // Fallback to first tab
+    }
+
+    /// <summary>Get localized tab name by internal tab ID</summary>
+    private string GetTabNameById(int tabId)
+    {
+        if (tabId < 0 || tabId >= allTabNameKeys.Length) {
+            return "";
+        }
+        return Language.GetTextValue($"Mods.DuravoQOLMod.CraftingPanel.TabNames.{allTabNameKeys[tabId]}");
+    }
 
     /// <summary>Position calculators for each tab</summary>
     private PanelPositionCalculator<CraftingSlotInfo> armorTabLayout = null!;
@@ -83,16 +127,18 @@ public partial class CraftingInfoPanelUI : UIState
     private int maxContentWidth;
     private int maxContentHeight;
 
-    /// <summary>Get the current tab's layout (respects hardmode toggle for tabs 0 and 1)</summary>
+    /// <summary>Get the current tab's layout based on selected tab ID</summary>
     private PanelPositionCalculator<CraftingSlotInfo> CurrentTabLayout {
         get {
-            bool useHardmode = CraftingPanelPlayer.LocalPlayerHardmodeToggleActive;
-            return selectedTabIndex switch {
-                0 => useHardmode ? hardmodeArmorTabLayout : armorTabLayout,
-                1 => useHardmode ? hardmodeWeaponsTabLayout : weaponsTabLayout,
-                2 => materialsTabLayout,
-                3 => furniture1TabLayout,
-                4 => furniture2TabLayout,
+            int tabId = GetSelectedTabId();
+            return tabId switch {
+                TAB_ID_HARDMODE_ARMOR => hardmodeArmorTabLayout,
+                TAB_ID_HARDMODE_WEAPONS => hardmodeWeaponsTabLayout,
+                TAB_ID_ARMOR => armorTabLayout,
+                TAB_ID_WEAPONS => weaponsTabLayout,
+                TAB_ID_MATERIALS => materialsTabLayout,
+                TAB_ID_FURNITURE1 => furniture1TabLayout,
+                TAB_ID_FURNITURE2 => furniture2TabLayout,
                 _ => armorTabLayout
             };
         }
@@ -117,8 +163,8 @@ public partial class CraftingInfoPanelUI : UIState
         // Create main panel container with fixed size
         // Note: Position is set in Draw() using Main.screenHeight for accurate bottom alignment
         panelContainer = new UIElement();
-        int panelWidth = TAB_AREA_WIDTH + maxContentWidth;
-        int panelHeight = maxContentHeight + 10;
+        int panelWidth = maxContentWidth;
+        int panelHeight = TAB_AREA_HEIGHT + maxContentHeight + 10;
 
         panelContainer.Width.Set(panelWidth, 0f);
         panelContainer.Height.Set(panelHeight, 0f);
@@ -163,15 +209,16 @@ public partial class CraftingInfoPanelUI : UIState
     {
         base.Draw(spriteBatch);
 
-        // Get current tab layout
+        // Get visible tabs and current layout
+        List<int> visibleTabs = GetVisibleTabIds();
         var currentLayout = CurrentTabLayout;
 
-        // Calculate panel position directly from screen dimensions (like CraftingPanelButton does)
+        // Calculate panel position directly from screen dimensions
         // This avoids issues with UIState parent bounds not matching screen size
         const int PANEL_BOTTOM_MARGIN = 25;  // Extra padding from screen bottom
 
-        int panelWidth = TAB_AREA_WIDTH + maxContentWidth;
-        int panelHeight = maxContentHeight + 10;
+        int panelWidth = maxContentWidth;
+        int panelHeight = TAB_AREA_HEIGHT + maxContentHeight + 10;
 
         // Center horizontally, position from bottom of screen
         int panelScreenX = (Main.screenWidth - panelWidth) / 2;
@@ -179,16 +226,16 @@ public partial class CraftingInfoPanelUI : UIState
 
         Vector2 panelTopLeft = new Vector2(panelScreenX, panelScreenY);
 
-        // Calculate content area position (to the right of tabs)
-        int contentScreenX = panelScreenX + TAB_AREA_WIDTH;
-        int contentScreenY = panelScreenY + 5;
+        // Calculate content area position (below tabs)
+        int contentScreenX = panelScreenX;
+        int contentScreenY = panelScreenY + TAB_AREA_HEIGHT;
 
         // Update layout screen position
         currentLayout.SetScreenPosition(contentScreenX, contentScreenY);
 
         // Block game input when mouse is over panel (use actual current tab dimensions, not max)
-        int actualPanelWidth = TAB_AREA_WIDTH + currentLayout.CalculatedWidth;
-        int actualPanelHeight = currentLayout.CalculatedHeight + 10;
+        int actualPanelWidth = currentLayout.CalculatedWidth;
+        int actualPanelHeight = TAB_AREA_HEIGHT + currentLayout.CalculatedHeight + 10;
         Rectangle panelHitArea = new Rectangle(
             (int)panelTopLeft.X,
             (int)panelTopLeft.Y,
@@ -203,29 +250,16 @@ public partial class CraftingInfoPanelUI : UIState
         DrawContentBackground(spriteBatch, contentScreenX, contentScreenY,
             currentLayout.CalculatedWidth, currentLayout.CalculatedHeight);
 
-        // Draw vertical tabs on left side
-        float tabY = panelTopLeft.Y + 10;
-        for (int tabIndex = 0; tabIndex < tabNameKeys.Length; tabIndex++) {
-            DrawTab(spriteBatch, panelTopLeft.X + 5, tabY, tabIndex);
-            tabY += 44;
+        // Draw horizontal tabs at top
+        float tabX = panelTopLeft.X;
+        for (int visibleIndex = 0; visibleIndex < visibleTabs.Count; visibleIndex++) {
+            int tabId = visibleTabs[visibleIndex];
+            DrawTab(spriteBatch, tabX, panelTopLeft.Y, visibleIndex, tabId);
+            tabX += TAB_WIDTH + TAB_SPACING;
         }
 
         // Draw content for selected tab
         DrawTabContent(spriteBatch, currentLayout);
-
-        // Draw hardmode toggle button (only for Armor and Weapons tabs when applicable)
-        if (selectedTabIndex == 0 || selectedTabIndex == 1) {
-            bool shouldShowHardmodeButton = ShouldShowHardmodeButton();
-
-            // Safety check: if hardmode is active but button shouldn't show, turn it off
-            if (CraftingPanelPlayer.LocalPlayerHardmodeToggleActive && !shouldShowHardmodeButton) {
-                CraftingPanelPlayer.SetLocalPlayerHardmodeToggle(false);
-            }
-
-            if (shouldShowHardmodeButton) {
-                DrawHardmodeToggleButton(spriteBatch, contentScreenX, contentScreenY);
-            }
-        }
     }
 
     private void DrawContentBackground(SpriteBatch spriteBatch, int x, int y, int width, int height)
@@ -245,9 +279,9 @@ public partial class CraftingInfoPanelUI : UIState
         spriteBatch.Draw(pixelTexture, new Rectangle(x + width - borderWidth, y, borderWidth, height), borderColor);
     }
 
-    private void DrawTab(SpriteBatch spriteBatch, float x, float y, int tabIndex)
+    private void DrawTab(SpriteBatch spriteBatch, float x, float y, int visibleIndex, int tabId)
     {
-        bool isSelected = tabIndex == selectedTabIndex;
+        bool isSelected = visibleIndex == selectedTabIndex;
 
         // Active tab: noticeably brighter, Inactive: much darker
         Color tabBgColor = isSelected
@@ -259,23 +293,24 @@ public partial class CraftingInfoPanelUI : UIState
 
         Texture2D pixel = TextureAssets.MagicPixel.Value;
 
-        int tabWidth = 40;
-        int tabHeight = 40;
-
-        Rectangle tabRect = new Rectangle((int)x, (int)y, tabWidth, tabHeight);
+        Rectangle tabRect = new Rectangle((int)x, (int)y, TAB_WIDTH, TAB_HEIGHT);
         spriteBatch.Draw(pixel, tabRect, tabBgColor);
 
-        spriteBatch.Draw(pixel, new Rectangle((int)x, (int)y, tabWidth, 2), tabBorderColor);
-        spriteBatch.Draw(pixel, new Rectangle((int)x, (int)y + tabHeight - 2, tabWidth, 2), tabBorderColor);
-        spriteBatch.Draw(pixel, new Rectangle((int)x, (int)y, 2, tabHeight), tabBorderColor);
+        // Draw border (horizontal tabs: no bottom border for selected tab to merge with content)
+        spriteBatch.Draw(pixel, new Rectangle((int)x, (int)y, TAB_WIDTH, 2), tabBorderColor);
+        if (!isSelected) {
+            spriteBatch.Draw(pixel, new Rectangle((int)x, (int)y + TAB_HEIGHT - 2, TAB_WIDTH, 2), tabBorderColor);
+        }
+        spriteBatch.Draw(pixel, new Rectangle((int)x, (int)y, 2, TAB_HEIGHT), tabBorderColor);
+        spriteBatch.Draw(pixel, new Rectangle((int)x + TAB_WIDTH - 2, (int)y, 2, TAB_HEIGHT), tabBorderColor);
 
         // Draw item icon instead of letter
-        int iconItemId = tabIconItemIds[tabIndex];
+        int iconItemId = allTabIconItemIds[tabId];
         Main.instance.LoadItem(iconItemId);
         Texture2D iconTexture = TextureAssets.Item[iconItemId].Value;
 
         // Scale to fit within tab (with padding)
-        float maxIconSize = tabWidth - 8;
+        float maxIconSize = TAB_WIDTH - 8;
         float iconScale = 1f;
         if (iconTexture.Width > maxIconSize || iconTexture.Height > maxIconSize) {
             float scaleX = maxIconSize / iconTexture.Width;
@@ -283,7 +318,7 @@ public partial class CraftingInfoPanelUI : UIState
             iconScale = System.Math.Min(scaleX, scaleY);
         }
 
-        Vector2 iconCenter = new Vector2(x + tabWidth / 2f, y + tabHeight / 2f);
+        Vector2 iconCenter = new Vector2(x + TAB_WIDTH / 2f, y + TAB_HEIGHT / 2f);
         Vector2 iconOrigin = new Vector2(iconTexture.Width / 2f, iconTexture.Height / 2f);
         // Active: full brightness, Inactive: dimmed
         Color iconTint = isSelected ? Color.White : new Color(100, 100, 100);
@@ -292,11 +327,11 @@ public partial class CraftingInfoPanelUI : UIState
         // Handle click and hover tooltip
         bool isHovering = tabRect.Contains(Main.mouseX, Main.mouseY);
         if (isHovering) {
-            Main.hoverItemName = GetTabName(tabIndex);
+            Main.hoverItemName = GetTabNameById(tabId);
         }
 
         if (isHovering && Main.mouseLeft && Main.mouseLeftRelease) {
-            selectedTabIndex = tabIndex;
+            selectedTabIndex = visibleIndex;
             Main.mouseLeftRelease = false;
         }
     }
@@ -596,92 +631,5 @@ public partial class CraftingInfoPanelUI : UIState
         }
     }
 
-    /// <summary>
-    /// Draw the hardmode toggle button at the top-left corner of the content area.
-    /// Only shown when Armor (tab 0) or Weapons (tab 1) are selected.
-    /// </summary>
-    private void DrawHardmodeToggleButton(SpriteBatch spriteBatch, int contentScreenX, int contentScreenY)
-    {
-        Texture2D pixelTexture = TextureAssets.MagicPixel.Value;
-
-        // Button dimensions and position (top-left corner, slightly offset inside the panel)
-        const int buttonPadding = 4;
-        const int buttonHeight = 24; // Increased from 20 for better text fit
-        string buttonText = Language.GetTextValue("Mods.DuravoQOLMod.CraftingPanel.Hardmode");
-
-        // Measure text width
-        Vector2 textSize = FontAssets.MouseText.Value.MeasureString(buttonText);
-        int buttonWidth = (int)textSize.X + buttonPadding * 2;
-
-        // Position: top-left corner of content area, offset by panel padding
-        int buttonX = contentScreenX + 4;
-        int buttonY = contentScreenY - buttonHeight - 4; // Above the content area
-
-        Rectangle buttonRect = new Rectangle(buttonX, buttonY, buttonWidth, buttonHeight);
-
-        // Button background color based on active state
-        bool isActive = CraftingPanelPlayer.LocalPlayerHardmodeToggleActive;
-        Color buttonBgColor = isActive
-            ? new Color(100, 60, 60, 220)    // Active: reddish tint (hardmode)
-            : new Color(40, 40, 60, 220);    // Inactive: dark blue-purple
-        Color buttonBorderColor = isActive
-            ? new Color(180, 80, 80)         // Active: red border
-            : new Color(60, 60, 100);        // Inactive: standard border
-        Color textColor = isActive
-            ? new Color(255, 180, 180)       // Active: light red text
-            : new Color(150, 150, 180);      // Inactive: grey text
-
-        // Draw button background
-        spriteBatch.Draw(pixelTexture, buttonRect, buttonBgColor);
-
-        // Draw button border
-        int borderWidth = 1;
-        spriteBatch.Draw(pixelTexture, new Rectangle(buttonX, buttonY, buttonWidth, borderWidth), buttonBorderColor);
-        spriteBatch.Draw(pixelTexture, new Rectangle(buttonX, buttonY + buttonHeight - borderWidth, buttonWidth, borderWidth), buttonBorderColor);
-        spriteBatch.Draw(pixelTexture, new Rectangle(buttonX, buttonY, borderWidth, buttonHeight), buttonBorderColor);
-        spriteBatch.Draw(pixelTexture, new Rectangle(buttonX + buttonWidth - borderWidth, buttonY, borderWidth, buttonHeight), buttonBorderColor);
-
-        // Draw button text (centered horizontally, pushed down a bit vertically)
-        // The 0.8f scale affects the actual drawn size, so we need to account for that
-        float textScale = 0.8f;
-        float scaledTextHeight = textSize.Y * textScale;
-        Vector2 textPosition = new Vector2(
-            buttonX + (buttonWidth - textSize.X * textScale) / 2f,
-            buttonY + (buttonHeight - scaledTextHeight) / 2f + 2 // +2 to push down a bit
-        );
-        Utils.DrawBorderString(spriteBatch, buttonText, textPosition, textColor, textScale);
-
-        // Handle hover and click
-        bool isHovering = buttonRect.Contains(Main.mouseX, Main.mouseY);
-        if (isHovering) {
-            // Block game input when hovering the button
-            Main.LocalPlayer.mouseInterface = true;
-
-            // Highlight on hover
-            spriteBatch.Draw(pixelTexture, buttonRect, Color.White * 0.1f);
-            Main.hoverItemName = isActive
-                ? Language.GetTextValue("Mods.DuravoQOLMod.CraftingPanel.HardmodeTooltipOn")
-                : Language.GetTextValue("Mods.DuravoQOLMod.CraftingPanel.HardmodeTooltipOff");
-
-            if (Main.mouseLeft && Main.mouseLeftRelease) {
-                CraftingPanelPlayer.SetLocalPlayerHardmodeToggle(!isActive);
-                Main.mouseLeftRelease = false;
-            }
-        }
-    }
-
-    /// <summary>
-    /// Determine if the hardmode button should be shown.
-    /// Shows if: setting disabled (show all items) OR any hardmode item has been seen.
-    /// </summary>
-    private bool ShouldShowHardmodeButton()
-    {
-        // If hiding items is disabled, always show the button
-        if (!DuravoQOLModConfig.EnableCraftingPanelOnlyShowSeenItems) {
-            return true;
-        }
-
-        // Otherwise, only show if player has seen any hardmode item
-        return SeenItemsTracker.HasSeenAnyHardmodeItem;
-    }
+    // Hardmode toggle button has been removed - now using separate HM Armor and HM Weapons tabs
 }

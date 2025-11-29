@@ -156,9 +156,11 @@ Mods: {
 		CraftingPanel: {
 			// Tab names
 			TabNames: {
+				HardmodeArmor: 困难模式盔甲
+				HardmodeWeapons: 困难模式武器
 				Armor: 盔甲
 				Weapons: 武器
-				Materials: 材料
+				Materials: 材料和工具
 				Furniture1: 家具 1
 				Furniture2: 家具 2
 			}

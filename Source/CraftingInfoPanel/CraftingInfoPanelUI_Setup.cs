@@ -11,7 +11,7 @@ public partial class CraftingInfoPanelUI
 {
     #region Armor Tab Data
 
-    // Header materials for main armor grid (8 columns)
+    // Armor material header bar IDs (column headers)
     private static readonly int[] ArmorMaterialHeaderIds = {
         ItemID.CopperBar, ItemID.TinBar, ItemID.IronBar, ItemID.LeadBar,
         ItemID.SilverBar, ItemID.TungstenBar, ItemID.GoldBar, ItemID.PlatinumBar
@@ -151,16 +151,27 @@ public partial class CraftingInfoPanelUI
 
     #region Materials Tab Data
 
-    // Metal bars row
+    // Metal bars row (pre-hardmode)
     private static readonly int[] BarItemIds = {
         ItemID.CopperBar, ItemID.TinBar, ItemID.IronBar, ItemID.LeadBar,
         ItemID.SilverBar, ItemID.TungstenBar, ItemID.GoldBar, ItemID.PlatinumBar
     };
 
-    // Bricks row
+    // Hardmode bars row
+    private static readonly int[] HardmodeBarItemIds = {
+        ItemID.CobaltBar, ItemID.PalladiumBar, ItemID.MythrilBar, ItemID.OrichalcumBar,
+        ItemID.AdamantiteBar, ItemID.TitaniumBar, ItemID.HallowedBar
+    };
+
+    // Bricks row (pre-hardmode)
     private static readonly int[] BrickItemIds = {
         ItemID.CopperBrick, ItemID.TinBrick, ItemID.IronBrick, ItemID.LeadBrick,
         ItemID.SilverBrick, ItemID.TungstenBrick, ItemID.GoldBrick, ItemID.PlatinumBrick
+    };
+
+    // Hardmode bricks row (Cobalt, Mythril, Pearlstone for Hallowed)
+    private static readonly int[] HardmodeBrickItemIds = {
+        ItemID.CobaltBrick, ItemID.MythrilBrick, ItemID.PearlstoneBrick
     };
 
     // Misc crafting materials
@@ -334,30 +345,47 @@ public partial class CraftingInfoPanelUI
 
     /// <summary>
     /// Build the Materials tab layout (Bars, Bricks, Misc, Crafting Stations).
+    /// Pre-hardmode bars/bricks on left, hardmode bars/bricks on right with horizontal gap.
     /// </summary>
     private void BuildMaterialsTabLayout()
     {
         materialsTabLayout = new PanelPositionCalculator<CraftingSlotInfo>(padding: 8);
 
         int currentY = 0;
+        int hardmodeGap = 16;  // Horizontal gap between pre-hardmode and hardmode sections
 
-        // Bars row (all craftable, not headers)
+        // === Row 1: Bars (pre-hardmode + gap + hardmode) ===
+        // Pre-hardmode bars
         for (int col = 0; col < BarItemIds.Length; col++) {
             int slotX = col * (SLOT_SIZE + SLOT_SPACING);
             materialsTabLayout.AddElement(slotX, currentY, SLOT_SIZE, SLOT_SIZE,
                 new CraftingSlotInfo(BarItemIds[col], isHeader: false));
         }
+        // Hardmode bars (after gap)
+        int hardmodeStartX = BarItemIds.Length * (SLOT_SIZE + SLOT_SPACING) + hardmodeGap;
+        for (int col = 0; col < HardmodeBarItemIds.Length; col++) {
+            int slotX = hardmodeStartX + col * (SLOT_SIZE + SLOT_SPACING);
+            materialsTabLayout.AddElement(slotX, currentY, SLOT_SIZE, SLOT_SIZE,
+                new CraftingSlotInfo(HardmodeBarItemIds[col], isHeader: false));
+        }
         currentY += SLOT_SIZE + SLOT_SPACING;
 
-        // Bricks row
+        // === Row 2: Bricks (pre-hardmode + gap + hardmode) ===
+        // Pre-hardmode bricks
         for (int col = 0; col < BrickItemIds.Length; col++) {
             int slotX = col * (SLOT_SIZE + SLOT_SPACING);
             materialsTabLayout.AddElement(slotX, currentY, SLOT_SIZE, SLOT_SIZE,
                 new CraftingSlotInfo(BrickItemIds[col], isHeader: false));
         }
+        // Hardmode bricks (after gap, aligned with hardmode bars)
+        for (int col = 0; col < HardmodeBrickItemIds.Length; col++) {
+            int slotX = hardmodeStartX + col * (SLOT_SIZE + SLOT_SPACING);
+            materialsTabLayout.AddElement(slotX, currentY, SLOT_SIZE, SLOT_SIZE,
+                new CraftingSlotInfo(HardmodeBrickItemIds[col], isHeader: false));
+        }
         currentY += SLOT_SIZE + SLOT_SPACING + 10; // Gap before misc
 
-        // Misc row
+        // === Row 3: Misc materials ===
         for (int col = 0; col < MiscMaterialItemIds.Length; col++) {
             int slotX = col * (SLOT_SIZE + SLOT_SPACING);
             materialsTabLayout.AddElement(slotX, currentY, SLOT_SIZE, SLOT_SIZE,
@@ -365,7 +393,7 @@ public partial class CraftingInfoPanelUI
         }
         currentY += SLOT_SIZE + SLOT_SPACING + 10; // Gap before stations
 
-        // Crafting stations row
+        // === Row 4: Crafting stations ===
         for (int col = 0; col < CraftingStationItemIds.Length; col++) {
             int slotX = col * (SLOT_SIZE + SLOT_SPACING);
             materialsTabLayout.AddElement(slotX, currentY, SLOT_SIZE, SLOT_SIZE,
