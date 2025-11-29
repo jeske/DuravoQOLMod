@@ -2,6 +2,7 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Terraria;
 using Terraria.GameContent;
+using Terraria.Localization;
 
 namespace DuravoQOLMod.CraftingInfoPanel
 {
@@ -127,16 +128,20 @@ namespace DuravoQOLMod.CraftingInfoPanel
                 
                 if (isNearStation) {
                     // Near station: clicking toggles auto-show setting
-                    tooltip = autoShowEnabled
-                        ? "Disable auto-show at benches\n(Currently: ON)"
-                        : "Enable auto-show at benches\n(Currently: OFF)";
+                    string actionText = autoShowEnabled
+                        ? Language.GetTextValue("Mods.DuravoQOLMod.CraftingPanel.DisableAutoShow")
+                        : Language.GetTextValue("Mods.DuravoQOLMod.CraftingPanel.EnableAutoShow");
+                    string statusText = autoShowEnabled
+                        ? Language.GetTextValue("Mods.DuravoQOLMod.CraftingPanel.CurrentlyOn")
+                        : Language.GetTextValue("Mods.DuravoQOLMod.CraftingPanel.CurrentlyOff");
+                    tooltip = $"{actionText}\n{statusText}";
                 }
                 else {
                     // Not near station: regular toggle
                     tooltip = isPanelVisible
-                        ? "Hide Crafting Panel"
-                        : "Show Crafting Panel";
-                    tooltip += "\n(No crafting station nearby)";
+                        ? Language.GetTextValue("Mods.DuravoQOLMod.CraftingPanel.HideCraftingPanel")
+                        : Language.GetTextValue("Mods.DuravoQOLMod.CraftingPanel.ShowCraftingPanel");
+                    tooltip += $"\n{Language.GetTextValue("Mods.DuravoQOLMod.CraftingPanel.NoCraftingStationNearby")}";
                 }
 
                 Main.hoverItemName = tooltip;

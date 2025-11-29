@@ -122,6 +122,11 @@ namespace DuravoQOLMod.CraftingInfoPanel
         
         public override void ModifyInterfaceLayers(List<GameInterfaceLayer> layers)
         {
+            // Skip if crafting panel feature is disabled
+            if (!DuravoQOLModConfig.EnableCraftingPanel) {
+                return;
+            }
+            
             // Find the inventory layer to insert after it
             int inventoryLayerIndex = layers.FindIndex(layer => layer.Name.Equals("Vanilla: Inventory"));
             

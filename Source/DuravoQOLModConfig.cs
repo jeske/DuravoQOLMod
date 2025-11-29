@@ -37,8 +37,14 @@ namespace DuravoQOLMod
         /// <summary>Check if Client Persistent Position is enabled (stores in player file). ALWAYS use this static property.</summary>
         public static bool EnableClientPersistentPosition => ModContent.GetInstance<DuravoQOLModConfig>()?.ClientPersistentPosition ?? true;
 
+        /// <summary>Check if Crafting Panel feature is enabled. Master toggle for all crafting panel features. ALWAYS use this static property.</summary>
+        public static bool EnableCraftingPanel => ModContent.GetInstance<DuravoQOLModConfig>()?.CraftingPanelEnabled ?? true;
+
         /// <summary>Check if Crafting Panel should only show items with seen ingredients. ALWAYS use this static property.</summary>
         public static bool EnableCraftingPanelOnlyShowSeenItems => ModContent.GetInstance<DuravoQOLModConfig>()?.CraftingPanelOnlyShowSeenItems ?? true;
+
+        /// <summary>Check if the auto-show at benches toggle should be respected. ALWAYS use this static property.</summary>
+        public static bool EnableCraftingPanelStickyAutoShow => ModContent.GetInstance<DuravoQOLModConfig>()?.CraftingPanelStickyAutoShowAtBenches ?? true;
 
         // ╔════════════════════════════════════════════════════════════════════╗
         // ║                      FEATURE TOGGLES (TOP LEVEL)                    ║
@@ -53,6 +59,19 @@ namespace DuravoQOLMod
 
         [DefaultValue(false)]
         public bool EnemySmartHopping { get; set; } = false;
+
+        // ╔════════════════════════════════════════════════════════════════════╗
+        // ║                      CRAFTING PANEL                                 ║
+        // ╚════════════════════════════════════════════════════════════════════╝
+
+        [Header("CraftingPanel")]
+        [DefaultValue(true)]
+        [Tooltip("Enable the Duravo Crafting Panel feature.\nWhen disabled, the panel button and all panel features are hidden.")]
+        public bool CraftingPanelEnabled { get; set; } = true;
+
+        [DefaultValue(true)]
+        [Tooltip("When enabled, the auto-show at benches toggle is respected.\nWhen disabled, the panel never auto-opens at crafting stations.")]
+        public bool CraftingPanelStickyAutoShowAtBenches { get; set; } = true;
 
         [DefaultValue(true)]
         [Tooltip("Only show craftable items in the Crafting Panel if you've seen at least one recipe ingredient.\nPreserves the discovery experience as you progress.")]

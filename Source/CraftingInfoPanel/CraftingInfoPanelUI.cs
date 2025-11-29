@@ -6,6 +6,7 @@ using Microsoft.Xna.Framework.Input;
 using Terraria;
 using Terraria.GameContent;
 using Terraria.ID;
+using Terraria.Localization;
 using Terraria.UI;
 using DuravoQOLMod.Source.CraftingInfoPanel;
 
@@ -46,8 +47,17 @@ public partial class CraftingInfoPanelUI : UIState
     /// <summary>Currently selected tab index</summary>
     private int selectedTabIndex = 0;
 
-    /// <summary>Tab labels (for tooltips)</summary>
-    private readonly string[] tabNames = { "Armor", "Weapons", "Materials", "Furniture 1", "Furniture 2" };
+    /// <summary>Tab labels localization keys (for tooltips)</summary>
+    private readonly string[] tabNameKeys = { "Armor", "Weapons", "Materials", "Furniture1", "Furniture2" };
+    
+    /// <summary>Get localized tab name</summary>
+    private string GetTabName(int tabIndex)
+    {
+        if (tabIndex < 0 || tabIndex >= tabNameKeys.Length) {
+            return "";
+        }
+        return Language.GetTextValue($"Mods.DuravoQOLMod.CraftingPanel.TabNames.{tabNameKeys[tabIndex]}");
+    }
     
     /// <summary>Tab icon item IDs</summary>
     private readonly int[] tabIconItemIds = {
@@ -186,7 +196,7 @@ public partial class CraftingInfoPanelUI : UIState
 
         // Draw vertical tabs on left side
         float tabY = panelTopLeft.Y + 10;
-        for (int tabIndex = 0; tabIndex < tabNames.Length; tabIndex++) {
+        for (int tabIndex = 0; tabIndex < tabNameKeys.Length; tabIndex++) {
             DrawTab(spriteBatch, panelTopLeft.X + 5, tabY, tabIndex);
             tabY += 44;
         }
@@ -273,7 +283,7 @@ public partial class CraftingInfoPanelUI : UIState
         // Handle click and hover tooltip
         bool isHovering = tabRect.Contains(Main.mouseX, Main.mouseY);
         if (isHovering) {
-            Main.hoverItemName = tabNames[tabIndex];
+            Main.hoverItemName = GetTabName(tabIndex);
         }
         
         if (isHovering && Main.mouseLeft && Main.mouseLeftRelease) {
@@ -461,7 +471,8 @@ public partial class CraftingInfoPanelUI : UIState
                 stationNames.Add(GetCraftingStationName(tileId));
             }
             if (stationNames.Count > 0) {
-                tooltipLines.Add($"Requires: {string.Join(", ", stationNames)}");
+                string requiresFormat = Language.GetTextValue("Mods.DuravoQOLMod.CraftingPanel.Requires");
+                tooltipLines.Add(string.Format(requiresFormat, string.Join(", ", stationNames)));
             }
         }
         
@@ -587,7 +598,7 @@ public partial class CraftingInfoPanelUI : UIState
         // Button dimensions and position (top-left corner, slightly offset inside the panel)
         const int buttonPadding = 4;
         const int buttonHeight = 24; // Increased from 20 for better text fit
-        string buttonText = "Hardmode";
+        string buttonText = Language.GetTextValue("Mods.DuravoQOLMod.CraftingPanel.Hardmode");
         
         // Measure text width
         Vector2 textSize = FontAssets.MouseText.Value.MeasureString(buttonText);
@@ -639,7 +650,9 @@ public partial class CraftingInfoPanelUI : UIState
             
             // Highlight on hover
             spriteBatch.Draw(pixelTexture, buttonRect, Color.White * 0.1f);
-            Main.hoverItemName = isActive ? "Click to show pre-Hardmode items" : "Click to show Hardmode items";
+            Main.hoverItemName = isActive
+                ? Language.GetTextValue("Mods.DuravoQOLMod.CraftingPanel.HardmodeTooltipOn")
+                : Language.GetTextValue("Mods.DuravoQOLMod.CraftingPanel.HardmodeTooltipOff");
             
             if (Main.mouseLeft && Main.mouseLeftRelease) {
                 CraftingPanelPlayer.SetLocalPlayerHardmodeToggle(!isActive);

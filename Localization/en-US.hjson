@@ -10,6 +10,7 @@ Mods: {
 				Headers: {
 					FeatureToggles: Feature Toggles
 					MinionBehavior: Minion Behavior
+					CraftingPanel: Crafting Panel
 				}
 
 				ClientPersistentPosition: {
@@ -42,8 +43,26 @@ Mods: {
 					Tooltip: ""
 				}
 
+				CraftingPanelEnabled: {
+					Label: Enable Duravo Crafting Panel
+					Tooltip:
+						'''
+						Enable the Duravo Crafting Panel feature.
+						When disabled, the panel button and all panel features are hidden.
+						'''
+				}
+
+				CraftingPanelStickyAutoShowAtBenches: {
+					Label: Sticky Auto-Show at Benches
+					Tooltip:
+						'''
+						When enabled, the auto-show at benches toggle is respected.
+						When disabled, the panel never auto-opens at crafting stations.
+						'''
+				}
+
 				CraftingPanelOnlyShowSeenItems: {
-					Label: Crafting Panel Only Show Seen Items
+					Label: Only Show Seen Items
 					Tooltip:
 						'''
 						Only show craftable items in the Crafting Panel if you've seen at least one recipe ingredient.
@@ -128,6 +147,36 @@ Mods: {
 				Shield15Pct: 15% HP Shield for 10s when hit (120s cooldown, purges debuffs)
 				Speed15Pct: +15% movement speed
 			}
+		}
+
+		// ═══════════════════════════════════════════════════════════════════
+		// CRAFTING PANEL FEATURE
+		// Visual crafting reference panel with tab-based organization
+		// ═══════════════════════════════════════════════════════════════════
+		CraftingPanel: {
+			// Tab names
+			TabNames: {
+				Armor: Armor
+				Weapons: Weapons
+				Materials: Materials
+				Furniture1: Furniture 1
+				Furniture2: Furniture 2
+			}
+
+			// Hardmode toggle button
+			Hardmode: Hardmode
+			HardmodeTooltipOn: Click to show pre-Hardmode items
+			HardmodeTooltipOff: Click to show Hardmode items
+			// Recipe tooltip
+			Requires: Requires: {0}
+			// Toggle button tooltips
+			HideCraftingPanel: Hide Crafting Panel
+			ShowCraftingPanel: Show Crafting Panel
+			NoCraftingStationNearby: (No crafting station nearby)
+			DisableAutoShow: Disable auto-show at benches
+			EnableAutoShow: Enable auto-show at benches
+			CurrentlyOn: (Currently: ON)
+			CurrentlyOff: (Currently: OFF)
 		}
 
 		// ═══════════════════════════════════════════════════════════════════

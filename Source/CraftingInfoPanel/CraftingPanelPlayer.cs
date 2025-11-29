@@ -83,6 +83,11 @@ public class CraftingPanelPlayer : ModPlayer
     public override void PostUpdate()
     {
         // Handle auto-open/auto-close logic for crafting panel
+        // Skip if crafting panel feature is disabled entirely
+        if (!DuravoQOLModConfig.EnableCraftingPanel) {
+            return;
+        }
+        
         CraftingPanelSystem? system = CraftingPanelSystem.Instance;
         if (system == null) {
             return;
@@ -91,8 +96,12 @@ public class CraftingPanelPlayer : ModPlayer
         bool inventoryOpen = Main.playerInventory;
         bool nearBench = CraftingPanelSystem.IsNearCraftingStation();
         
-        // Auto-open logic: inventory open + near bench + auto-show enabled + panel not already open
-        if (autoShowCraftingPanelAtBenches && inventoryOpen && nearBench && !system.IsPanelVisible) {
+        // Auto-open logic:
+        // - "Sticky Auto Show" config enabled (global setting)
+        // - Player's auto-show toggle is ON (per-player preference)
+        // - Inventory open + near bench + panel not already open
+        bool stickyAutoShowEnabled = DuravoQOLModConfig.EnableCraftingPanelStickyAutoShow;
+        if (stickyAutoShowEnabled && autoShowCraftingPanelAtBenches && inventoryOpen && nearBench && !system.IsPanelVisible) {
             system.OpenPanel(wasAutoOpened: true);
         }
         
