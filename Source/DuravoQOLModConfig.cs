@@ -83,5 +83,8 @@ namespace DuravoQOLMod
 
         [DefaultValue(false)]
         public bool DebugArmorShields { get; set; }
+
+        [DefaultValue(false)]
+        public bool DebugEnemySmartHopping { get; set; }
     }
 }

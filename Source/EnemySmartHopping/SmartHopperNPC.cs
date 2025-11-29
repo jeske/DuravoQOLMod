@@ -18,11 +18,15 @@ namespace DuravoQOLMod.EnemySmartHopping
     public class SmartHopperNPC : GlobalNPC
     {
         // ╔════════════════════════════════════════════════════════════════════╗
-        // ║                        TUNABLE CONSTANTS                           ║
+        // ║                        CONFIG ACCESSORS                            ║
         // ╚════════════════════════════════════════════════════════════════════╝
 
-        /// <summary>DEBUG: Set to true for verbose smart hop logging</summary>
-        private const bool DebugSmartHopping = false;
+        /// <summary>Get debug enemy smart hopping setting from mod config</summary>
+        private static bool DebugSmartHopping => ModContent.GetInstance<DuravoQOLModConfig>()?.Debug?.DebugEnemySmartHopping ?? false;
+
+        // ╔════════════════════════════════════════════════════════════════════╗
+        // ║                        TUNABLE CONSTANTS                           ║
+        // ╚════════════════════════════════════════════════════════════════════╝
 
         /// <summary>Terraria's default gravity (pixels per tick²)</summary>
         private const float GravityPixelsPerTickSquared = 0.3f;
@@ -61,13 +65,14 @@ namespace DuravoQOLMod.EnemySmartHopping
             if (!DuravoQOLModConfig.EnableEnemySmartHopping)
                 return true;
 
-            // Only process ground-walking enemies
-            if (!IsGroundWalkingEnemy(npc))
+            // Only process walking-type enemies (not flying, swimming, etc.)
+            if (!IsWalkingTypeEnemy(npc))
                 return true;
 
-            // Must be on the ground (velocity.Y == 0 or very close)
+            // Must be currently grounded (not mid-jump)
             // Some NPCs have tiny Y velocity when grounded due to slopes
-            if (Math.Abs(npc.velocity.Y) > 0.1f)
+            bool isCurrentlyGrounded = Math.Abs(npc.velocity.Y) <= 0.1f;
+            if (!isCurrentlyGrounded)
                 return true;
 
             // Must have a valid target
@@ -154,7 +159,7 @@ namespace DuravoQOLMod.EnemySmartHopping
             npc.velocity.X = smartJumpHorizontalVelocity;
 
             if (DebugSmartHopping) {
-                Main.NewText($"[SMART-HOP] {npc.FullName} wall={wallHeightTiles}t, vy={smartJumpVerticalVelocity:F2}, vx={smartJumpHorizontalVelocity:F2}, t={totalFlightTimeTicks:F1}", Color.Lime);
+                Main.NewText($"[DuravoQOL] Smart hop: {npc.FullName} wall={wallHeightTiles}t, vy={smartJumpVerticalVelocity:F2}, vx={smartJumpHorizontalVelocity:F2}, t={totalFlightTimeTicks:F1}", Color.Lime);
             }
         }
 
@@ -210,17 +215,20 @@ namespace DuravoQOLMod.EnemySmartHopping
         // ╚════════════════════════════════════════════════════════════════════╝
 
         /// <summary>
-        /// Check if NPC is a ground-walking enemy that should smart-hop.
-        /// 
+        /// Check if NPC is a walking-type enemy (movement TYPE, not current state).
+        ///
         /// AI Styles:
         /// - 3: Fighter AI (zombies, skeletons, goblins, etc.)
         /// - 26: Unicorn AI (unicorn)
         /// - 38: Tortoise AI (giant tortoise)
-        /// 
-        /// These are ground-pounders that walk and jump at obstacles.
+        ///
+        /// These are walking enemies that move by walking/jumping.
         /// Flying, swimming, and teleporting enemies are excluded.
+        ///
+        /// NOTE: This checks NPC TYPE, not whether it's currently grounded.
+        /// Use velocity.Y check for current grounded state.
         /// </summary>
-        private bool IsGroundWalkingEnemy(NPC npc)
+        private bool IsWalkingTypeEnemy(NPC npc)
         {
             // Must be hostile
             if (npc.friendly || npc.townNPC)

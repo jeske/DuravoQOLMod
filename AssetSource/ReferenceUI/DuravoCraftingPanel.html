@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Duravo Crafting UI Concept</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: #1a1a2e;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            color: #fff;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            color: #f0c060;
+            margin-bottom: 20px;
+            font-size: 18px;
+        }
+        
+        /* Terraria-style item slot */
+        .item-slot {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #4a4a6a 0%, #3a3a5a 50%, #2a2a4a 100%);
+            border: 2px solid #6a6a8a;
+            border-radius: 4px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin: 2px;
+            position: relative;
+            cursor: pointer;
+            font-size: 10px;
+            color: #ccc;
+            text-align: center;
+            vertical-align: top;
+        }
+        
+        .item-slot:hover {
+            border-color: #f0c060;
+            background: linear-gradient(135deg, #5a5a7a 0%, #4a4a6a 50%, #3a3a5a 100%);
+        }
+        
+        .item-slot.available {
+            background: linear-gradient(135deg, #5a4a3a 0%, #4a3a2a 50%, #3a2a1a 100%);
+            border-color: #8a6a4a;
+        }
+        
+        .item-slot.available:hover {
+            border-color: #f0c060;
+            box-shadow: 0 0 8px rgba(240, 192, 96, 0.5);
+        }
+        
+        .item-slot.unavailable {
+            opacity: 0.4;
+        }
+        
+        /* Bonus indicator - single teal dot */
+        .bonus-dot {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            border: 1px solid #000;
+            background: #00d4ff;
+            top: -3px;
+            right: -3px;
+        }
+        
+        /* Key item (bar/wood in header row) */
+        .item-slot.key-item {
+            background: linear-gradient(135deg, #3a3a5a 0%, #2a2a4a 50%, #1a1a3a 100%);
+            border-color: #5a5a7a;
+            cursor: default;
+        }
+        
+        /* Empty slot placeholder */
+        .item-slot.empty {
+            visibility: hidden;
+        }
+        
+        /* Category tabs - vertical on left */
+        .tabs {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        
+        .tab {
+            padding: 10px 12px;
+            background: #3a3a5a;
+            border: 2px solid #5a5a7a;
+            border-right: none;
+            border-radius: 6px 0 0 6px;
+            cursor: pointer;
+            color: #aaa;
+            font-size: 16px;
+        }
+        
+        .tab:hover {
+            background: #4a4a6a;
+            color: #fff;
+        }
+        
+        .tab.active {
+            background: #4a3a2a;
+            border-color: #8a6a4a;
+            color: #f0c060;
+        }
+        
+        /* Main layout - tabs left, panel right */
+        .main-layout {
+            display: flex;
+            align-items: flex-start;
+        }
+        
+        /* Main panel */
+        .panel {
+            background: linear-gradient(180deg, #2a2a4a 0%, #1a1a3a 100%);
+            border: 3px solid #5a5a7a;
+            border-radius: 0 8px 8px 8px;
+            padding: 15px;
+            display: inline-block;
+        }
+        
+        /* Grid section */
+        .grid-section {
+            margin-bottom: 15px;
+        }
+        
+        .grid-section h3 {
+            color: #aaa;
+            font-size: 12px;
+            margin-bottom: 6px;
+            padding-left: 4px;
+        }
+        
+        .grid-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 4px;
+        }
+        
+        .row-label {
+            width: 5px;
+            flex-shrink: 0;
+        }
+        
+        /* Tooltip */
+        .tooltip {
+            position: fixed;
+            background: #1a1a2e;
+            border: 2px solid #8a6a4a;
+            border-radius: 6px;
+            padding: 10px;
+            min-width: 180px;
+            display: none;
+            z-index: 1000;
+            font-size: 12px;
+        }
+        
+        .tooltip-title {
+            color: #f0c060;
+            font-weight: bold;
+            margin-bottom: 6px;
+        }
+        
+        .tooltip-bonus {
+            color: #aaa;
+            margin: 3px 0;
+        }
+        
+        .tooltip-status {
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid #3a3a5a;
+            font-size: 11px;
+        }
+        
+        .tooltip-status.can-craft { color: #4ade80; }
+        .tooltip-status.cannot-craft { color: #888; }
+        
+        /* Item icon placeholder text */
+        .item-icon {
+            font-size: 9px;
+            line-height: 1.1;
+            color: #bbb;
+        }
+        
+        .item-slot.available .item-icon {
+            color: #f0d090;
+        }
+        
+        /* Description section */
+        .description {
+            margin-top: 30px;
+            padding: 15px;
+            background: #2a2a3a;
+            border-radius: 8px;
+            font-size: 13px;
+            color: #aaa;
+        }
+        
+        .description h2 {
+            color: #f0c060;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+        
+        .description ul {
+            margin-left: 20px;
+        }
+        
+        .description li {
+            margin: 6px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        
+        <div class="main-layout">
+        <!-- Tabs -->
+        <div class="tabs">
+            <div class="tab active" title="Armor">🛡️</div>
+            <div class="tab" title="Weapons">⚔️</div>
+            <div class="tab" title="Materials">🔧</div>
+            <div class="tab" title="Furniture">🪑</div>
+        </div>
+        
+        <!-- Main Panel -->
+        <div class="panel">
+            
+            <!-- ARMOR TAB CONTENT -->
+            <div class="tab-content" id="tab-armor">
+            
+            <!-- Bar Key Row (shows tier by material) -->
+            <div class="grid-row">
+                <div class="row-label"></div>
+                <div class="item-slot key-item" data-name="Copper Bar"><span class="item-icon">▬</span></div>
+                <div class="item-slot key-item" data-name="Tin Bar"><span class="item-icon">▬</span></div>
+                <div class="item-slot key-item" data-name="Iron Bar"><span class="item-icon">▬</span></div>
+                <div class="item-slot key-item" data-name="Lead Bar"><span class="item-icon">▬</span></div>
+                <div class="item-slot key-item" data-name="Silver Bar"><span class="item-icon">▬</span></div>
+                <div class="item-slot key-item" data-name="Tungsten Bar"><span class="item-icon">▬</span></div>
+                <div class="item-slot key-item" data-name="Gold Bar"><span class="item-icon">▬</span></div>
+                <div class="item-slot key-item" data-name="Platinum Bar"><span class="item-icon">▬</span></div>
+            </div>
+            
+            <!-- Helmets Row -->
+            <div class="grid-row">
+                <div class="row-label"></div>
+                <div class="item-slot available" data-name="Copper Helmet" data-bonus="true" data-available="true">
+                    <span class="item-icon">🪖</span>
+                    <div class="bonus-dot"></div>
+                </div>
+                <div class="item-slot available" data-name="Tin Helmet" data-bonus="true" data-available="true">
+                    <span class="item-icon">🪖</span>
+                    <div class="bonus-dot"></div>
+                </div>
+                <div class="item-slot unavailable" data-name="Iron Helmet" data-bonus="true" data-available="false">
+                    <span class="item-icon">🪖</span>
+                    <div class="bonus-dot"></div>
+                </div>
+                <div class="item-slot unavailable" data-name="Lead Helmet" data-bonus="true" data-available="false">
+                    <span class="item-icon">🪖</span>
+                    <div class="bonus-dot"></div>
+                </div>
+                <div class="item-slot unavailable" data-name="Silver Helmet" data-bonus="true" data-available="false">
+                    <span class="item-icon">🪖</span>
+                    <div class="bonus-dot"></div>
+                </div>
+                <div class="item-slot unavailable" data-name="Tungsten Helmet" data-bonus="true" data-available="false">
+                    <span class="item-icon">🪖</span>
+                    <div class="bonus-dot"></div>
+                </div>
+                <div class="item-slot unavailable" data-name="Gold Helmet" data-bonus="true" data-available="false">
+                    <span class="item-icon">🪖</span>
+                    <div class="bonus-dot"></div>
+                </div>
+                <div class="item-slot unavailable" data-name="Platinum Helmet" data-bonus="true" data-available="false">
+                    <span class="item-icon">🪖</span>
+                    <div class="bonus-dot"></div>
+                </div>
+            </div>
+            
+            <!-- Chestplates Row -->
+            <div class="grid-row">
+                <div class="row-label"></div>
+                <div class="item-slot available" data-name="Copper Chestplate" data-bonus="true" data-available="true">
+                    <span class="item-icon">👕</span>
+                    <div class="bonus-dot"></div>
+                </div>
+                <div class="item-slot available" data-name="Tin Chestplate" data-bonus="true" data-available="true">
+                    <span class="item-icon">👕</span>
+                    <div class="bonus-dot"></div>
+                </div>
+                <div class="item-slot unavailable" data-name="Iron Chestplate" data-bonus="true" data-available="false">
+                    <span class="item-icon">👕</span>
+                    <div class="bonus-dot"></div>
+                </div>
+                <div class="item-slot unavailable" data-name="Lead Chestplate" data-bonus="true" data-available="false">
+                    <span class="item-icon">👕</span>
+                    <div class="bonus-dot"></div>
+                </div>
+                <div class="item-slot unavailable" data-name="Silver Chestplate" data-bonus="true" data-available="false">
+                    <span class="item-icon">👕</span>
+                    <div class="bonus-dot"></div>
+                </div>
+                <div class="item-slot unavailable" data-name="Tungsten Chestplate" data-bonus="true" data-available="false">
+                    <span class="item-icon">👕</span>
+                    <div class="bonus-dot"></div>
+                </div>
+                <div class="item-slot unavailable" data-name="Gold Chestplate" data-bonus="true" data-available="false">
+                    <span class="item-icon">👕</span>
+                    <div class="bonus-dot"></div>
+                </div>
+                <div class="item-slot unavailable" data-name="Platinum Chestplate" data-bonus="true" data-available="false">
+                    <span class="item-icon">👕</span>
+                    <div class="bonus-dot"></div>
+                </div>
+            </div>
+            
+            <!-- Greaves Row -->
+            <div class="grid-row">
+                <div class="row-label"></div>
+                <div class="item-slot available" data-name="Copper Greaves" data-bonus="true" data-available="true">
+                    <span class="item-icon">👖</span>
+                    <div class="bonus-dot"></div>
+                </div>
+                <div class="item-slot unavailable" data-name="Tin Greaves" data-bonus="true" data-available="false">
+                    <span class="item-icon">👖</span>
+                    <div class="bonus-dot"></div>
+                </div>
+                <div class="item-slot unavailable" data-name="Iron Greaves" data-bonus="true" data-available="false">
+                    <span class="item-icon">👖</span>
+                    <div class="bonus-dot"></div>
+                </div>
+                <div class="item-slot unavailable" data-name="Lead Greaves" data-bonus="true" data-available="false">
+                    <span class="item-icon">👖</span>
+                    <div class="bonus-dot"></div>
+                </div>
+                <div class="item-slot unavailable" data-name="Silver Greaves" data-bonus="true" data-available="false">
+                    <span class="item-icon">👖</span>
+                    <div class="bonus-dot"></div>
+                </div>
+                <div class="item-slot unavailable" data-name="Tungsten Greaves" data-bonus="true" data-available="false">
+                    <span class="item-icon">👖</span>
+                    <div class="bonus-dot"></div>
+                </div>
+                <div class="item-slot unavailable" data-name="Gold Greaves" data-bonus="true" data-available="false">
+                    <span class="item-icon">👖</span>
+                    <div class="bonus-dot"></div>
+                </div>
+                <div class="item-slot unavailable" data-name="Platinum Greaves" data-bonus="true" data-available="false">
+                    <span class="item-icon">👖</span>
+                    <div class="bonus-dot"></div>
+                </div>
+            </div>
+            
+            </div><!-- end tab-armor -->
+            
+            <!-- WEAPONS TAB CONTENT -->
+            <div class="tab-content" id="tab-weapons" style="display: none;">
+            
+            <!-- Bar Key Row (shows tier by material) -->
+            <div class="grid-row">
+                <div class="row-label"></div>
+                <div class="item-slot key-item" data-name="Wood"><span class="item-icon">🪵</span></div>
+                <div class="item-slot key-item" data-name="Copper Bar"><span class="item-icon">▬</span></div>
+                <div class="item-slot key-item" data-name="Tin Bar"><span class="item-icon">▬</span></div>
+                <div class="item-slot key-item" data-name="Iron Bar"><span class="item-icon">▬</span></div>
+                <div class="item-slot key-item" data-name="Lead Bar"><span class="item-icon">▬</span></div>
+                <div class="item-slot key-item" data-name="Silver Bar"><span class="item-icon">▬</span></div>
+                <div class="item-slot key-item" data-name="Tungsten Bar"><span class="item-icon">▬</span></div>
+                <div class="item-slot key-item" data-name="Gold Bar"><span class="item-icon">▬</span></div>
+                <div class="item-slot key-item" data-name="Platinum Bar"><span class="item-icon">▬</span></div>
+            </div>
+            
+            <!-- Swords Row -->
+            <div class="grid-row">
+                <div class="row-label"></div>
+                <div class="item-slot available" data-name="Wooden Sword" data-available="true"><span class="item-icon">🗡️</span></div>
+                <div class="item-slot available" data-name="Copper Broadsword" data-available="true"><span class="item-icon">🗡️</span></div>
+                <div class="item-slot available" data-name="Tin Broadsword" data-available="true"><span class="item-icon">🗡️</span></div>
+                <div class="item-slot unavailable" data-name="Iron Broadsword" data-available="false"><span class="item-icon">🗡️</span></div>
+                <div class="item-slot unavailable" data-name="Lead Broadsword" data-available="false"><span class="item-icon">🗡️</span></div>
+                <div class="item-slot unavailable" data-name="Silver Broadsword" data-available="false"><span class="item-icon">🗡️</span></div>
+                <div class="item-slot unavailable" data-name="Tungsten Broadsword" data-available="false"><span class="item-icon">🗡️</span></div>
+                <div class="item-slot unavailable" data-name="Gold Broadsword" data-available="false"><span class="item-icon">🗡️</span></div>
+                <div class="item-slot unavailable" data-name="Platinum Broadsword" data-available="false"><span class="item-icon">🗡️</span></div>
+            </div>
+            
+            <!-- Bows Row -->
+            <div class="grid-row">
+                <div class="row-label"></div>
+                <div class="item-slot available" data-name="Wooden Bow" data-available="true"><span class="item-icon">🏹</span></div>
+                <div class="item-slot available" data-name="Copper Bow" data-available="true"><span class="item-icon">🏹</span></div>
+                <div class="item-slot unavailable" data-name="Tin Bow" data-available="false"><span class="item-icon">🏹</span></div>
+                <div class="item-slot unavailable" data-name="Iron Bow" data-available="false"><span class="item-icon">🏹</span></div>
+                <div class="item-slot unavailable" data-name="Lead Bow" data-available="false"><span class="item-icon">🏹</span></div>
+                <div class="item-slot unavailable" data-name="Silver Bow" data-available="false"><span class="item-icon">🏹</span></div>
+                <div class="item-slot unavailable" data-name="Tungsten Bow" data-available="false"><span class="item-icon">🏹</span></div>
+                <div class="item-slot unavailable" data-name="Gold Bow" data-available="false"><span class="item-icon">🏹</span></div>
+                <div class="item-slot unavailable" data-name="Platinum Bow" data-available="false"><span class="item-icon">🏹</span></div>
+            </div>
+            
+            <!-- Pickaxes Row -->
+            <div class="grid-row">
+                <div class="row-label"></div>
+                <div class="item-slot empty"></div>
+                <div class="item-slot available" data-name="Copper Pickaxe" data-available="true"><span class="item-icon">⛏️</span></div>
+                <div class="item-slot available" data-name="Tin Pickaxe" data-available="true"><span class="item-icon">⛏️</span></div>
+                <div class="item-slot unavailable" data-name="Iron Pickaxe" data-available="false"><span class="item-icon">⛏️</span></div>
+                <div class="item-slot unavailable" data-name="Lead Pickaxe" data-available="false"><span class="item-icon">⛏️</span></div>
+                <div class="item-slot unavailable" data-name="Silver Pickaxe" data-available="false"><span class="item-icon">⛏️</span></div>
+                <div class="item-slot unavailable" data-name="Tungsten Pickaxe" data-available="false"><span class="item-icon">⛏️</span></div>
+                <div class="item-slot unavailable" data-name="Gold Pickaxe" data-available="false"><span class="item-icon">⛏️</span></div>
+                <div class="item-slot unavailable" data-name="Platinum Pickaxe" data-available="false"><span class="item-icon">⛏️</span></div>
+            </div>
+            
+            <!-- Axes Row -->
+            <div class="grid-row">
+                <div class="row-label"></div>
+                <div class="item-slot empty"></div>
+                <div class="item-slot available" data-name="Copper Axe" data-available="true"><span class="item-icon">🪓</span></div>
+                <div class="item-slot unavailable" data-name="Tin Axe" data-available="false"><span class="item-icon">🪓</span></div>
+                <div class="item-slot unavailable" data-name="Iron Axe" data-available="false"><span class="item-icon">🪓</span></div>
+                <div class="item-slot unavailable" data-name="Lead Axe" data-available="false"><span class="item-icon">🪓</span></div>
+                <div class="item-slot unavailable" data-name="Silver Axe" data-available="false"><span class="item-icon">🪓</span></div>
+                <div class="item-slot unavailable" data-name="Tungsten Axe" data-available="false"><span class="item-icon">🪓</span></div>
+                <div class="item-slot unavailable" data-name="Gold Axe" data-available="false"><span class="item-icon">🪓</span></div>
+                <div class="item-slot unavailable" data-name="Platinum Axe" data-available="false"><span class="item-icon">🪓</span></div>
+            </div>
+            
+            <!-- Hammers Row -->
+            <div class="grid-row">
+                <div class="row-label"></div>
+                <div class="item-slot available" data-name="Wooden Hammer" data-available="true"><span class="item-icon">🔨</span></div>
+                <div class="item-slot available" data-name="Copper Hammer" data-available="true"><span class="item-icon">🔨</span></div>
+                <div class="item-slot unavailable" data-name="Tin Hammer" data-available="false"><span class="item-icon">🔨</span></div>
+                <div class="item-slot unavailable" data-name="Iron Hammer" data-available="false"><span class="item-icon">🔨</span></div>
+                <div class="item-slot unavailable" data-name="Lead Hammer" data-available="false"><span class="item-icon">🔨</span></div>
+                <div class="item-slot unavailable" data-name="Silver Hammer" data-available="false"><span class="item-icon">🔨</span></div>
+                <div class="item-slot unavailable" data-name="Tungsten Hammer" data-available="false"><span class="item-icon">🔨</span></div>
+                <div class="item-slot unavailable" data-name="Gold Hammer" data-available="false"><span class="item-icon">🔨</span></div>
+                <div class="item-slot unavailable" data-name="Platinum Hammer" data-available="false"><span class="item-icon">🔨</span></div>
+            </div>
+            
+            </div><!-- end tab-weapons -->
+            
+            <!-- MATERIALS TAB CONTENT -->
+            <div class="tab-content" id="tab-materials" style="display: none;">
+            
+            <!-- Bars Row -->
+            <div class="grid-row">
+                <div class="row-label"></div>
+                <div class="item-slot available" data-name="Copper Bar" data-available="true"><span class="item-icon">▬</span></div>
+                <div class="item-slot available" data-name="Tin Bar" data-available="true"><span class="item-icon">▬</span></div>
+                <div class="item-slot available" data-name="Iron Bar" data-available="true"><span class="item-icon">▬</span></div>
+                <div class="item-slot unavailable" data-name="Lead Bar" data-available="false"><span class="item-icon">▬</span></div>
+                <div class="item-slot unavailable" data-name="Silver Bar" data-available="false"><span class="item-icon">▬</span></div>
+                <div class="item-slot unavailable" data-name="Tungsten Bar" data-available="false"><span class="item-icon">▬</span></div>
+                <div class="item-slot unavailable" data-name="Gold Bar" data-available="false"><span class="item-icon">▬</span></div>
+                <div class="item-slot unavailable" data-name="Platinum Bar" data-available="false"><span class="item-icon">▬</span></div>
+            </div>
+            
+            <!-- Bricks Row -->
+            <div class="grid-row">
+                <div class="row-label"></div>
+                <div class="item-slot available" data-name="Copper Brick" data-available="true"><span class="item-icon">🧱</span></div>
+                <div class="item-slot unavailable" data-name="Tin Brick" data-available="false"><span class="item-icon">🧱</span></div>
+                <div class="item-slot unavailable" data-name="Iron Brick" data-available="false"><span class="item-icon">🧱</span></div>
+                <div class="item-slot unavailable" data-name="Lead Brick" data-available="false"><span class="item-icon">🧱</span></div>
+                <div class="item-slot unavailable" data-name="Silver Brick" data-available="false"><span class="item-icon">🧱</span></div>
+                <div class="item-slot unavailable" data-name="Tungsten Brick" data-available="false"><span class="item-icon">🧱</span></div>
+                <div class="item-slot unavailable" data-name="Gold Brick" data-available="false"><span class="item-icon">🧱</span></div>
+                <div class="item-slot unavailable" data-name="Platinum Brick" data-available="false"><span class="item-icon">🧱</span></div>
+            </div>
+            
+            <div style="height: 10px;"></div>
+            
+            <!-- Misc Row -->
+            <div class="grid-row">
+                <div class="row-label"></div>
+                <div class="item-slot available" data-name="Torch" data-available="true"><span class="item-icon">🔥</span></div>
+                <div class="item-slot available" data-name="Rope" data-available="true"><span class="item-icon">〰️</span></div>
+                <div class="item-slot available" data-name="Chain" data-available="true"><span class="item-icon">⛓️</span></div>
+                <div class="item-slot unavailable" data-name="Glass" data-available="false"><span class="item-icon">▢</span></div>
+                <div class="item-slot unavailable" data-name="Bottle" data-available="false"><span class="item-icon">🍾</span></div>
+            </div>
+            
+            </div><!-- end tab-materials -->
+            
+            <!-- FURNITURE TAB CONTENT -->
+            <div class="tab-content" id="tab-furniture" style="display: none;">
+            
+            <!-- Crafting Stations Row -->
+            <div class="grid-row">
+                <div class="row-label"></div>
+                <div class="item-slot available" data-name="Work Bench" data-available="true"><span class="item-icon">🪑</span></div>
+                <div class="item-slot available" data-name="Furnace" data-available="true"><span class="item-icon">🔥</span></div>
+                <div class="item-slot available" data-name="Iron Anvil" data-available="true"><span class="item-icon">⚒️</span></div>
+                <div class="item-slot unavailable" data-name="Lead Anvil" data-available="false"><span class="item-icon">⚒️</span></div>
+                <div class="item-slot unavailable" data-name="Sawmill" data-available="false"><span class="item-icon">🪚</span></div>
+                <div class="item-slot unavailable" data-name="Loom" data-available="false"><span class="item-icon">🧵</span></div>
+            </div>
+            
+            <!-- Advanced Stations Row -->
+            <div class="grid-row">
+                <div class="row-label"></div>
+                <div class="item-slot unavailable" data-name="Hellforge" data-available="false"><span class="item-icon">🔥</span></div>
+                <div class="item-slot unavailable" data-name="Alchemy Table" data-available="false"><span class="item-icon">⚗️</span></div>
+                <div class="item-slot unavailable" data-name="Tinkerer's Workshop" data-available="false"><span class="item-icon">🔧</span></div>
+                <div class="item-slot unavailable" data-name="Imbuing Station" data-available="false"><span class="item-icon">✨</span></div>
+            </div>
+            
+            <div style="height: 10px;"></div>
+            
+            <!-- Storage Row -->
+            <div class="grid-row">
+                <div class="row-label"></div>
+                <div class="item-slot available" data-name="Chest" data-available="true"><span class="item-icon">📦</span></div>
+                <div class="item-slot unavailable" data-name="Gold Chest" data-available="false"><span class="item-icon">📦</span></div>
+                <div class="item-slot unavailable" data-name="Shadow Chest" data-available="false"><span class="item-icon">📦</span></div>
+                <div class="item-slot available" data-name="Barrel" data-available="true"><span class="item-icon">🛢️</span></div>
+            </div>
+            
+            <!-- Lighting Row -->
+            <div class="grid-row">
+                <div class="row-label"></div>
+                <div class="item-slot available" data-name="Torch" data-available="true"><span class="item-icon">🔥</span></div>
+                <div class="item-slot available" data-name="Candle" data-available="true"><span class="item-icon">🕯️</span></div>
+                <div class="item-slot unavailable" data-name="Chandelier" data-available="false"><span class="item-icon">💡</span></div>
+                <div class="item-slot unavailable" data-name="Lamp" data-available="false"><span class="item-icon">🪔</span></div>
+                <div class="item-slot unavailable" data-name="Lantern" data-available="false"><span class="item-icon">🏮</span></div>
+            </div>
+            
+            <div style="height: 10px;"></div>
+            
+            <!-- Wood furniture Row -->
+            <div class="grid-row">
+                <div class="row-label"></div>
+                <div class="item-slot available" data-name="Wooden Door" data-available="true"><span class="item-icon">🚪</span></div>
+                <div class="item-slot available" data-name="Wood Platform" data-available="true"><span class="item-icon">━</span></div>
+                <div class="item-slot available" data-name="Wooden Chair" data-available="true"><span class="item-icon">🪑</span></div>
+                <div class="item-slot available" data-name="Wooden Table" data-available="true"><span class="item-icon">🪵</span></div>
+                <div class="item-slot available" data-name="Wooden Bed" data-available="true"><span class="item-icon">🛏️</span></div>
+            </div>
+            
+            </div><!-- end tab-furniture -->
+        </div>
+        </div><!-- end main-layout -->
+        
+        <!-- Tooltip (hidden by default) -->
+        <div class="tooltip" id="tooltip">
+            <div class="tooltip-title" id="tooltip-title"></div>
+        </div>
+        
+    </div>
+    
+    <script>
+        // Tab switching
+        const tabs = document.querySelectorAll('.tab');
+        const tabIds = ['tab-armor', 'tab-weapons', 'tab-materials', 'tab-furniture'];
+        
+        tabs.forEach((tab, index) => {
+            tab.addEventListener('click', () => {
+                // Update tab active states
+                tabs.forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                
+                // Show/hide content sections
+                tabIds.forEach(id => {
+                    document.getElementById(id).style.display = 'none';
+                });
+                document.getElementById(tabIds[index]).style.display = 'block';
+            });
+        });
+        
+        // Simple tooltip behavior
+        const tooltip = document.getElementById('tooltip');
+        const slots = document.querySelectorAll('.item-slot');
+        
+        slots.forEach(slot => {
+            slot.addEventListener('mouseenter', (e) => {
+                const name = slot.dataset.name;
+                if (!name) return;
+                
+                document.getElementById('tooltip-title').textContent = name;
+                tooltip.style.display = 'block';
+            });
+            
+            slot.addEventListener('mousemove', (e) => {
+                tooltip.style.left = (e.pageX + 15) + 'px';
+                tooltip.style.top = (e.pageY + 15) + 'px';
+            });
+            
+            slot.addEventListener('mouseleave', () => {
+                tooltip.style.display = 'none';
+            });
+            
+            slot.addEventListener('click', () => {
+                if (!slot.dataset.name) return;
+                if (slot.dataset.available === 'true') {
+                    // Would select in vanilla recipe list
+                    slot.style.boxShadow = '0 0 12px #f0c060';
+                    setTimeout(() => { slot.style.boxShadow = ''; }, 200);
+                }
+            });
+        });
+    </script>
+</body>
+</html>

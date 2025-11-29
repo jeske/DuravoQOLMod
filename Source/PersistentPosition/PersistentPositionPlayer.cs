@@ -112,7 +112,7 @@ namespace DuravoQOLMod.PersistentPosition
                         Main.NewText($"[DuravoQOL] Position restored. Immune for {immunityDuration}s.", 100, 255, 100);
                     }
                     else {
-                        Main.NewText($"[DuravoQOL] Position adjusted (was in block). Immune for {immunityDuration}s.", 255, 200, 100);
+                        Main.NewText($"[DuravoQOL] Position restored (nudged from terrain). Immune for {immunityDuration}s.", 255, 200, 100);
                     }
                 }
             }

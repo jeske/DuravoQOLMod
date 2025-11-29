@@ -71,6 +71,11 @@ Mods: {
 					Tooltip: Show debug messages for emergency shield activation, damage absorption, cooldowns, and shield breaks.
 				}
 
+				DebugEnemySmartHopping: {
+					Label: Debug Enemy Smart Hopping
+					Tooltip: Show debug messages when enemies perform smart hops over walls (wall height, velocities, flight time).
+				}
+
 				Tooltip: ""
 			}
 		}
