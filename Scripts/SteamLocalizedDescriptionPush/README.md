@@ -18,40 +18,33 @@ This is why Steam must be running and you must be logged in as the mod owner - t
 
 1. **Steam must be running** and you must be logged in as the mod owner
 2. **.NET 8.0 SDK** installed
-3. **Steamworks SDK v1.57** - The Steamworks.NET 20.1.0 NuGet package requires this specific version
+3. **Steamworks.NET-Standalone** - The standalone version bundles native DLLs
 
-## Setting Up Steam Native Libraries
+## Setting Up Steamworks.NET
 
-**IMPORTANT:** Steamworks.NET 20.1.0 requires Steamworks SDK v1.57. Newer SDK versions have breaking changes.
+This project uses **Steamworks.NET-Standalone** which bundles the native `steam_api64.dll`.
 
-Download SDK v1.57 from: https://partner.steamgames.com/downloads/list (you may need to check "Previous Versions")
+**Download from GitHub:** https://github.com/rlabrecque/Steamworks.NET/releases
 
-Then copy the native DLL:
-```
-FROM: sdk/redistributable_bin/win64/steam_api64.dll
-TO:   Scripts/SteamLocalizedDescriptionPush/bin/Debug/net8.0/steam_api64.dll
-```
+1. Download the latest `Steamworks.NET-Standalone_xxxxx.zip` release
+2. Extract to a local folder (e.g., `C:\PROJECTS\Steamworks.NET-Standalone_2025.162.1\`)
+3. The project's `.csproj` references the DLLs from `Windows-x64/` subfolder
+4. Native DLL is auto-copied to output during build
 
-Alternatively, copy from your tModLoader installation:
-```
-FROM: C:\Program Files (x86)\Steam\steamapps\common\tModLoader\steam_api64.dll
-TO:   Scripts/SteamLocalizedDescriptionPush/bin/Debug/net8.0/steam_api64.dll
-```
+**Note:** The NuGet package `Steamworks.NET` requires manual SDK v1.57 setup which is harder to configure. The standalone version from GitHub is recommended.
 
-## Installation
+## Installation & Build
 
 ```powershell
-# From the project root
-cd Scripts/SteamLocalizedDescriptionPush
-dotnet restore
-dotnet build
+# From the DuravoQOLMod project root
+dotnet build Scripts/SteamLocalizedDescriptionPush/SteamLocalizedDescriptionPush.csproj
 ```
 
 ## Usage
 
 ```powershell
-# From anywhere within the DuravoQOLMod project
-dotnet run --project Scripts/SteamLocalizedDescriptionPush
+# From the DuravoQOLMod project root
+dotnet run --project Scripts/SteamLocalizedDescriptionPush/SteamLocalizedDescriptionPush.csproj
 ```
 
 The tool will:
@@ -88,11 +81,16 @@ The tool will:
 
 ## How It Works
 
-The tool uses the Steamworks.NET NuGet package to access the `ISteamUGC` interface:
+The tool uses Steamworks.NET-Standalone to access the `ISteamUGC` interface.
 
-1. `SteamUGC.StartItemUpdate()` - Begin an update session
-2. `SteamUGC.SetItemUpdateLanguage()` - Set the target language for description
-3. `SteamUGC.SetItemDescription()` - Set the description for that language
-4. `SteamUGC.SubmitItemUpdate()` - Submit all changes
+**Critical:** Steam Workshop only applies **one language per `SubmitItemUpdate()` call**. The tool creates a separate update for each language:
 
-This allows setting different descriptions for each language Steam supports.
+```
+For each language:
+1. SteamUGC.StartItemUpdate()        - Begin a NEW update session
+2. SteamUGC.SetItemUpdateLanguage()  - Set the target language
+3. SteamUGC.SetItemDescription()     - Set the description for that language
+4. SteamUGC.SubmitItemUpdate()       - Submit this single-language update
+```
+
+This allows setting different descriptions for each of the 9 languages Steam supports.
