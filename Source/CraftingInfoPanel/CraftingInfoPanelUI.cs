@@ -127,21 +127,39 @@ public partial class CraftingInfoPanelUI : UIState
     private int maxContentWidth;
     private int maxContentHeight;
 
+    /// <summary>Get a tab's layout by internal tab ID</summary>
+    private PanelPositionCalculator<CraftingSlotInfo> GetLayoutForTabId(int tabId)
+    {
+        return tabId switch {
+            TAB_ID_HARDMODE_ARMOR => hardmodeArmorTabLayout,
+            TAB_ID_HARDMODE_WEAPONS => hardmodeWeaponsTabLayout,
+            TAB_ID_ARMOR => armorTabLayout,
+            TAB_ID_WEAPONS => weaponsTabLayout,
+            TAB_ID_MATERIALS => materialsTabLayout,
+            TAB_ID_FURNITURE1 => furniture1TabLayout,
+            TAB_ID_FURNITURE2 => furniture2TabLayout,
+            _ => armorTabLayout
+        };
+    }
+
     /// <summary>Get the current tab's layout based on selected tab ID</summary>
     private PanelPositionCalculator<CraftingSlotInfo> CurrentTabLayout {
         get {
-            int tabId = GetSelectedTabId();
-            return tabId switch {
-                TAB_ID_HARDMODE_ARMOR => hardmodeArmorTabLayout,
-                TAB_ID_HARDMODE_WEAPONS => hardmodeWeaponsTabLayout,
-                TAB_ID_ARMOR => armorTabLayout,
-                TAB_ID_WEAPONS => weaponsTabLayout,
-                TAB_ID_MATERIALS => materialsTabLayout,
-                TAB_ID_FURNITURE1 => furniture1TabLayout,
-                TAB_ID_FURNITURE2 => furniture2TabLayout,
-                _ => armorTabLayout
-            };
+            return GetLayoutForTabId(GetSelectedTabId());
         }
+    }
+
+    /// <summary>Check if any item on a tab is currently craftable</summary>
+    private bool TabHasAnyCraftableItem(int tabId)
+    {
+        var layout = GetLayoutForTabId(tabId);
+        foreach (var element in layout.Elements) {
+            // Skip headers, only check actual items
+            if (!element.Payload.IsHeader && CanCraftItem(element.Payload.ItemId)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public override void OnInitialize()
@@ -321,7 +339,15 @@ public partial class CraftingInfoPanelUI : UIState
         spriteBatch.Draw(pixel, new Rectangle((int)x, (int)y, 2, TAB_HEIGHT), tabBorderColor);  // Left
         spriteBatch.Draw(pixel, new Rectangle((int)x + TAB_WIDTH - 2, (int)y, 2, TAB_HEIGHT), tabBorderColor);  // Right
 
-        // Draw item icon instead of letter
+        // Step 2: If tab has craftable items, draw InventoryBack10 texture over the tab
+        bool tabHasCraftableItems = TabHasAnyCraftableItem(tabId);
+        if (tabHasCraftableItems) {
+            Texture2D craftableIndicatorTexture = TextureAssets.InventoryBack10.Value;
+            Color craftableIndicatorTint = isSelected ? Color.White : Color.White * 0.4f;
+            spriteBatch.Draw(craftableIndicatorTexture, tabRect, craftableIndicatorTint);
+        }
+
+        // Step 3: Draw item icon (bright if selected, dim otherwise)
         int iconItemId = allTabIconItemIds[tabId];
         Main.instance.LoadItem(iconItemId);
         Texture2D iconTexture = TextureAssets.Item[iconItemId].Value;
@@ -337,7 +363,6 @@ public partial class CraftingInfoPanelUI : UIState
 
         Vector2 iconCenter = new Vector2(x + TAB_WIDTH / 2f, y + TAB_HEIGHT / 2f);
         Vector2 iconOrigin = new Vector2(iconTexture.Width / 2f, iconTexture.Height / 2f);
-        // Active: full brightness, Inactive: dimmed
         Color iconTint = isSelected ? Color.White : new Color(100, 100, 100);
         spriteBatch.Draw(iconTexture, iconCenter, null, iconTint, 0f, iconOrigin, iconScale, SpriteEffects.None, 0f);
 
