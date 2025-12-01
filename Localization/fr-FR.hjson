@@ -11,6 +11,7 @@ Mods: {
 					FeatureToggles: Activer/Désactiver les Fonctionnalités
 					MinionBehavior: Comportement des Serviteurs
 					CraftingPanel: Panneau de Fabrication
+					// MiniHealthbar: Mini Healthbar Header
 				}
 
 				ClientPersistentPosition: {
@@ -68,6 +69,51 @@ Mods: {
 						Affiche uniquement les objets fabricables dans le Panneau de Fabrication si vous avez vu au moins un ingrédient de la recette.
 						Préserve l'expérience de découverte pendant votre progression.
 						'''
+				}
+
+				MiniHealthbarEnabled: {
+					// Label: Mini Healthbar Enabled
+					/* Tooltip:
+						'''
+						Enable the mini healthbar that appears below your character during combat.
+						Shows health, recent damage, and shield status at a glance.
+						''' */
+				}
+
+				MiniHealthbarAlwaysOn: {
+					// Label: Mini Healthbar Always On
+					/* Tooltip:
+						'''
+						Always show the mini healthbar, even when at full health.
+						By default, it only appears when health is low or taking damage.
+						''' */
+				}
+
+				MiniHealthbarHealthThreshold: {
+					// Label: Mini Healthbar Health Threshold
+					/* Tooltip:
+						'''
+						Show healthbar when health drops below this percentage.
+						0% = never show based on health, 100% = always show when not full.
+						''' */
+				}
+
+				MiniHealthbarDamageThreshold: {
+					// Label: Mini Healthbar Damage Threshold
+					/* Tooltip:
+						'''
+						Show healthbar temporarily when taking damage exceeding this percentage of max health.
+						0% = any damage triggers it, 100% = only massive hits.
+						''' */
+				}
+
+				MiniHealthbarLingerTime: {
+					// Label: Mini Healthbar Linger Time
+					/* Tooltip:
+						'''
+						How many seconds the healthbar stays visible after being triggered.
+						Longer values keep it visible between damage events.
+						''' */
 				}
 			}
 

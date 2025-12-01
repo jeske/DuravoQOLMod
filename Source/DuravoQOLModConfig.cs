@@ -51,6 +51,21 @@ namespace DuravoQOLMod
         /// <summary>Cached: Check if Minion Isolated Return is enabled.</summary>
         public static bool EnableMinionIsolatedReturn = true;
 
+        /// <summary>Cached: Check if Mini Healthbar feature is enabled (master toggle).</summary>
+        public static bool EnableMiniHealthbar = true;
+
+        /// <summary>Cached: Check if Mini Healthbar should always show (bypass auto-hide conditions).</summary>
+        public static bool EnableMiniHealthbarAlwaysOn = false;
+
+        /// <summary>Cached: Health % threshold to show healthbar (0.0 to 1.0)</summary>
+        public static float MiniHealthbarShowAtHealthPercent = 0.50f;
+
+        /// <summary>Cached: Damage % threshold to trigger healthbar (0.0 to 1.0)</summary>
+        public static float MiniHealthbarShowOnDamagePercent = 0.10f;
+
+        /// <summary>Cached: Auto-hide time in seconds</summary>
+        public static int MiniHealthbarAutoHideSeconds = 3;
+
         /// <summary>Cached: Debug - Player Persistence.</summary>
         public static bool DebugEnablePlayerPersistence = false;
 
@@ -73,16 +88,23 @@ namespace DuravoQOLMod
             EnableArmorRebalance = ArmorRebalance;
             EnableEnemySmartHopping = EnemySmartHopping;
             EnableClientPersistentPosition = ClientPersistentPosition;
-            
+
             // Crafting panel
             EnableCraftingPanel = CraftingPanelEnabled;
             EnableCraftingPanelOnlyShowSeenItems = CraftingPanelOnlyShowSeenItems;
             EnableCraftingPanelStickyAutoShow = CraftingPanelStickyAutoShowAtBenches;
-            
+
             // Minion behavior
             EnableMinionSmartPathfinding = MinionSmartPathfinding;
             EnableMinionIsolatedReturn = MinionIsolatedReturn;
-            
+
+            // Mini healthbar
+            EnableMiniHealthbar = MiniHealthbarEnabled;
+            EnableMiniHealthbarAlwaysOn = MiniHealthbarAlwaysOn;
+            MiniHealthbarShowAtHealthPercent = MiniHealthbarHealthThreshold / 100f;
+            MiniHealthbarShowOnDamagePercent = MiniHealthbarDamageThreshold / 100f;
+            MiniHealthbarAutoHideSeconds = MiniHealthbarLingerTime;
+
             // Debug settings
             DebugEnablePlayerPersistence = Debug.DebugPlayerPersistence;
             DebugEnableMinionPathfinding = Debug.DebugMinionPathfinding;
@@ -131,6 +153,37 @@ namespace DuravoQOLMod
 
         [DefaultValue(true)]
         public bool MinionIsolatedReturn { get; set; } = true;
+
+        // ╔════════════════════════════════════════════════════════════════════╗
+        // ║                      MINI HEALTHBAR                                 ║
+        // ╚════════════════════════════════════════════════════════════════════╝
+
+        [Header("MiniHealthbar")]
+        [DefaultValue(true)]
+        [Tooltip("Enable the mini healthbar that appears below your character during combat.\nShows health, recent damage, and shield status at a glance.")]
+        public bool MiniHealthbarEnabled { get; set; } = true;
+
+        [DefaultValue(false)]
+        [Tooltip("Always show the mini healthbar, even when at full health.\nBy default, it only appears when health is low or taking damage.")]
+        public bool MiniHealthbarAlwaysOn { get; set; } = false;
+
+        [Range(0, 100)]
+        [DefaultValue(50)]
+        [Slider]
+        [Tooltip("Show healthbar when health drops below this percentage.\n0% = never show based on health, 100% = always show when not full.")]
+        public int MiniHealthbarHealthThreshold { get; set; } = 50;
+
+        [Range(0, 100)]
+        [DefaultValue(25)]
+        [Slider]
+        [Tooltip("Show healthbar temporarily when taking damage exceeding this percentage of max health.\n0% = any damage triggers it, 100% = only massive hits.")]
+        public int MiniHealthbarDamageThreshold { get; set; } = 25;
+
+        [Range(1, 20)]
+        [DefaultValue(3)]
+        [Slider]
+        [Tooltip("How many seconds the healthbar stays visible after being triggered.\nLonger values keep it visible between damage events.")]
+        public int MiniHealthbarLingerTime { get; set; } = 3;
 
         // ╔════════════════════════════════════════════════════════════════════╗
         // ║                      DEBUG (SEPARATE PAGE)                          ║
