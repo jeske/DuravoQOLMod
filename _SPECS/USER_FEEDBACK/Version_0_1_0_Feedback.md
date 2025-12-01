@@ -2,9 +2,9 @@ From @ScalarVector
 
 ## Crafting
 
-* [x] strange gap present between window and tab, despite tab asset indicating it should be flush based on partial outline
-* [x] no indication of craftability for top row
-* [ ] Highlight when hovering does not match the shape of the rounded square item icon
+* [X] strange gap present between window and tab, despite tab asset indicating it should be flush based on partial outline
+* [X] no indication of craftability for top row
+* [X] Highlight when hovering does not match the shape of the rounded square item icon
 * [ ] Recipes in the crafting window remain "unknown" despite having all requires materials and stations, and the item itself
 
 ## Minions
@@ -12,7 +12,8 @@ From @ScalarVector
 * [ ] Pathfound minion routes seem to have no or a very high upwards cap on speed?
 * [ ] Didnt notice anything notibly wrong with any of the pathfinding despite the odd speed at times
 
-## Armor 
+## Armor
+
 * [ ] 'Fragile' is a debuff yet uses the blue buff background
 * [ ] 'super shiny' set pieces appear to unintuitively also contribute to the 'shiny' set bonus
 * [ ] "shielding" effects would benefit greatly from custom sprites or more clear visual effects. Changing the visual effect based on the equipped set is a nice touch
@@ -27,5 +28,6 @@ Feedback:
 * Having configuration for all the features is nice, but it has an issue where if im looking to include something into a playthrough or modpack its hard to reach for such a strange set of features together (note modpacks dont come with configs!)
 
 Actions:
-* [ ] split into separate mods (shield, minion changes, crafting, world persistence) 
-* [x] You should really add some images to your workshop page. Having a seperate site is nice but the clickthrough rate from your workshop page to the site will very likely be low, and only improved if anything by having a good showcase on steam itself
+
+* [ ] split into separate mods (shield, minion changes, crafting, world persistence)
+* [X] You should really add some images to your workshop page. Having a seperate site is nice but the clickthrough rate from your workshop page to the site will very likely be low, and only improved if anything by having a good showcase on steam itself

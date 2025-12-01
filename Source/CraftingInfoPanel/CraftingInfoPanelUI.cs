@@ -429,13 +429,8 @@ public partial class CraftingInfoPanelUI : UIState
         Color baseSlotTint;
         float baseOpacity;
 
-        // Determine slot texture and tint - only craftable items are bright
-        if (isHeader) {
-            slotTexture = TextureAssets.InventoryBack5.Value;
-            baseSlotTint = new Color(150, 150, 180);
-            baseOpacity = 0.4f;  // Headers dimmed like non-craftable
-        }
-        else if (shouldHideItem) {
+        // Simple two-state styling: craftable (bright) vs normal (dimmed)
+        if (shouldHideItem) {
             // Hidden item - draw empty slot
             slotTexture = TextureAssets.InventoryBack.Value;
             baseSlotTint = new Color(60, 60, 80);
@@ -448,7 +443,7 @@ public partial class CraftingInfoPanelUI : UIState
             baseOpacity = 1f;
         }
         else {
-            // Non-craftable: regular slot dimmed
+            // Non-craftable (including headers): regular slot dimmed
             slotTexture = TextureAssets.InventoryBack.Value;
             baseSlotTint = Color.White;
             baseOpacity = 0.4f;
