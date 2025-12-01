@@ -14,7 +14,7 @@ From @ScalarVector
 
 ## Armor
 
-* [ ] 'Fragile' is a debuff yet uses the blue buff background
+* [X] 'Fragile' is a debuff yet uses the blue buff background
 * [ ] 'super shiny' set pieces appear to unintuitively also contribute to the 'shiny' set bonus
 * [ ] "shielding" effects would benefit greatly from custom sprites or more clear visual effects. Changing the visual effect based on the equipped set is a nice touch
 * [ ] Iron/lead armor appears to strangely have been left out of the changes to ore armors?
