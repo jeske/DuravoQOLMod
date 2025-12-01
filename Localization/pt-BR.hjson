@@ -11,7 +11,7 @@ Mods: {
 					FeatureToggles: Ativar/Desativar Recursos
 					MinionBehavior: Comportamento de Lacaios
 					CraftingPanel: Painel de Criação
-					// MiniHealthbar: Mini Healthbar Header
+					MiniHealthbar: Mini Barra de Saúde
 				}
 
 				ClientPersistentPosition: {
@@ -72,48 +72,75 @@ Mods: {
 				}
 
 				MiniHealthbarEnabled: {
-					// Label: Mini Healthbar Enabled
-					/* Tooltip:
+					Label: Mini Barra de Saúde Ativada
+					Tooltip:
 						'''
-						Enable the mini healthbar that appears below your character during combat.
-						Shows health, recent damage, and shield status at a glance.
-						''' */
+						Ativa a mini barra de saúde que aparece abaixo do seu personagem durante o combate.
+						Mostra saúde, dano recente e status do escudo de relance.
+						'''
 				}
-
+	
 				MiniHealthbarAlwaysOn: {
-					// Label: Mini Healthbar Always On
-					/* Tooltip:
+					Label: Mini Barra de Saúde Sempre Visível
+					Tooltip:
 						'''
-						Always show the mini healthbar, even when at full health.
-						By default, it only appears when health is low or taking damage.
-						''' */
+						Sempre mostrar a mini barra de saúde, mesmo com saúde cheia.
+						Por padrão, ela só aparece quando a saúde está baixa ou ao receber dano.
+						'''
 				}
-
+	
 				MiniHealthbarHealthThreshold: {
-					// Label: "[i:29] Health Threshold (%)"
-					/* Tooltip:
+					Label: "[i:29] Limite de Saúde (%)"
+					Tooltip:
 						'''
-						Show healthbar when health drops below this percentage.
-						0% = never show based on health, 100% = always show when not full.
-						''' */
+						Mostra a barra de saúde quando a saúde cai abaixo desta porcentagem.
+						0% = nunca mostrar baseado em saúde, 100% = sempre mostrar quando não cheia.
+						'''
 				}
-
+	
 				MiniHealthbarDamageThreshold: {
-					// Label: "[i:29] Damage Threshold (%)"
-					/* Tooltip:
+					Label: "[i:29] Limite de Dano (%)"
+					Tooltip:
 						'''
-						Show healthbar temporarily when taking damage exceeding this percentage of max health (within 1 second).
-						0% = any damage triggers it, 100% = only massive hits.
-						''' */
+						Mostra a barra de saúde temporariamente ao receber dano que excede esta porcentagem da saúde máxima (em 1 segundo).
+						0% = qualquer dano a ativa, 100% = apenas golpes massivos.
+						'''
 				}
-
+	
 				MiniHealthbarLingerTime: {
-					// Label: "[i:75] Linger Time (seconds)"
-					/* Tooltip:
+					Label: "[i:75] Tempo de Permanência (segundos)"
+					Tooltip:
 						'''
-						How many seconds the healthbar stays visible after being triggered.
-						Longer values keep it visible between damage events.
-						''' */
+						Quantos segundos a barra de saúde permanece visível após ser ativada.
+						Valores maiores a mantêm visível entre eventos de dano.
+						'''
+				}
+	
+				MiniHealthbarMinBrightnessPercent: {
+					Label: Brilho Mínimo da Mini Barra de Saúde (%)
+					Tooltip:
+						'''
+						Brilho mínimo da barra de saúde na escuridão completa.
+						0% = totalmente invisível em cavernas, 100% = sempre brilhante.
+						'''
+				}
+	
+				MiniHealthbarMaxBrightnessPercent: {
+					Label: Brilho Máximo da Mini Barra de Saúde (%)
+					Tooltip:
+						'''
+						Brilho máximo da barra de saúde em luz plena.
+						100% = totalmente brilhante na superfície, valores menores escurecem a barra.
+						'''
+				}
+	
+				MiniHealthbarLightingBoostPercent: {
+					Label: Aumento de Iluminação da Mini Barra de Saúde (%)
+					Tooltip:
+						'''
+						Aumenta a iluminação para tornar a barra de saúde mais visível na escuridão.
+						0% = a barra escurece naturalmente em cavernas, 100% = sempre totalmente iluminada.
+						'''
 				}
 			}
 

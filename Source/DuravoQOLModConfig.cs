@@ -58,13 +58,22 @@ namespace DuravoQOLMod
         public static bool EnableMiniHealthbarAlwaysOn = false;
 
         /// <summary>Cached: Health % threshold to show healthbar (0.0 to 1.0)</summary>
-        public static float MiniHealthbarShowAtHealthPercent = 0.50f;
+        public static float MiniHealthbarShowAtHealthPercent = 0.70f;
 
         /// <summary>Cached: Damage % threshold to trigger healthbar (0.0 to 1.0)</summary>
         public static float MiniHealthbarShowOnDamagePercent = 0.10f;
 
         /// <summary>Cached: Auto-hide time in seconds (float for 0.25s precision)</summary>
-        public static float MiniHealthbarAutoHideSeconds = 3f;
+        public static float MiniHealthbarAutoHideSeconds = 5f;
+
+        /// <summary>Cached: Minimum brightness for healthbar in darkness (0.0 to 1.0)</summary>
+        public static float MiniHealthbarMinBrightness = 0.0f;
+
+        /// <summary>Cached: Maximum brightness for healthbar in full light (0.0 to 1.0)</summary>
+        public static float MiniHealthbarMaxBrightness = 1.0f;
+
+        /// <summary>Cached: Lighting boost to make healthbar more visible in darkness (0.0 = no boost, 1.0 = always fully lit)</summary>
+        public static float MiniHealthbarLightingBoost = 0.0f;
 
         /// <summary>Cached: Debug - Player Persistence.</summary>
         public static bool DebugEnablePlayerPersistence = false;
@@ -104,6 +113,9 @@ namespace DuravoQOLMod
             MiniHealthbarShowAtHealthPercent = MiniHealthbarHealthThreshold / 100f;
             MiniHealthbarShowOnDamagePercent = MiniHealthbarDamageThreshold / 100f;
             MiniHealthbarAutoHideSeconds = MiniHealthbarLingerTime;
+            MiniHealthbarMinBrightness = MiniHealthbarMinBrightnessPercent / 100f;
+            MiniHealthbarMaxBrightness = MiniHealthbarMaxBrightnessPercent / 100f;
+            MiniHealthbarLightingBoost = MiniHealthbarLightingBoostPercent / 100f;
 
             // Debug settings
             DebugEnablePlayerPersistence = Debug.DebugPlayerPersistence;
@@ -168,23 +180,44 @@ namespace DuravoQOLMod
         public bool MiniHealthbarAlwaysOn { get; set; } = false;
 
         [Range(0, 100)]
-        [DefaultValue(50)]
+        [DefaultValue(70)]
         [Slider]
         [Tooltip("Show healthbar when health drops below this percentage.\n0% = never show based on health, 100% = always show when not full.")]
-        public int MiniHealthbarHealthThreshold { get; set; } = 50;
+        public int MiniHealthbarHealthThreshold { get; set; } = 70;
 
         [Range(0, 100)]
-        [DefaultValue(25)]
+        [DefaultValue(10)]
         [Slider]
         [Tooltip("Show healthbar temporarily when taking damage exceeding this percentage of max health.\n0% = any damage triggers it, 100% = only massive hits.")]
-        public int MiniHealthbarDamageThreshold { get; set; } = 25;
+        public int MiniHealthbarDamageThreshold { get; set; } = 10;
 
         [Range(1f, 20f)]
-        [DefaultValue(3f)]
+        [DefaultValue(5f)]
         [Slider]
         [Increment(0.25f)]
         [Tooltip("How many seconds the healthbar stays visible after being triggered.\nLonger values keep it visible between damage events.")]
-        public float MiniHealthbarLingerTime { get; set; } = 3f;
+        public float MiniHealthbarLingerTime { get; set; } = 5f;
+
+        [Range(0, 100)]
+        [DefaultValue(0)]
+        [Slider]
+        [Increment(5)]
+        [Tooltip("Minimum brightness of the healthbar when in complete darkness.\n0% = fully invisible in caves, 100% = always bright.")]
+        public int MiniHealthbarMinBrightnessPercent { get; set; } = 0;
+
+        [Range(0, 100)]
+        [DefaultValue(100)]
+        [Slider]
+        [Increment(5)]
+        [Tooltip("Maximum brightness of the healthbar in full light.\n100% = fully bright on surface, lower values dim the healthbar.")]
+        public int MiniHealthbarMaxBrightnessPercent { get; set; } = 100;
+
+        [Range(0, 100)]
+        [DefaultValue(0)]
+        [Slider]
+        [Increment(5)]
+        [Tooltip("Boost lighting to make healthbar more visible in darkness.\n0% = healthbar dims naturally in caves, 100% = always fully lit.")]
+        public int MiniHealthbarLightingBoostPercent { get; set; } = 0;
 
         // ╔════════════════════════════════════════════════════════════════════╗
         // ║                      DEBUG (SEPARATE PAGE)                          ║

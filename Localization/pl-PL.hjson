@@ -11,7 +11,7 @@ Mods: {
 					FeatureToggles: Włączanie/Wyłączanie Funkcji
 					MinionBehavior: Zachowanie Stronników
 					CraftingPanel: Panel Wytwarzania
-					// MiniHealthbar: Mini Healthbar Header
+					MiniHealthbar: Mini Pasek Zdrowia
 				}
 
 				ClientPersistentPosition: {
@@ -72,48 +72,75 @@ Mods: {
 				}
 
 				MiniHealthbarEnabled: {
-					// Label: Mini Healthbar Enabled
-					/* Tooltip:
+					Label: Mini Pasek Zdrowia Włączony
+					Tooltip:
 						'''
-						Enable the mini healthbar that appears below your character during combat.
-						Shows health, recent damage, and shield status at a glance.
-						''' */
+						Włącza mini pasek zdrowia, który pojawia się pod twoją postacią podczas walki.
+						Pokazuje zdrowie, ostatnie obrażenia i status tarczy na pierwszy rzut oka.
+						'''
 				}
-
+	
 				MiniHealthbarAlwaysOn: {
-					// Label: Mini Healthbar Always On
-					/* Tooltip:
+					Label: Mini Pasek Zdrowia Zawsze Widoczny
+					Tooltip:
 						'''
-						Always show the mini healthbar, even when at full health.
-						By default, it only appears when health is low or taking damage.
-						''' */
+						Zawsze pokazuj mini pasek zdrowia, nawet przy pełnym zdrowiu.
+						Domyślnie pojawia się tylko gdy zdrowie jest niskie lub przy otrzymywaniu obrażeń.
+						'''
 				}
-
+	
 				MiniHealthbarHealthThreshold: {
-					// Label: "[i:29] Health Threshold (%)"
-					/* Tooltip:
+					Label: "[i:29] Próg Zdrowia (%)"
+					Tooltip:
 						'''
-						Show healthbar when health drops below this percentage.
-						0% = never show based on health, 100% = always show when not full.
-						''' */
+						Pokaż pasek zdrowia gdy zdrowie spadnie poniżej tego procentu.
+						0% = nigdy nie pokazuj na podstawie zdrowia, 100% = zawsze pokazuj gdy nie pełne.
+						'''
 				}
-
+	
 				MiniHealthbarDamageThreshold: {
-					// Label: "[i:29] Damage Threshold (%)"
-					/* Tooltip:
+					Label: "[i:29] Próg Obrażeń (%)"
+					Tooltip:
 						'''
-						Show healthbar temporarily when taking damage exceeding this percentage of max health (within 1 second).
-						0% = any damage triggers it, 100% = only massive hits.
-						''' */
+						Pokaż tymczasowo pasek zdrowia przy otrzymaniu obrażeń przekraczających ten procent maksymalnego zdrowia (w ciągu 1 sekundy).
+						0% = każde obrażenie go aktywuje, 100% = tylko masywne ciosy.
+						'''
 				}
-
+	
 				MiniHealthbarLingerTime: {
-					// Label: "[i:75] Linger Time (seconds)"
-					/* Tooltip:
+					Label: "[i:75] Czas Trwania (sekundy)"
+					Tooltip:
 						'''
-						How many seconds the healthbar stays visible after being triggered.
-						Longer values keep it visible between damage events.
-						''' */
+						Ile sekund pasek zdrowia pozostaje widoczny po aktywacji.
+						Wyższe wartości utrzymują go widocznym między zdarzeniami obrażeń.
+						'''
+				}
+	
+				MiniHealthbarMinBrightnessPercent: {
+					Label: Min. Jasność Mini Paska Zdrowia (%)
+					Tooltip:
+						'''
+						Minimalna jasność paska zdrowia w całkowitej ciemności.
+						0% = całkowicie niewidoczny w jaskiniach, 100% = zawsze jasny.
+						'''
+				}
+	
+				MiniHealthbarMaxBrightnessPercent: {
+					Label: Maks. Jasność Mini Paska Zdrowia (%)
+					Tooltip:
+						'''
+						Maksymalna jasność paska zdrowia w pełnym świetle.
+						100% = całkowicie jasny na powierzchni, niższe wartości przyciemniają pasek.
+						'''
+				}
+	
+				MiniHealthbarLightingBoostPercent: {
+					Label: Wzmocnienie Oświetlenia Mini Paska Zdrowia (%)
+					Tooltip:
+						'''
+						Wzmacnia oświetlenie aby pasek zdrowia był bardziej widoczny w ciemności.
+						0% = pasek przyciemnia się naturalnie w jaskiniach, 100% = zawsze w pełni oświetlony.
+						'''
 				}
 			}
 

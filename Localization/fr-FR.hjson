@@ -11,7 +11,7 @@ Mods: {
 					FeatureToggles: Activer/Désactiver les Fonctionnalités
 					MinionBehavior: Comportement des Serviteurs
 					CraftingPanel: Panneau de Fabrication
-					// MiniHealthbar: Mini Healthbar Header
+					MiniHealthbar: Mini Barre de Vie
 				}
 
 				ClientPersistentPosition: {
@@ -72,48 +72,75 @@ Mods: {
 				}
 
 				MiniHealthbarEnabled: {
-					// Label: Mini Healthbar Enabled
-					/* Tooltip:
+					Label: Mini Barre de Vie Activée
+					Tooltip:
 						'''
-						Enable the mini healthbar that appears below your character during combat.
-						Shows health, recent damage, and shield status at a glance.
-						''' */
+						Active la mini barre de vie qui apparaît sous votre personnage pendant le combat.
+						Affiche la vie, les dégâts récents et l'état du bouclier en un coup d'œil.
+						'''
 				}
-
+	
 				MiniHealthbarAlwaysOn: {
-					// Label: Mini Healthbar Always On
-					/* Tooltip:
+					Label: Mini Barre de Vie Toujours Visible
+					Tooltip:
 						'''
-						Always show the mini healthbar, even when at full health.
-						By default, it only appears when health is low or taking damage.
-						''' */
+						Toujours afficher la mini barre de vie, même avec la vie pleine.
+						Par défaut, elle n'apparaît que lorsque la vie est basse ou en cas de dégâts.
+						'''
 				}
-
+	
 				MiniHealthbarHealthThreshold: {
-					// Label: "[i:29] Health Threshold (%)"
-					/* Tooltip:
+					Label: "[i:29] Seuil de Vie (%)"
+					Tooltip:
 						'''
-						Show healthbar when health drops below this percentage.
-						0% = never show based on health, 100% = always show when not full.
-						''' */
+						Affiche la barre de vie quand la vie tombe en dessous de ce pourcentage.
+						0% = ne jamais afficher selon la vie, 100% = toujours afficher si pas pleine.
+						'''
 				}
-
+	
 				MiniHealthbarDamageThreshold: {
-					// Label: "[i:29] Damage Threshold (%)"
-					/* Tooltip:
+					Label: "[i:29] Seuil de Dégâts (%)"
+					Tooltip:
 						'''
-						Show healthbar temporarily when taking damage exceeding this percentage of max health (within 1 second).
-						0% = any damage triggers it, 100% = only massive hits.
-						''' */
+						Affiche temporairement la barre de vie en cas de dégâts dépassant ce pourcentage de vie max (en 1 seconde).
+						0% = tout dégât la déclenche, 100% = seulement les coups massifs.
+						'''
 				}
-
+	
 				MiniHealthbarLingerTime: {
-					// Label: "[i:75] Linger Time (seconds)"
-					/* Tooltip:
+					Label: "[i:75] Durée d'Affichage (secondes)"
+					Tooltip:
 						'''
-						How many seconds the healthbar stays visible after being triggered.
-						Longer values keep it visible between damage events.
-						''' */
+						Combien de secondes la barre de vie reste visible après déclenchement.
+						Des valeurs plus élevées la gardent visible entre les événements de dégâts.
+						'''
+				}
+	
+				MiniHealthbarMinBrightnessPercent: {
+					Label: Luminosité Min de la Mini Barre de Vie (%)
+					Tooltip:
+						'''
+						Luminosité minimale de la barre de vie dans l'obscurité totale.
+						0% = totalement invisible dans les grottes, 100% = toujours lumineuse.
+						'''
+				}
+	
+				MiniHealthbarMaxBrightnessPercent: {
+					Label: Luminosité Max de la Mini Barre de Vie (%)
+					Tooltip:
+						'''
+						Luminosité maximale de la barre de vie en pleine lumière.
+						100% = totalement lumineuse en surface, des valeurs basses atténuent la barre.
+						'''
+				}
+	
+				MiniHealthbarLightingBoostPercent: {
+					Label: Boost d'Éclairage de la Mini Barre de Vie (%)
+					Tooltip:
+						'''
+						Augmente l'éclairage pour rendre la barre de vie plus visible dans l'obscurité.
+						0% = la barre s'atténue naturellement dans les grottes, 100% = toujours complètement éclairée.
+						'''
 				}
 			}
 

@@ -11,7 +11,7 @@ Mods: {
 					FeatureToggles: 功能开关
 					MinionBehavior: 仆从行为
 					CraftingPanel: 制作面板
-					// MiniHealthbar: Mini Healthbar Header
+					MiniHealthbar: 迷你血条
 				}
 
 				ClientPersistentPosition: {
@@ -72,48 +72,75 @@ Mods: {
 				}
 
 				MiniHealthbarEnabled: {
-					// Label: Mini Healthbar Enabled
-					/* Tooltip:
+					Label: 启用迷你血条
+					Tooltip:
 						'''
-						Enable the mini healthbar that appears below your character during combat.
-						Shows health, recent damage, and shield status at a glance.
-						''' */
+						启用战斗中显示在角色下方的迷你血条。
+						一目了然地显示生命值、近期伤害和护盾状态。
+						'''
 				}
-
+	
 				MiniHealthbarAlwaysOn: {
-					// Label: Mini Healthbar Always On
-					/* Tooltip:
+					Label: 迷你血条始终显示
+					Tooltip:
 						'''
-						Always show the mini healthbar, even when at full health.
-						By default, it only appears when health is low or taking damage.
-						''' */
+						始终显示迷你血条，即使生命值已满。
+						默认情况下，只有在生命值较低或受到伤害时才会出现。
+						'''
 				}
-
+	
 				MiniHealthbarHealthThreshold: {
-					// Label: "[i:29] Health Threshold (%)"
-					/* Tooltip:
+					Label: "[i:29] 生命值阈值 (%)"
+					Tooltip:
 						'''
-						Show healthbar when health drops below this percentage.
-						0% = never show based on health, 100% = always show when not full.
-						''' */
+						当生命值降至此百分比以下时显示血条。
+						0% = 从不根据生命值显示，100% = 只要不满就显示。
+						'''
 				}
-
+	
 				MiniHealthbarDamageThreshold: {
-					// Label: "[i:29] Damage Threshold (%)"
-					/* Tooltip:
+					Label: "[i:29] 伤害阈值 (%)"
+					Tooltip:
 						'''
-						Show healthbar temporarily when taking damage exceeding this percentage of max health (within 1 second).
-						0% = any damage triggers it, 100% = only massive hits.
-						''' */
+						当受到超过此百分比最大生命值的伤害时（1秒内）临时显示血条。
+						0% = 任何伤害都会触发，100% = 只有巨大伤害才会触发。
+						'''
 				}
-
+	
 				MiniHealthbarLingerTime: {
-					// Label: "[i:75] Linger Time (seconds)"
-					/* Tooltip:
+					Label: "[i:75] 持续时间（秒）"
+					Tooltip:
 						'''
-						How many seconds the healthbar stays visible after being triggered.
-						Longer values keep it visible between damage events.
-						''' */
+						血条被触发后保持可见的秒数。
+						较长的值使其在伤害事件之间保持可见。
+						'''
+				}
+	
+				MiniHealthbarMinBrightnessPercent: {
+					Label: 迷你血条最小亮度 (%)
+					Tooltip:
+						'''
+						完全黑暗中血条的最小亮度。
+						0% = 在洞穴中完全不可见，100% = 始终明亮。
+						'''
+				}
+	
+				MiniHealthbarMaxBrightnessPercent: {
+					Label: 迷你血条最大亮度 (%)
+					Tooltip:
+						'''
+						完全光照下血条的最大亮度。
+						100% = 在地表完全明亮，较低值会使血条变暗。
+						'''
+				}
+	
+				MiniHealthbarLightingBoostPercent: {
+					Label: 迷你血条照明增强 (%)
+					Tooltip:
+						'''
+						增强照明以使血条在黑暗中更加可见。
+						0% = 血条在洞穴中自然变暗，100% = 始终完全照亮。
+						'''
 				}
 			}
 

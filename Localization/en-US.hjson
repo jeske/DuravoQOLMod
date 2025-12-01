@@ -1,3 +1,15 @@
+// ═══════════════════════════════════════════════════════════════════════════
+// en-US.hjson - English localization (REFERENCE FILE)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// After adding new localization strings to this file, run the validator to
+// check that all other language files have been updated:
+//
+//     dotnet run --project Scripts/LocalizationsCompleteCheck
+//
+// The validator will report any missing or extra keys in the translation files.
+// ═══════════════════════════════════════════════════════════════════════════
+
 Mods: {
 	DuravoQOLMod: {
 		// ═══════════════════════════════════════════════════════════════════
@@ -113,6 +125,33 @@ Mods: {
 						'''
 						How many seconds the healthbar stays visible after being triggered.
 						Longer values keep it visible between damage events.
+						'''
+				}
+
+				MiniHealthbarMinBrightnessPercent: {
+					Label: Mini Healthbar Min Brightness Percent
+					Tooltip:
+						'''
+						Minimum brightness of the healthbar when in complete darkness.
+						0% = fully invisible in caves, 100% = always bright.
+						'''
+				}
+
+				MiniHealthbarMaxBrightnessPercent: {
+					Label: Mini Healthbar Max Brightness Percent
+					Tooltip:
+						'''
+						Maximum brightness of the healthbar in full light.
+						100% = fully bright on surface, lower values dim the healthbar.
+						'''
+				}
+
+				MiniHealthbarLightingBoostPercent: {
+					Label: Mini Healthbar Lighting Boost Percent
+					Tooltip:
+						'''
+						Boost lighting to make healthbar more visible in darkness.
+						0% = healthbar dims naturally in caves, 100% = always fully lit.
 						'''
 				}
 			}

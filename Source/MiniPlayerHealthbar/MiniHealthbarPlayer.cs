@@ -19,8 +19,8 @@ namespace DuravoQOLMod.MiniPlayerHealthbar
         /// <summary>When health drops below this value (4 hearts), always show the healthbar (fallback threshold)</summary>
         private const int HealthAbsoluteThreshold = 80; // 4 hearts
 
-        /// <summary>How long (in ticks) the yellow "damage taken" bar takes to drain</summary>
-        private const int DamageAnimationDurationTicks = 60; // 1 second
+        /// <summary>How much of max health to decay per second (10% = drains full bar in 10s)</summary>
+        private const float RecentHealthDecayPerSecond = 0.10f;
 
         // Config-driven values (accessed via cached static properties):
         // - DuravoQOLModConfig.MiniHealthbarShowAtHealthPercent (0.0 to 1.0)
@@ -34,17 +34,8 @@ namespace DuravoQOLMod.MiniPlayerHealthbar
         // ║                          INSTANCE STATE                            ║
         // ╚════════════════════════════════════════════════════════════════════╝
 
-        /// <summary>The health value displayed by the yellow bar (trails actual health)</summary>
-        private int displayedHealthForYellowBar;
-
-        /// <summary>How many ticks until the yellow bar catches up to current health</summary>
-        private int damageAnimationTicksRemaining;
-
-        /// <summary>How much total damage the yellow bar needs to animate away</summary>
-        private int damageToAnimateAway;
-
-        /// <summary>Health at the start of the animation (for interpolation)</summary>
-        private int healthAtAnimationStart;
+        /// <summary>The health value displayed by the recent damage bar (trails actual health)</summary>
+        private int recentHealthValue;
 
         /// <summary>How many ticks the healthbar should remain visible</summary>
         private int healthbarVisibleTicks;
@@ -74,9 +65,9 @@ namespace DuravoQOLMod.MiniPlayerHealthbar
             ? MathHelper.Clamp((float)Player.statLife / Player.statLifeMax2, 0f, 1f)
             : 0f;
 
-        /// <summary>Yellow bar health as a ratio (trails actual health for damage animation)</summary>
-        public float YellowBarHealthRatio => Player.statLifeMax2 > 0
-            ? MathHelper.Clamp((float)displayedHealthForYellowBar / Player.statLifeMax2, 0f, 1f)
+        /// <summary>Recent health as a ratio (trails actual health for damage animation)</summary>
+        public float RecentHealthRatio => Player.statLifeMax2 > 0
+            ? MathHelper.Clamp((float)recentHealthValue / Player.statLifeMax2, 0f, 1f)
             : 0f;
 
         /// <summary>Get shield info from armor system if available</summary>
@@ -100,10 +91,7 @@ namespace DuravoQOLMod.MiniPlayerHealthbar
 
         public override void Initialize()
         {
-            displayedHealthForYellowBar = 0;
-            damageAnimationTicksRemaining = 0;
-            damageToAnimateAway = 0;
-            healthAtAnimationStart = 0;
+            recentHealthValue = 0;
             healthbarVisibleTicks = 0;
             previousHealth = 0;
             recentDamageAccumulator = 0;
@@ -112,8 +100,8 @@ namespace DuravoQOLMod.MiniPlayerHealthbar
 
         public override void OnEnterWorld()
         {
-            // Initialize to current health so yellow bar starts correct
-            displayedHealthForYellowBar = Player.statLife;
+            // Initialize to current health so recent damage bar starts correct
+            recentHealthValue = Player.statLife;
             previousHealth = Player.statLife;
         }
 
@@ -124,7 +112,7 @@ namespace DuravoQOLMod.MiniPlayerHealthbar
         public override void PostUpdate()
         {
             UpdateDamageTracking();
-            UpdateDamageAnimation();
+            UpdateRecentHealthDecay();
             UpdateVisibility();
         }
 
@@ -138,28 +126,22 @@ namespace DuravoQOLMod.MiniPlayerHealthbar
 
             // Detect damage (positive change means health went down)
             if (damageTaken > 0) {
-                // Accumulate recent damage
+                // Accumulate recent damage for threshold check
                 recentDamageAccumulator += damageTaken;
                 recentDamageResetTicks = RecentDamageWindowTicks;
-
-                // Start/extend damage animation
-                StartDamageAnimation(damageTaken);
 
                 // Show healthbar
                 healthbarVisibleTicks = HealthbarLingerTicks;
             }
 
-            // Detect healing - update yellow bar immediately for heals
-            if (damageTaken < 0) {
-                // Health increased - snap yellow bar to current if it would be below
-                if (displayedHealthForYellowBar < currentHealth) {
-                    displayedHealthForYellowBar = currentHealth;
-                }
+            // Detect healing - snap recentHealthValue up to current health
+            if (currentHealth > recentHealthValue) {
+                recentHealthValue = currentHealth;
             }
 
             previousHealth = currentHealth;
 
-            // Decay recent damage accumulator
+            // Decay recent damage accumulator for threshold check
             if (recentDamageResetTicks > 0) {
                 recentDamageResetTicks--;
                 if (recentDamageResetTicks == 0) {
@@ -169,52 +151,24 @@ namespace DuravoQOLMod.MiniPlayerHealthbar
         }
 
         /// <summary>
-        /// Start or extend the yellow bar drain animation.
+        /// Decay recentHealthValue toward current health at a fixed rate.
+        /// 10% of max health per second = ~0.17% per tick.
         /// </summary>
-        private void StartDamageAnimation(int newDamage)
+        private void UpdateRecentHealthDecay()
         {
-            // If animation already running, just add to remaining damage
-            if (damageAnimationTicksRemaining > 0) {
-                // Keep current displayedHealthForYellowBar, extend animation
-                damageToAnimateAway = displayedHealthForYellowBar - Player.statLife;
-            }
-            else {
-                // Start fresh animation
-                healthAtAnimationStart = displayedHealthForYellowBar;
-                damageToAnimateAway = newDamage;
-            }
+            int currentHealth = Player.statLife;
 
-            damageAnimationTicksRemaining = DamageAnimationDurationTicks;
-        }
-
-        /// <summary>
-        /// Animate the yellow bar draining down to current health.
-        /// </summary>
-        private void UpdateDamageAnimation()
-        {
-            if (damageAnimationTicksRemaining > 0) {
-                damageAnimationTicksRemaining--;
-
-                // Calculate interpolation progress (1.0 at start, 0.0 at end)
-                float progress = (float)damageAnimationTicksRemaining / DamageAnimationDurationTicks;
-
-                // Ease-out function for smooth deceleration
-                float easedProgress = progress * progress; // Quadratic ease-out (inverted)
-
-                // Interpolate yellow bar from animation start to current health
-                int targetHealth = Player.statLife;
-                displayedHealthForYellowBar = targetHealth + (int)(damageToAnimateAway * easedProgress);
-
-                // Clamp to valid range
-                displayedHealthForYellowBar = (int)MathHelper.Clamp(
-                    displayedHealthForYellowBar,
-                    targetHealth,
-                    Player.statLifeMax2
-                );
-            }
-            else {
-                // Animation complete - snap to current health
-                displayedHealthForYellowBar = Player.statLife;
+            // If recentHealthValue > currentHealth, decay it down
+            if (recentHealthValue > currentHealth) {
+                // Calculate decay amount: 10% of max health per second / 60 ticks
+                int decayPerTick = (int)System.Math.Max(1, Player.statLifeMax2 * RecentHealthDecayPerSecond / 60f);
+                
+                recentHealthValue -= decayPerTick;
+                
+                // Don't go below current health
+                if (recentHealthValue < currentHealth) {
+                    recentHealthValue = currentHealth;
+                }
             }
         }
 

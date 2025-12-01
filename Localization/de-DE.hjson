@@ -11,7 +11,7 @@ Mods: {
 					FeatureToggles: Funktionen Ein/Aus
 					MinionBehavior: Diener-Verhalten
 					CraftingPanel: Handwerks-Panel
-					// MiniHealthbar: Mini Healthbar Header
+					MiniHealthbar: Mini-Gesundheitsleiste
 				}
 
 				ClientPersistentPosition: {
@@ -72,48 +72,75 @@ Mods: {
 				}
 
 				MiniHealthbarEnabled: {
-					// Label: Mini Healthbar Enabled
-					/* Tooltip:
+					Label: Mini-Gesundheitsleiste Aktiviert
+					Tooltip:
 						'''
-						Enable the mini healthbar that appears below your character during combat.
-						Shows health, recent damage, and shield status at a glance.
-						''' */
+						Aktiviert die Mini-Gesundheitsleiste, die während des Kampfes unter deinem Charakter erscheint.
+						Zeigt Gesundheit, kürzlichen Schaden und Schildstatus auf einen Blick.
+						'''
 				}
-
+	
 				MiniHealthbarAlwaysOn: {
-					// Label: Mini Healthbar Always On
-					/* Tooltip:
+					Label: Mini-Gesundheitsleiste Immer An
+					Tooltip:
 						'''
-						Always show the mini healthbar, even when at full health.
-						By default, it only appears when health is low or taking damage.
-						''' */
+						Zeigt die Mini-Gesundheitsleiste immer an, auch bei voller Gesundheit.
+						Standardmäßig erscheint sie nur bei niedriger Gesundheit oder bei Schaden.
+						'''
 				}
-
+	
 				MiniHealthbarHealthThreshold: {
-					// Label: "[i:29] Health Threshold (%)"
-					/* Tooltip:
+					Label: "[i:29] Gesundheitsschwelle (%)"
+					Tooltip:
 						'''
-						Show healthbar when health drops below this percentage.
-						0% = never show based on health, 100% = always show when not full.
-						''' */
+						Zeigt die Gesundheitsleiste wenn die Gesundheit unter diesen Prozentsatz fällt.
+						0% = nie basierend auf Gesundheit anzeigen, 100% = immer zeigen wenn nicht voll.
+						'''
 				}
-
+	
 				MiniHealthbarDamageThreshold: {
-					// Label: "[i:29] Damage Threshold (%)"
-					/* Tooltip:
+					Label: "[i:29] Schadensschwelle (%)"
+					Tooltip:
 						'''
-						Show healthbar temporarily when taking damage exceeding this percentage of max health (within 1 second).
-						0% = any damage triggers it, 100% = only massive hits.
-						''' */
+						Zeigt die Gesundheitsleiste vorübergehend bei Schaden über diesem Prozentsatz der maximalen Gesundheit (innerhalb 1 Sekunde).
+						0% = jeder Schaden löst sie aus, 100% = nur massive Treffer.
+						'''
 				}
-
+	
 				MiniHealthbarLingerTime: {
-					// Label: "[i:75] Linger Time (seconds)"
-					/* Tooltip:
+					Label: "[i:75] Verweilzeit (Sekunden)"
+					Tooltip:
 						'''
-						How many seconds the healthbar stays visible after being triggered.
-						Longer values keep it visible between damage events.
-						''' */
+						Wie viele Sekunden die Gesundheitsleiste nach dem Auslösen sichtbar bleibt.
+						Längere Werte halten sie zwischen Schadensereignissen sichtbar.
+						'''
+				}
+	
+				MiniHealthbarMinBrightnessPercent: {
+					Label: Mini-Gesundheitsleiste Min. Helligkeit (%)
+					Tooltip:
+						'''
+						Minimale Helligkeit der Gesundheitsleiste in völliger Dunkelheit.
+						0% = völlig unsichtbar in Höhlen, 100% = immer hell.
+						'''
+				}
+	
+				MiniHealthbarMaxBrightnessPercent: {
+					Label: Mini-Gesundheitsleiste Max. Helligkeit (%)
+					Tooltip:
+						'''
+						Maximale Helligkeit der Gesundheitsleiste bei vollem Licht.
+						100% = voll hell an der Oberfläche, niedrigere Werte dimmen die Leiste.
+						'''
+				}
+	
+				MiniHealthbarLightingBoostPercent: {
+					Label: Mini-Gesundheitsleiste Beleuchtungsverstärkung (%)
+					Tooltip:
+						'''
+						Verstärkt die Beleuchtung um die Gesundheitsleiste in Dunkelheit besser sichtbar zu machen.
+						0% = Leiste dimmt natürlich in Höhlen, 100% = immer voll beleuchtet.
+						'''
 				}
 			}
 

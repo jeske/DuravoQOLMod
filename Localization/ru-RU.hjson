@@ -11,7 +11,7 @@ Mods: {
 					FeatureToggles: Включение/Выключение Функций
 					MinionBehavior: Поведение Прислужников
 					CraftingPanel: Панель Крафта
-					// MiniHealthbar: Mini Healthbar Header
+					MiniHealthbar: Мини Полоса Здоровья
 				}
 
 				ClientPersistentPosition: {
@@ -72,48 +72,75 @@ Mods: {
 				}
 
 				MiniHealthbarEnabled: {
-					// Label: Mini Healthbar Enabled
-					/* Tooltip:
+					Label: Мини Полоса Здоровья Включена
+					Tooltip:
 						'''
-						Enable the mini healthbar that appears below your character during combat.
-						Shows health, recent damage, and shield status at a glance.
-						''' */
+						Включает мини полосу здоровья, которая появляется под вашим персонажем во время боя.
+						Показывает здоровье, недавний урон и статус щита с первого взгляда.
+						'''
 				}
-
+	
 				MiniHealthbarAlwaysOn: {
-					// Label: Mini Healthbar Always On
-					/* Tooltip:
+					Label: Мини Полоса Здоровья Всегда Видна
+					Tooltip:
 						'''
-						Always show the mini healthbar, even when at full health.
-						By default, it only appears when health is low or taking damage.
-						''' */
+						Всегда показывать мини полосу здоровья, даже при полном здоровье.
+						По умолчанию она появляется только при низком здоровье или при получении урона.
+						'''
 				}
-
+	
 				MiniHealthbarHealthThreshold: {
-					// Label: "[i:29] Health Threshold (%)"
-					/* Tooltip:
+					Label: "[i:29] Порог Здоровья (%)"
+					Tooltip:
 						'''
-						Show healthbar when health drops below this percentage.
-						0% = never show based on health, 100% = always show when not full.
-						''' */
+						Показывать полосу здоровья, когда здоровье падает ниже этого процента.
+						0% = никогда не показывать по здоровью, 100% = всегда показывать если не полное.
+						'''
 				}
-
+	
 				MiniHealthbarDamageThreshold: {
-					// Label: "[i:29] Damage Threshold (%)"
-					/* Tooltip:
+					Label: "[i:29] Порог Урона (%)"
+					Tooltip:
 						'''
-						Show healthbar temporarily when taking damage exceeding this percentage of max health (within 1 second).
-						0% = any damage triggers it, 100% = only massive hits.
-						''' */
+						Временно показывать полосу здоровья при получении урона, превышающего этот процент от максимального здоровья (в течение 1 секунды).
+						0% = любой урон активирует её, 100% = только массивные удары.
+						'''
 				}
-
+	
 				MiniHealthbarLingerTime: {
-					// Label: "[i:75] Linger Time (seconds)"
-					/* Tooltip:
+					Label: "[i:75] Время Задержки (секунды)"
+					Tooltip:
 						'''
-						How many seconds the healthbar stays visible after being triggered.
-						Longer values keep it visible between damage events.
-						''' */
+						Сколько секунд полоса здоровья остаётся видимой после активации.
+						Большие значения сохраняют её видимой между событиями урона.
+						'''
+				}
+	
+				MiniHealthbarMinBrightnessPercent: {
+					Label: Мин. Яркость Мини Полосы Здоровья (%)
+					Tooltip:
+						'''
+						Минимальная яркость полосы здоровья в полной темноте.
+						0% = полностью невидима в пещерах, 100% = всегда яркая.
+						'''
+				}
+	
+				MiniHealthbarMaxBrightnessPercent: {
+					Label: Макс. Яркость Мини Полосы Здоровья (%)
+					Tooltip:
+						'''
+						Максимальная яркость полосы здоровья при полном освещении.
+						100% = полностью яркая на поверхности, меньшие значения затемняют полосу.
+						'''
+				}
+	
+				MiniHealthbarLightingBoostPercent: {
+					Label: Усиление Освещения Мини Полосы Здоровья (%)
+					Tooltip:
+						'''
+						Усиливает освещение, чтобы полоса здоровья была более видима в темноте.
+						0% = полоса естественно затемняется в пещерах, 100% = всегда полностью освещена.
+						'''
 				}
 			}
 
