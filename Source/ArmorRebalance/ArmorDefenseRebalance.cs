@@ -22,7 +22,7 @@ namespace DuravoQOLMod.ArmorRebalance
     {
         // FEATURE FLAG: Heavy armor knockback bonus (resistance + reflection)
         private const bool EnableHeavyKnockbackBonus = true;
-        
+
         // Tooltip color hex codes (pre-computed to avoid allocations)
         private const string HexColorActiveBuffName = "00FF00";   // Green
         private const string HexColorInactiveText = "666666";     // Dark grey
@@ -153,7 +153,7 @@ namespace DuravoQOLMod.ArmorRebalance
             tooltips.RemoveAll(line => line.Name == "SetBonus");
 
             var armorTag = ArmorSetBonusPlayer.GetArmorTagForItem(item.type);
-            bool isEquipped = IsItemTypeEquipped(item.type);
+            bool isEquipped = IsThisItemEquipped(item);
 
             // Add chestplate-specific bonus (if applicable)
             AddChestplateBonusTooltip(item.type, tooltips);
@@ -168,14 +168,16 @@ namespace DuravoQOLMod.ArmorRebalance
         }
 
         /// <summary>
-        /// Check if the item's type is currently equipped by the local player.
-        /// Uses type comparison since Terraria may pass cloned items to ModifyTooltips.
+        /// Check if THIS specific item instance is currently equipped by the local player.
+        /// Uses GUID-based instance tracking since Terraria clones items for tooltip display.
+        /// The clone preserves the same GUID, allowing us to match it to the equipped original.
         /// </summary>
-        private static bool IsItemTypeEquipped(int itemType)
+        private static bool IsThisItemEquipped(Item item)
         {
             Player player = Main.LocalPlayer;
             for (int armorSlot = 0; armorSlot < 3; armorSlot++) {
-                if (player.armor[armorSlot].type == itemType) {
+                // Use GUID comparison - works even when Terraria clones items for tooltips
+                if (ItemInstanceTracker.AreSameInstance(player.armor[armorSlot], item)) {
                     return true;
                 }
             }
@@ -264,7 +266,7 @@ namespace DuravoQOLMod.ArmorRebalance
         {
             // Don't show Heavy tooltip until knockback feature is implemented
             if (!EnableHeavyKnockbackBonus) return;
-            
+
             bool isHeavyChestplate = itemType switch {
                 ItemID.IronChainmail => true,
                 ItemID.LeadChainmail => true,
