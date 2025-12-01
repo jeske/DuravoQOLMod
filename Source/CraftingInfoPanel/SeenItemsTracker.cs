@@ -122,6 +122,55 @@ public static class SeenItemsTracker
     }
     
     /// <summary>
+    /// Scan all currently available recipes and mark both the craftable item
+    /// and all its ingredients as seen. Called periodically during gameplay.
+    /// This ensures that when a recipe shows up in the native crafting UI,
+    /// the player has "discovered" it and its ingredients.
+    /// </summary>
+    public static void ScanAvailableRecipes()
+    {
+        EnsureLoaded();
+        
+        bool anyNewItems = false;
+        
+        for (int availableIndex = 0; availableIndex < Main.numAvailableRecipes; availableIndex++) {
+            int globalRecipeIndex = Main.availableRecipe[availableIndex];
+            Recipe recipe = Main.recipe[globalRecipeIndex];
+            
+            // Mark the craftable item as seen
+            int craftableItemId = recipe.createItem.type;
+            if (craftableItemId > ItemID.None && seenItemIds.Add(craftableItemId)) {
+                anyNewItems = true;
+                
+                // Check if this is a hardmode ore bar
+                if (!hasSeenAnyHardmodeItem && HardmodeOreBarItemIds.Contains(craftableItemId)) {
+                    hasSeenAnyHardmodeItem = true;
+                }
+            }
+            
+            // Mark all ingredients as seen
+            foreach (Item ingredient in recipe.requiredItem) {
+                if (ingredient.type <= ItemID.None) {
+                    break;
+                }
+                if (seenItemIds.Add(ingredient.type)) {
+                    anyNewItems = true;
+                    
+                    // Check if this is a hardmode ore bar
+                    if (!hasSeenAnyHardmodeItem && HardmodeOreBarItemIds.Contains(ingredient.type)) {
+                        hasSeenAnyHardmodeItem = true;
+                    }
+                }
+            }
+        }
+        
+        if (anyNewItems) {
+            isDirty = true;
+            SaveToFile();
+        }
+    }
+    
+    /// <summary>
     /// Scan a player's inventory and mark all items as seen.
     /// Called when entering a world.
     /// </summary>
@@ -129,73 +178,64 @@ public static class SeenItemsTracker
     {
         EnsureLoaded();
         
-        // Main inventory
-        foreach (Item item in player.inventory) {
-            if (item.type > ItemID.None) {
-                if (seenItemIds.Add(item.type)) {
-                    isDirty = true;
+        bool anyNewItems = false;
+        
+        // Helper to add item and check hardmode
+        void AddItemIfNew(int itemType)
+        {
+            if (itemType > ItemID.None && seenItemIds.Add(itemType)) {
+                anyNewItems = true;
+                // Check if this is a hardmode ore bar
+                if (!hasSeenAnyHardmodeItem && HardmodeOreBarItemIds.Contains(itemType)) {
+                    hasSeenAnyHardmodeItem = true;
                 }
             }
+        }
+        
+        // Main inventory
+        foreach (Item item in player.inventory) {
+            AddItemIfNew(item.type);
         }
         
         // Equipped armor
         foreach (Item item in player.armor) {
-            if (item.type > ItemID.None) {
-                if (seenItemIds.Add(item.type)) {
-                    isDirty = true;
-                }
-            }
+            AddItemIfNew(item.type);
         }
         
         // Accessories
         foreach (Item item in player.miscEquips) {
-            if (item.type > ItemID.None) {
-                if (seenItemIds.Add(item.type)) {
-                    isDirty = true;
-                }
-            }
+            AddItemIfNew(item.type);
         }
         
         // Dyes
         foreach (Item item in player.dye) {
-            if (item.type > ItemID.None) {
-                if (seenItemIds.Add(item.type)) {
-                    isDirty = true;
-                }
-            }
+            AddItemIfNew(item.type);
         }
+        
+        // Misc dyes (grapple dye, mount dye, etc.)
+        foreach (Item item in player.miscDyes) {
+            AddItemIfNew(item.type);
+        }
+        
+        // Trash slot
+        AddItemIfNew(player.trashItem.type);
         
         // Piggy bank, Safe, Defender's Forge, Void Vault
         foreach (Item item in player.bank.item) {
-            if (item.type > ItemID.None) {
-                if (seenItemIds.Add(item.type)) {
-                    isDirty = true;
-                }
-            }
+            AddItemIfNew(item.type);
         }
         foreach (Item item in player.bank2.item) {
-            if (item.type > ItemID.None) {
-                if (seenItemIds.Add(item.type)) {
-                    isDirty = true;
-                }
-            }
+            AddItemIfNew(item.type);
         }
         foreach (Item item in player.bank3.item) {
-            if (item.type > ItemID.None) {
-                if (seenItemIds.Add(item.type)) {
-                    isDirty = true;
-                }
-            }
+            AddItemIfNew(item.type);
         }
         foreach (Item item in player.bank4.item) {
-            if (item.type > ItemID.None) {
-                if (seenItemIds.Add(item.type)) {
-                    isDirty = true;
-                }
-            }
+            AddItemIfNew(item.type);
         }
         
-        if (isDirty) {
+        if (anyNewItems) {
+            isDirty = true;
             SaveToFile();
         }
     }
@@ -353,6 +393,12 @@ public class SeenItemsTrackerPlayer : ModPlayer
         return true;
     }
     
+    /// <summary>Frame counter for throttled recipe scanning</summary>
+    private int recipeScanFrameCounter = 0;
+    
+    /// <summary>How often to scan recipes (every N frames)</summary>
+    private const int RECIPE_SCAN_INTERVAL_FRAMES = 30; // ~0.5 seconds at 60fps
+    
     public override void PostUpdate()
     {
         // Check if player has a chest open and scan its contents
@@ -366,6 +412,14 @@ public class SeenItemsTrackerPlayer : ModPlayer
         else if (currentChestIndex < 0) {
             // No chest open, reset tracking
             lastScannedChestIndex = -1;
+        }
+        
+        // Periodically scan available recipes to discover new items
+        // This marks items and their ingredients as "seen" when they become craftable
+        recipeScanFrameCounter++;
+        if (recipeScanFrameCounter >= RECIPE_SCAN_INTERVAL_FRAMES) {
+            recipeScanFrameCounter = 0;
+            SeenItemsTracker.ScanAvailableRecipes();
         }
     }
     
