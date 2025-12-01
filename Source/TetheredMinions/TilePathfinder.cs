@@ -155,7 +155,132 @@ namespace DuravoQOLMod.TetheredMinions
                 worldPath.Add(worldPos);
             }
 
+            // Smooth the path by removing redundant waypoints where diagonal shortcuts are possible
+            if (worldPath.Count > 2) {
+                worldPath = SmoothWorldPath(worldPath, clearanceWidth, clearanceHeight);
+            }
+
             return worldPath;
+        }
+
+        /// <summary>
+        /// Smooth a world-coordinate path by removing intermediate waypoints when direct diagonal
+        /// shortcuts are possible. Uses line-of-sight checks with clearance.
+        /// </summary>
+        private static List<Vector2> SmoothWorldPath(List<Vector2> originalPath, int clearanceWidth, int clearanceHeight)
+        {
+            if (originalPath.Count <= 2) {
+                return originalPath;  // Nothing to smooth
+            }
+
+            // Store clearance for IsTilePassable calls
+            _currentClearanceWidthTiles = clearanceWidth;
+            _currentClearanceHeightTiles = clearanceHeight;
+
+            var smoothedPath = new List<Vector2> { originalPath[0] };
+            int currentIndex = 0;
+
+            while (currentIndex < originalPath.Count - 1) {
+                // Try to find the farthest waypoint we can reach directly
+                int farthestReachable = currentIndex + 1;
+
+                for (int testIndex = currentIndex + 2; testIndex < originalPath.Count; testIndex++) {
+                    if (HasMinionVectorClearance(originalPath[currentIndex], originalPath[testIndex])) {
+                        farthestReachable = testIndex;
+                    } else {
+                        // Once we can't reach a waypoint, stop looking further
+                        // (obstacles generally don't "un-block" as we go further)
+                        break;
+                    }
+                }
+
+                // Add the farthest reachable waypoint
+                smoothedPath.Add(originalPath[farthestReachable]);
+                currentIndex = farthestReachable;
+            }
+
+            if (DebugPathfinding && smoothedPath.Count < originalPath.Count) {
+                int removed = originalPath.Count - smoothedPath.Count;
+                Main.NewText($"[A*] Path smoothed: {originalPath.Count} → {smoothedPath.Count} waypoints (-{removed})", Microsoft.Xna.Framework.Color.Lime);
+            }
+
+            return smoothedPath;
+        }
+
+        /// <summary>
+        /// Check if a minion can traverse directly between two world positions,
+        /// accounting for entity clearance by checking all 4 corners of the hitbox.
+        /// </summary>
+        private static bool HasMinionVectorClearance(Vector2 fromWorld, Vector2 toWorld)
+        {
+            // The waypoints are CENTERED on the entity's clearance area
+            // Calculate corner offsets based on clearance (in pixels)
+            float halfWidthPixels = (_currentClearanceWidthTiles * PixelsPerTile) / 2f;
+            float halfHeightPixels = (_currentClearanceHeightTiles * PixelsPerTile) / 2f;
+
+            // Define the 4 corner offsets from center
+            Vector2[] cornerOffsets = {
+                new Vector2(-halfWidthPixels, -halfHeightPixels),  // Top-left
+                new Vector2(halfWidthPixels - 1, -halfHeightPixels),   // Top-right (subtract 1 to stay inside hitbox)
+                new Vector2(-halfWidthPixels, halfHeightPixels - 1),   // Bottom-left
+                new Vector2(halfWidthPixels - 1, halfHeightPixels - 1) // Bottom-right
+            };
+
+            // Check line-of-sight for each corner
+            for (int cornerIndex = 0; cornerIndex < 4; cornerIndex++) {
+                Vector2 fromCorner = fromWorld + cornerOffsets[cornerIndex];
+                Vector2 toCorner = toWorld + cornerOffsets[cornerIndex];
+
+                if (!IsSingleLineClear(fromCorner, toCorner)) {
+                    return false;  // This corner's path is blocked
+                }
+            }
+
+            return true;  // All 4 corners can reach their destinations
+        }
+
+        /// <summary>
+        /// Check if a single line (Bresenham) between two world positions is clear.
+        /// Uses IsSingleTilePassable (not full clearance check).
+        /// </summary>
+        private static bool IsSingleLineClear(Vector2 fromWorld, Vector2 toWorld)
+        {
+            Point fromTile = fromWorld.ToTileCoordinates();
+            Point toTile = toWorld.ToTileCoordinates();
+
+            // Use Bresenham's line algorithm
+            int dx = Math.Abs(toTile.X - fromTile.X);
+            int dy = Math.Abs(toTile.Y - fromTile.Y);
+            int stepX = fromTile.X < toTile.X ? 1 : -1;
+            int stepY = fromTile.Y < toTile.Y ? 1 : -1;
+
+            int currentX = fromTile.X;
+            int currentY = fromTile.Y;
+            int error = dx - dy;
+
+            while (true) {
+                // Check if current tile is passable (skip start tile - entity is already there)
+                if (!(currentX == fromTile.X && currentY == fromTile.Y)) {
+                    if (!IsSingleTilePassable(currentX, currentY)) {
+                        return false;
+                    }
+                }
+
+                // Reached destination?
+                if (currentX == toTile.X && currentY == toTile.Y) {
+                    return true;
+                }
+
+                int error2 = 2 * error;
+                if (error2 > -dy) {
+                    error -= dy;
+                    currentX += stepX;
+                }
+                if (error2 < dx) {
+                    error += dx;
+                    currentY += stepY;
+                }
+            }
         }
 
         /// <summary>

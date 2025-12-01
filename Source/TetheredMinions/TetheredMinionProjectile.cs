@@ -91,7 +91,7 @@ namespace DuravoQOLMod.TetheredMinions
         private const float WaypointArrivalDistance = 24f;
 
         /// <summary>Speed when following A* path (pixels per tick)</summary>
-        private const float PathFollowSpeed = 8f;
+        private const float PathFollowSpeed = 4f;
 
         /// <summary>Minimum distance from player (pixels) before QoL pathing kicks in</summary>
         private const float MinDistanceForQoLPathing = 80f;
@@ -665,22 +665,38 @@ namespace DuravoQOLMod.TetheredMinions
                 return;
             }
 
-            // Get current waypoint target - skip waypoints we've already passed
-            Vector2 waypointWorldPosition = currentPathWaypoints[currentWaypointIndex];
-            float distanceToWaypoint = Vector2.Distance(minion.Center, waypointWorldPosition);
+            // Move toward current waypoint - disable tileCollide so we can actually follow the path!
+            minion.tileCollide = false;
 
-            // Advance through waypoints we've already reached
-            while (distanceToWaypoint < WaypointArrivalDistance &&
-                   currentWaypointIndex < currentPathWaypoints.Count - 1) {
-                currentWaypointIndex++;
-                waypointWorldPosition = currentPathWaypoints[currentWaypointIndex];
-                distanceToWaypoint = Vector2.Distance(minion.Center, waypointWorldPosition);
+            // Movement budget approach: consume waypoints as we move, carrying leftover distance forward
+            // This prevents "stopping" at each waypoint and wasting motion
+            float movementBudgetRemaining = PathFollowSpeed;  // 3 pixels this tick
+            Vector2 currentPosition = minion.Center;
+            Vector2 finalMoveDirection = Vector2.Zero;
+
+            while (movementBudgetRemaining > 0.01f && currentWaypointIndex < currentPathWaypoints.Count) {
+                Vector2 targetWaypoint = currentPathWaypoints[currentWaypointIndex];
+                Vector2 toWaypoint = targetWaypoint - currentPosition;
+                float distToWaypoint = toWaypoint.Length();
+
+                if (distToWaypoint <= movementBudgetRemaining) {
+                    // Can reach this waypoint with budget to spare - consume it and continue
+                    currentPosition = targetWaypoint;
+                    movementBudgetRemaining -= distToWaypoint;
+                    if (distToWaypoint > 0.01f) {
+                        finalMoveDirection = toWaypoint / distToWaypoint;
+                    }
+                    currentWaypointIndex++;
+                } else {
+                    // Can't reach waypoint this tick - use all remaining budget moving toward it
+                    finalMoveDirection = toWaypoint / distToWaypoint;  // normalized direction
+                    currentPosition += finalMoveDirection * movementBudgetRemaining;
+                    movementBudgetRemaining = 0;
+                }
             }
 
-            // If we've reached the last waypoint, we're done! The path endpoint is the player.
-            if (currentWaypointIndex >= currentPathWaypoints.Count - 1 &&
-                distanceToWaypoint < WaypointArrivalDistance) {
-                // Successfully reached the end of the path - let normal AI take over
+            // Check if we've exhausted the path (reached final waypoint)
+            if (currentWaypointIndex >= currentPathWaypoints.Count) {
                 if (DebugTethering) {
                     Main.NewText($"[TETHER] {minion.Name} reached end of A* path - success!", Color.Green);
                 }
@@ -688,20 +704,18 @@ namespace DuravoQOLMod.TetheredMinions
                 return;
             }
 
-            // Move toward current waypoint - disable tileCollide so we can actually follow the path!
-            minion.tileCollide = false;
+            // Apply position change directly (more precise than velocity-based movement)
+            minion.Center = currentPosition;
 
-            Vector2 directionToWaypoint = waypointWorldPosition - minion.Center;
-            if (directionToWaypoint.Length() > 0) {
-                directionToWaypoint.Normalize();
-                minion.velocity = directionToWaypoint * PathFollowSpeed;
+            // Set velocity to point in final direction (for sprite facing and smooth visuals)
+            minion.velocity = finalMoveDirection * 0.5f;
 
-                if (DebugTethering && Main.GameUpdateCount % 30 == 0) {
-                    // Show direction in compass style: left/right/up/down
-                    string horizDir = directionToWaypoint.X > 0.3f ? "R" : (directionToWaypoint.X < -0.3f ? "L" : "-");
-                    string vertDir = directionToWaypoint.Y > 0.3f ? "D" : (directionToWaypoint.Y < -0.3f ? "U" : "-");
-                    Main.NewText($"[TETHER] {minion.Name} wp {currentWaypointIndex}/{currentPathWaypoints.Count}, dist={distanceToWaypoint:F0}px, dir={horizDir}{vertDir} vel=({minion.velocity.X:F1},{minion.velocity.Y:F1})", Color.Gray);
-                }
+            if (DebugTethering && Main.GameUpdateCount % 30 == 0) {
+                Vector2 nextWaypoint = currentPathWaypoints[currentWaypointIndex];
+                float distToNextWp = Vector2.Distance(minion.Center, nextWaypoint);
+                string horizDir = finalMoveDirection.X > 0.3f ? "R" : (finalMoveDirection.X < -0.3f ? "L" : "-");
+                string vertDir = finalMoveDirection.Y > 0.3f ? "D" : (finalMoveDirection.Y < -0.3f ? "U" : "-");
+                Main.NewText($"[TETHER] {minion.Name} wp {currentWaypointIndex}/{currentPathWaypoints.Count}, dist={distToNextWp:F0}px, dir={horizDir}{vertDir}", Color.Gray);
             }
 
             // Spawn subtle trail while path-following
