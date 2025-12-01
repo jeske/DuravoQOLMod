@@ -355,33 +355,43 @@ public partial class CraftingInfoPanelUI : UIState
 
     private void DrawTabContent(SpriteBatch spriteBatch, PanelPositionCalculator<CraftingSlotInfo> layout)
     {
-        Texture2D pixelTexture = TextureAssets.MagicPixel.Value;
-        CraftingSlotInfo? hoveredSlot = null;
-        Rectangle hoveredScreenBounds = Rectangle.Empty;
-
-        // Draw all slots
+        // First pass: find which slot is hovered (before drawing)
+        int hoveredElementIndex = -1;
+        int scanIndex = 0;
         foreach (var element in layout.Elements) {
             Rectangle screenBounds = layout.GetElementScreenBounds(element.RelativeBounds);
             CraftingSlotInfo slotInfo = element.Payload;
-
-            bool canCraft = CanCraftItem(slotInfo.ItemId);
-            DrawItemSlot(spriteBatch, screenBounds, slotInfo.ItemId, slotInfo.IsHeader, canCraft);
 
             // Check if item is hidden (setting handled in tracker)
             bool isHidden = !slotInfo.IsHeader && !SeenItemsTracker.ShouldShowItem(slotInfo.ItemId);
 
             // Only allow hover on visible items
             if (!isHidden && screenBounds.Contains(Main.mouseX, Main.mouseY)) {
-                hoveredSlot = slotInfo;
-                hoveredScreenBounds = screenBounds;
+                hoveredElementIndex = scanIndex;
             }
+            scanIndex++;
         }
 
-        // Handle hover and click
+        // Second pass: draw all slots with hover state known
+        CraftingSlotInfo? hoveredSlot = null;
+        int drawIndex = 0;
+        foreach (var element in layout.Elements) {
+            Rectangle screenBounds = layout.GetElementScreenBounds(element.RelativeBounds);
+            CraftingSlotInfo slotInfo = element.Payload;
+
+            bool isHovered = (drawIndex == hoveredElementIndex);
+            bool canCraft = CanCraftItem(slotInfo.ItemId);
+            DrawItemSlot(spriteBatch, screenBounds, slotInfo.ItemId, slotInfo.IsHeader, canCraft, isHovered);
+
+            if (isHovered) {
+                hoveredSlot = slotInfo;
+            }
+            drawIndex++;
+        }
+
+        // Handle hover tooltip and click (no additional drawing - tint handled in DrawItemSlot)
         if (hoveredSlot.HasValue) {
             CraftingSlotInfo slot = hoveredSlot.Value;
-
-            spriteBatch.Draw(pixelTexture, hoveredScreenBounds, Color.White * 0.2f);
 
             // Check if alt is held for native tooltip mode
             bool altHeld = Main.keyState.IsKeyDown(Keys.LeftAlt) || Main.keyState.IsKeyDown(Keys.RightAlt);
@@ -410,52 +420,50 @@ public partial class CraftingInfoPanelUI : UIState
             CraftingPanelTooltipGlobalItem.HoveredCraftingPanelItemId = -1;
         }
     }
-    private void DrawItemSlot(SpriteBatch spriteBatch, Rectangle screenBounds, int itemId, bool isHeader, bool canCraft)
+    private void DrawItemSlot(SpriteBatch spriteBatch, Rectangle screenBounds, int itemId, bool isHeader, bool canCraft, bool isHovered)
     {
-        Texture2D pixelTexture = TextureAssets.MagicPixel.Value;
-        float opacity = 1f;
-
         // Check if item should be hidden (setting handled in tracker)
         bool shouldHideItem = !isHeader && !SeenItemsTracker.ShouldShowItem(itemId);
 
         Texture2D slotTexture;
-        Color slotTint;
+        Color baseSlotTint;
+        float baseOpacity;
 
+        // Determine slot texture and tint - only craftable items are bright
         if (isHeader) {
             slotTexture = TextureAssets.InventoryBack5.Value;
-            slotTint = new Color(150, 150, 180);
+            baseSlotTint = new Color(150, 150, 180);
+            baseOpacity = 0.4f;  // Headers dimmed like non-craftable
         }
         else if (shouldHideItem) {
             // Hidden item - draw empty slot
             slotTexture = TextureAssets.InventoryBack.Value;
-            slotTint = new Color(60, 60, 80);
-            opacity = 0.5f;
+            baseSlotTint = new Color(60, 60, 80);
+            baseOpacity = 0.5f;
         }
         else if (canCraft) {
+            // Craftable: use InventoryBack10 (green slot) with white tint at full brightness
             slotTexture = TextureAssets.InventoryBack10.Value;
-            slotTint = Color.White;
+            baseSlotTint = Color.White;
+            baseOpacity = 1f;
         }
         else {
+            // Non-craftable: regular slot dimmed
             slotTexture = TextureAssets.InventoryBack.Value;
-            slotTint = Color.White;
-            opacity = 0.4f;
+            baseSlotTint = Color.White;
+            baseOpacity = 0.4f;
         }
 
-        spriteBatch.Draw(slotTexture, screenBounds, slotTint * opacity);
+        // No hover effect - just use base values
+        float finalOpacity = baseOpacity;
+        Color finalSlotTint = baseSlotTint;
 
-        // Yellow border for craftable items (including headers, but not hidden items)
-        if (!shouldHideItem && canCraft) {
-            Color highlightColor = Color.Yellow;
-            int borderWidth = 2;
-            spriteBatch.Draw(pixelTexture, new Rectangle(screenBounds.X, screenBounds.Y, screenBounds.Width, borderWidth), highlightColor);
-            spriteBatch.Draw(pixelTexture, new Rectangle(screenBounds.X, screenBounds.Bottom - borderWidth, screenBounds.Width, borderWidth), highlightColor);
-            spriteBatch.Draw(pixelTexture, new Rectangle(screenBounds.X, screenBounds.Y, borderWidth, screenBounds.Height), highlightColor);
-            spriteBatch.Draw(pixelTexture, new Rectangle(screenBounds.Right - borderWidth, screenBounds.Y, borderWidth, screenBounds.Height), highlightColor);
-        }
+        // Draw the actual slot
+        spriteBatch.Draw(slotTexture, screenBounds, finalSlotTint * finalOpacity);
 
         // Draw item (skip if hidden)
         if (shouldHideItem) {
-            // Draw question mark or nothing for hidden items
+            // Draw question mark for hidden items
             Utils.DrawBorderString(spriteBatch, "?",
                 new Vector2(screenBounds.X + SLOT_SIZE / 2f, screenBounds.Y + SLOT_SIZE / 2f),
                 new Color(100, 100, 120), 1f, 0.5f, 0.5f);
@@ -475,7 +483,16 @@ public partial class CraftingInfoPanelUI : UIState
 
         Vector2 itemCenter = new Vector2(screenBounds.X + SLOT_SIZE / 2, screenBounds.Y + SLOT_SIZE / 2);
         Vector2 itemOrigin = new Vector2(itemTexture.Width / 2, itemTexture.Height / 2);
-        Color itemTint = (canCraft || isHeader) ? Color.White : Color.White * opacity;
+
+        // Item tint: only craftable items are bright white, everything else dimmed
+        Color itemTint;
+        if (canCraft) {
+            itemTint = Color.White;  // Bright white for craftable
+        }
+        else {
+            itemTint = Color.White * 0.4f;  // Dimmed for headers and non-craftable
+        }
+
         spriteBatch.Draw(itemTexture, itemCenter, null, itemTint, 0f, itemOrigin, scale, SpriteEffects.None, 0f);
     }
 
